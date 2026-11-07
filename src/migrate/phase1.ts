@@ -14,10 +14,10 @@ import { itemsOf } from "../importers";
 import { DATA, ROOT, readToml, registry, snapshotPath } from "../lib";
 import { toToml } from "./toml";
 
-// RETIRED after Phase 2 (tag migration-final): the bug files are the source
+// RETIRED after Phase 2 (last output: commit 25ab604, v0 bugs): the bug files are the source
 // of truth now, edited by hand, and re-running this would overwrite them.
 if (!process.argv.includes("--i-know-this-overwrites-hand-edits")) {
-  console.error("phase1.ts is retired (tag migration-final): edit data/bugs/ directly; bun run verify checks nothing was lost.");
+  console.error("phase1.ts is retired (last output: commit 25ab604, v0 bugs): edit data/bugs/ directly; bun run verify checks nothing was lost.");
   process.exit(2);
 }
 const [HEGEL, PYSCOTCH] = process.argv.slice(2).filter((a) => !a.startsWith("--"));

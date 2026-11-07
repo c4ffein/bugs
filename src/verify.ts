@@ -6,7 +6,7 @@
 //    passed verify, an ancestor of HEAD): uuids.txt only grew, every bug it
 //    had still exists, and their [imported.*] source records are unchanged.
 //    Every pin passed against the one before it, so this holds back to the
-//    migration (tag migration-final, the first pin).
+//    migration (commit 25ab604, v0 bugs, the first pin).
 // --pin: when everything is ok and the tree is clean, write HEAD into
 // data/verified-at.txt; commit that to move the baseline forward.
 import { $ } from "bun";
