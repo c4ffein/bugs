@@ -3,7 +3,8 @@
 // 2. every uuid ever issued (data/uuids.txt) still names a bug, and every
 //    bug's uuid is listed;
 // 3. uuids.txt only grows: every line of the committed version is still here;
-// 4. every bug of the last generated state (tag migration-final) still exists.
+// 4. every bug of the last generated state (tag migration-final) still exists;
+// 5. and its [imported.*] source records are unchanged since then.
 import { $ } from "bun";
 import { join } from "node:path";
 import { DATA, ROOT, bugs } from "./lib";
@@ -39,6 +40,22 @@ else {
   const gone = then.filter((u) => !byUuid.has(u));
   if (gone.length) problems.push(`${gone.length} bugs of migration-final are gone: ${gone.slice(0, 3).join(", ")}`);
   else ok(`all ${then.length} bugs of migration-final still exist`);
+
+  // 5. [imported.*] is the source record, verbatim: never edited by hand.
+  const files = (await git("ls-tree", "-r", "--name-only", "migration-final", "--", "data/bugs"))!.split("\n").filter((f) => f.endsWith(".toml"));
+  const batch = Bun.spawnSync(["git", "-C", ROOT, "cat-file", "--batch"], { stdin: Buffer.from(files.map((f) => `migration-final:${f}\n`).join("")) }).stdout; // bytes: git prints byte counts
+  const changed: string[] = [];
+  let pos = 0;
+  for (const f of files) {
+    const nl = batch.indexOf(10, pos);
+    const size = Number(batch.subarray(pos, nl).toString().split(" ")[2]);
+    const old = Bun.TOML.parse(batch.subarray(nl + 1, nl + 1 + size).toString()) as any;
+    pos = nl + 1 + size + 1;
+    const now = byUuid.get(old.uuid);
+    if (now && !Bun.deepEquals(old.imported ?? {}, now.imported ?? {}, true)) changed.push(now.id);
+  }
+  if (changed.length) problems.push(`[imported] edited since migration-final (it is the source record, verbatim; restore it with git show migration-final:<file>): ${changed.join(", ")}`);
+  else ok(`[imported] of all ${files.length} bugs unchanged since migration-final`);
 }
 
 for (const p of problems) console.log(`FAIL  ${p}`);
