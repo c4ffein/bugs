@@ -1,8 +1,7 @@
 <!-- SPDX-License-Identifier: MIT AND GPL-2.0-only
      Copyright (c) 2026 c4ffein
      SPDX-FileCopyrightText: The Linux kernel authors (lib/sg_split.c excerpt)
-     Part of hegel-c — see hegel/LICENSE for terms. The quoted kernel code is
-     GPL-2.0-only, as in its upstream file. -->
+     The quoted kernel code is GPL-2.0-only, as in its upstream file. -->
 
 # sg_split `nb_splits` overshoot — how a bonus finding became a patch series
 
@@ -70,7 +69,6 @@ territory and the break is skipped.
 
 Relevant code, lines 35–72 of the snapshot (matches current upstream):
 
-<!-- /ignore excerpt of upstream Linux lib/sg_split.c sg_calculate_split() at the pinned snapshot, kernel source not in this repo -->
 ```c
 for_each_sg(in, sg, nents, i) {
     sglen = mapped ? sg_dma_len(sg) : sg->length;

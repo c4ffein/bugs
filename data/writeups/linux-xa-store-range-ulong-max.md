@@ -1,8 +1,8 @@
-<!-- SPDX-License-Identifier: MIT AND GPL-2.0-only
+<!-- SPDX-License-Identifier: MIT AND GPL-2.0-or-later
      Copyright (c) 2026 c4ffein
-     SPDX-FileCopyrightText: The Linux kernel authors (lib/ excerpts)
-     Part of hegel-c — see hegel/LICENSE for terms. The quoted kernel code is
-     GPL-2.0-only, as in its upstream files. -->
+     SPDX-FileCopyrightText: The Linux kernel authors (lib/xarray.c excerpt)
+     The quoted kernel code is GPL-2.0+, as in its upstream file (not
+     GPL-2.0-only, as this header said until 2026-11-07). -->
 
 # `xa_store_range(_, ULONG_MAX, _)` loops forever on unsigned wrap
 
@@ -24,7 +24,6 @@ multi-index entry (f0f80e85841d); not this one.
 The range-tiling inner loop advances `first` by the size of each stored chunk and
 continues while `first <= last`:
 
-<!-- /ignore excerpt of upstream Linux lib/xarray.c xa_store_range() loop, kernel source not in this repo -->
 ```c
 do {
     xas_set_range(&xas, first, last);
@@ -42,7 +41,9 @@ terminates.
 
 ## Repro
 
-<!-- /ignore kernel-side repro sketch (xarray API), not compiled -->
+Built and run: `witnesses/linux/linux-xa-store-range-ulong-max/` (its README has
+the expected output). hegel-c's pin `xa_store_range` finds it by itself.
+
 ```c
 DEFINE_XARRAY(xa);
 xa_store_range(&xa, ULONG_MAX - 1, ULONG_MAX, xa_mk_value(2), GFP_KERNEL); /* hangs */
@@ -54,9 +55,15 @@ the call timed out (non-terminating); the hunter's guard terminates it.
 
 ## Suggested fix
 
+**Incomplete (2026-11-07):** with this fix, `xa_store_range (0, ULONG_MAX)`
+returns with `ULONG_MAX` unstored. That range also hangs on v7.1, by a second
+path: `xas_set_range()` sizes its one chunk `16 << 60`, so `xas_size()` wraps
+to 0 and `first` never moves. Found by hegel-c's property test; the kit shows
+both cases (`candidate-fix.patch` is this fix). Tracked as its own bug,
+`linux-xa-store-range-full-range-size-wrap`.
+
 Stop when `first` wraps to zero:
 
-<!-- /ignore one-line fix sketch for xa_store_range(), not compiled -->
 ```c
 } while (first && first <= last);
 ```

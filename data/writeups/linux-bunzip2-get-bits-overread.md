@@ -1,8 +1,8 @@
-<!-- SPDX-License-Identifier: MIT AND GPL-2.0-only
+<!-- SPDX-License-Identifier: MIT AND LGPL-2.0-only
      Copyright (c) 2026 c4ffein
-     SPDX-FileCopyrightText: The Linux kernel authors (lib/ excerpts)
-     Part of hegel-c — see hegel/LICENSE for terms. The quoted kernel code is
-     GPL-2.0-only, as in its upstream files. -->
+     SPDX-FileCopyrightText: Rob Landley, after Julian R Seward (lib/decompress_bunzip2.c excerpt)
+     The quoted kernel code is LGPLv2, as its upstream file says (not
+     GPL-2.0-only, as this header said until 2026-11-07). -->
 
 # `get_bits()` heap over-read after EOF on a truncated bzip2 stream
 
@@ -24,7 +24,6 @@ in the same decompressor (Aamir Ahmed, Matt Turner); `get_bits()` is unchanged.
 The refill / EOF handling and the `io_error` early-return are both nested inside
 the `inbufPos == inbufCount` equality test:
 
-<!-- /ignore excerpt of upstream Linux lib/decompress_bunzip2.c get_bits() (abridged), kernel source not in this repo -->
 ```c
 if (bd->inbufPos == bd->inbufCount) {
     if (bd->io_error)

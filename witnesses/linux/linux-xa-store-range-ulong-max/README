@@ -1,0 +1,28 @@
+Witness of linux-xa-store-range-ulong-max (lib/xarray.c, xa_store_range()).
+
+  make LINUX=<kernel tree> harness   builds tools/testing/radix-tree once
+  make LINUX=<kernel tree> run       exit 1 while the bug is there
+
+Needs liburcu (URCU_PFX, default ~/.local/urcu_extract/usr).
+
+Expected at v7.1 (8cd9520d35a6), checked 2026-11-07:
+  xa_store_range(18446744073709551613, 18446744073709551614): ok
+  xa_store_range(18446744073709551614, 18446744073709551615): BUG: did not return within 5 s
+  xa_store_range(0, 18446744073709551615): BUG: did not return within 5 s
+  exit 1
+
+With candidate-fix.patch (the write-up's one-line fix: stop the tiling
+loop when `first` wraps to 0), applied to v7.1 and the harness rebuilt:
+  xa_store_range(18446744073709551613, 18446744073709551614): ok
+  xa_store_range(18446744073709551614, 18446744073709551615): ok
+  xa_store_range(0, 18446744073709551615): BUG: returned, but a load at an end of the range misses
+  exit 1
+
+So the candidate fix is incomplete.  Two paths reach the hang:
+  - [ULONG_MAX - 1, ULONG_MAX]: the last chunk's size wraps `first` to 0;
+  - [0, ULONG_MAX]: xas_set_range() sizes the single chunk 16 << 60 (shift
+    60, 16 slots), so xas_size() is 0 and `first` never moves.
+The fix stops both loops, but in the second case it stops after a store
+that leaves ULONG_MAX empty.  Found 2026-11-07 by hegel-c's property test
+(pin tests/irl/linux/pins/xa_store_range.conf, which shrinks to
+[0, ULONG_MAX] on v7.1).  A real fix has to size or split that chunk.

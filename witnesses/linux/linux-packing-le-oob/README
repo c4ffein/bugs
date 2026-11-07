@@ -1,0 +1,20 @@
+Witness of linux-packing-le-oob (lib/packing.c, calculate_box_addr(), via
+pack() / unpack()).
+
+  make LINUX=<kernel tree> run   non-zero exit while the bug is there
+
+Self-contained: compiles the tree's lib/packing.c with compat.h (copied
+from hegel-c's tests/irl/linux/packing_roundtrip/), ASan and UBSan on.
+
+Expected at v7.1 (8cd9520d35a6), checked 2026-11-07:
+  SUMMARY: AddressSanitizer: heap-buffer-overflow .../lib/packing.c:155 in __pack
+  exit 1
+
+With hegel-c's fix (tests/irl/linux/pins/packing_roundtrip.patch, the
+pin's fixed state), checked 2026-11-07:
+  pack(1-byte buffer, bit 0, QUIRK_LITTLE_ENDIAN) stayed in bounds
+  exit 0
+
+The repro is the write-up's own minimal case.  hegel-c's pin
+tests/irl/linux/pins/packing_roundtrip.conf runs the round-trip property
+(unpack (pack (x)) == x) that found the bug, red then green the same way.

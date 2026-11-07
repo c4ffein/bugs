@@ -1,0 +1,16 @@
+Witness of linux-ida-find-first-range (lib/idr.c, ida_find_first_range()).
+
+  make LINUX=<kernel tree> harness   builds tools/testing/radix-tree once
+  make LINUX=<kernel tree> run       exit 1 while the bug is there
+
+Needs liburcu (URCU_PFX, default ~/.local/urcu_extract/usr).
+
+Expected at v7.1 (8cd9520d35a6), checked 2026-11-07:
+  ida_find_first_range(ida = {0, 1024}, 1, 2999) = -2 (want 1024)
+  BUG: the search stopped at block 0
+  exit 1
+
+The repro is the write-up's own code.  hegel-c's pin
+tests/irl/linux/pins/ida_find_first_range.conf runs a property test that
+finds it without being told the input (shrinks to IDs {0, 1024}, range
+(1, 1024)).

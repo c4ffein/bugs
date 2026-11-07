@@ -29,6 +29,10 @@ date = "2026-07-12"
 date_is = "stated"
 ref = "hegel-c-findings#linux-packing-le-oob"
 
+[[witness]]
+kind = "kit"
+path = "witnesses/linux/linux-packing-le-oob"
+
 [imported]
 
 [imported.hegel-c-findings]

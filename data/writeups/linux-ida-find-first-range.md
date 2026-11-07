@@ -1,6 +1,5 @@
 <!-- SPDX-License-Identifier: MIT
-     Copyright (c) 2026 c4ffein
-     Part of hegel-c — see hegel/LICENSE for terms. -->
+     Copyright (c) 2026 c4ffein -->
 
 # `ida_find_first_range()` fails to advance past the first bitmap block
 
@@ -26,7 +25,9 @@ code returns `-ENOENT` — it never advances to the *next* present block.
 
 ## Repro
 
-<!-- /ignore kernel-side repro sketch (ida API), not compiled -->
+Built and run: `witnesses/linux/linux-ida-find-first-range/` (its README has
+the expected output). hegel-c's pin `ida_find_first_range` finds it by itself.
+
 ```c
 DEFINE_IDA(ida);
 ida_alloc_range(&ida, 0, 0, GFP_KERNEL);        /* id 0    -> block 0, bit 0   */

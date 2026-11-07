@@ -1,0 +1,32 @@
+uuid       = "62b88644-f6aa-493c-a3aa-e8fc2d447903"
+id         = "linux-xa-store-range-full-range-size-wrap"
+project    = "linux"
+title      = "xa_store_range(0, ULONG_MAX): the one chunk's size wraps to 0, so first never moves"
+where      = "lib/xarray.c: xa_store_range(), xas_set_range(), xas_size()"
+kind       = "hang"
+confidence = "high"
+reach      = "latent"
+disclosure = "public"
+state      = "confirmed"
+notes      = "xas_set_range(0, ULONG_MAX) sizes the single chunk 16 << 60 (shift 60, 16 slots), so xas_size() returns 0 and the tiling loop's first += xas_size() never advances: a hang on v7.1, by a different path from linux-xa-store-range-ulong-max. That bug's one-line fix (stop when first is 0) ends this loop too, but after one store that leaves ULONG_MAX empty, so a real fix has to size or split that chunk. Found 2026-11-07 by hegel-c's property test (pin xa_store_range shrinks to [0, ULONG_MAX] on v7.1); the shared kit shows the hang, and with candidate-fix.patch the missing entry."
+
+[[discovery]]
+by      = "hegel-c"
+date    = "2026-11-07"
+date_is = "stated"
+ref     = "hegel-c run 2026-11-07-linux-pins-ida-xarray (pin tests/irl/linux/pins/xa_store_range.conf)"
+
+[[witness]]
+kind = "kit"
+path = "witnesses/linux/linux-xa-store-range-ulong-max"
+
+[[witness]]
+kind = "hegel-c-pin"
+repo = "https://github.com/c4ffein/hegel-c"
+ref  = "pending"
+pin  = "tests/irl/linux/pins/xa_store_range.conf"
+
+[[link]]
+to     = "linux-xa-store-range-ulong-max"
+rel    = "related"
+reason = "same function and same symptom (the tiling loop never ends), different causes: in linux-xa-store-range-ulong-max first wraps past ULONG_MAX, in this one the chunk size wraps to 0; the fix for the first does not fix this one"

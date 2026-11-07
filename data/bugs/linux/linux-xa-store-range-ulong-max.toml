@@ -10,6 +10,7 @@ reach = "latent"
 disclosure = "public"
 state = "confirmed"
 writeup = "data/writeups/linux-xa-store-range-ulong-max.md"
+notes = "The write-up's suggested fix (stop the loop when first wraps to 0) fixes this bug but not linux-xa-store-range-full-range-size-wrap, a second hang in the same loop found 2026-11-07 by hegel-c's property test: xa_store_range(0, ULONG_MAX) hangs on v7.1 because the chunk size wraps to 0, and with that fix it returns with ULONG_MAX unstored. The kit shows both; witnesses/linux/linux-xa-store-range-ulong-max/candidate-fix.patch is that fix."
 
 [[source]]
 ref = "hegel-c-findings#linux-xa-store-range-ulong-max"
@@ -19,6 +20,16 @@ by = "hegel-c"
 date = "2026-07-12"
 date_is = "stated"
 ref = "hegel-c-findings#linux-xa-store-range-ulong-max"
+
+[[witness]]
+kind = "kit"
+path = "witnesses/linux/linux-xa-store-range-ulong-max"
+
+[[witness]]
+kind = "hegel-c-pin"
+repo = "https://github.com/c4ffein/hegel-c"
+ref = "pending"
+pin = "tests/irl/linux/pins/xa_store_range.conf"
 
 [imported]
 
@@ -38,4 +49,4 @@ writeup = "docs/findings/linux-xa-store-range-ulong-max.md"
 checked = "2026-10-22: present in v7.3 and linux-next"
 source = "repo"
 found_by = "hegel-c"
-notes = "No caller passes ULONG_MAX. One-line fix (stop when first wraps to 0): the cleanest of the July three to send."
+notes = "The write-up's suggested fix (stop the loop when first wraps to 0) fixes this bug but not linux-xa-store-range-full-range-size-wrap, a second hang in the same loop found 2026-11-07 by hegel-c's property test: xa_store_range(0, ULONG_MAX) hangs on v7.1 because the chunk size wraps to 0, and with that fix it returns with ULONG_MAX unstored. The kit shows both; witnesses/linux/linux-xa-store-range-ulong-max/candidate-fix.patch is that fix."

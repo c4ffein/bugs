@@ -1,3 +1,7 @@
 node_modules/
 .claude/
 site/
+
+# Build products of the Linux witness kits (make LINUX=... run).
+witnesses/linux/*/repro
+witnesses/linux/*/*.o

@@ -20,6 +20,16 @@ date = "2026-07-12"
 date_is = "stated"
 ref = "hegel-c-findings#linux-ida-find-first-range"
 
+[[witness]]
+kind = "kit"
+path = "witnesses/linux/linux-ida-find-first-range"
+
+[[witness]]
+kind = "hegel-c-pin"
+repo = "https://github.com/c4ffein/hegel-c"
+ref = "pending"
+pin = "tests/irl/linux/pins/ida_find_first_range.conf"
+
 [imported]
 
 [imported.hegel-c-findings]

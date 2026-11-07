@@ -1,6 +1,8 @@
-<!-- SPDX-License-Identifier: MIT
+<!-- SPDX-License-Identifier: MIT AND (BSD-3-Clause OR GPL-2.0-only)
      Copyright (c) 2026 c4ffein
-     Part of hegel-c — see hegel/LICENSE for terms. -->
+     SPDX-FileCopyrightText: The Linux kernel authors (lib/packing.c excerpt)
+     The quoted kernel code is BSD-3-Clause OR GPL-2.0, as in its upstream
+     file (this header said MIT only until 2026-11-07). -->
 
 # Finding: heap OOB in lib/packing.c pack()/unpack() (LITTLE_ENDIAN, non-mult-of-4 buffer)
 
@@ -20,7 +22,6 @@ current vendored source.
 buffer offset, treating the buffer as groups of 4 bytes. For the non-`LSW32_IS_FIRST`
 path it computes:
 
-<!-- /ignore excerpt of upstream Linux lib/packing.c calculate_box_addr(), kernel source not in this repo -->
 ```c
 offset_of_group = len - ((this_group + 1) * 4);   /* size_t — underflows */
 group_size      = min(4, len - offset_of_group);
@@ -55,7 +56,9 @@ len\quirks  q0  q1  q2  q3  q4  q5  q6  q7      q2=LE  q3=LE|MSBR
 
 ## Minimal repro
 
-<!-- /ignore repro sketch calling the kernel pack() API, not compiled -->
+Built and run: `witnesses/linux/linux-packing-le-oob/` (its README has the
+expected output: red at v7.1, green with hegel-c's fix patch).
+
 ```c
 uint8_t *buf = calloc(1, 1);
 pack(buf, 0, /*startbit*/0, /*endbit*/0, /*pbuflen*/1, QUIRK_LITTLE_ENDIAN);
@@ -77,7 +80,6 @@ single-bit field passes. So this is a documented-valid input that OOBs.
 Compute `group_size` from the group's own base and derive `offset_of_group`
 without underflow:
 
-<!-- /ignore candidate fix sketch for calculate_box_addr(), not compiled here -->
 ```c
 group_size = min(4, len - this_group * 4);            /* octets actually present */
 if (quirks & QUIRK_LSW32_IS_FIRST)

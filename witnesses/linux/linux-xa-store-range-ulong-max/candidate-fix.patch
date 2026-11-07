@@ -1,0 +1,21 @@
+Our fix for the endless loop in lib/xarray.c xa_store_range() when
+last == ULONG_MAX, against v7.1 (unchanged in v7.3 and linux-next as of
+2026-10-22).  The tiling loop adds each stored chunk's size to `first`
+while first <= last; the chunk that ends at ULONG_MAX wraps `first` to 0,
+and 0 <= ULONG_MAX holds, so the loop never ends.  Stop when `first`
+wraps: a range that does not end at ULONG_MAX leaves first = last + 1,
+non-zero, so nothing else changes.  INCOMPLETE (2026-11-07, see README):
+[0, ULONG_MAX] then returns with ULONG_MAX unstored.  Apply with
+`git -C <tree> apply` and rebuild the harness to see it.
+
+--- a/lib/xarray.c
++++ b/lib/xarray.c
+@@ -1896,7 +1896,7 @@
+ 			if (xas_error(&xas))
+ 				goto unlock;
+ 			first += xas_size(&xas);
+-		} while (first <= last);
++		} while (first && first <= last);
+ unlock:
+ 		xas_unlock(&xas);
+ 	} while (xas_nomem(&xas, gfp));

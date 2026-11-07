@@ -1,6 +1,5 @@
 <!-- SPDX-License-Identifier: MIT
-     Copyright (c) 2026 c4ffein
-     Part of hegel-c — see hegel/LICENSE for terms. -->
+     Copyright (c) 2026 c4ffein -->
 
 # Draft issue for hegeldev/hegel: `FloatChoice::simplest: no valid float for this choice` in a passing run
 
@@ -28,7 +27,6 @@ itself always holds, so this is the generation phase, not shrinking.
 **Reproducer** (C, through hegel-c; the draws are plain
 `hegel_generate_float` calls with these bounds, no NaN, no infinities):
 
-<!-- /ignore draft for upstream, compiled from a scratch file at the time -->
 ```c
 static void test_f64_bounds (hegel_testcase * tc) {
   double a = hegel_draw_double (tc, -1e15, 1e15);
