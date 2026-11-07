@@ -1,0 +1,3 @@
+# The last commit that passed bun run verify. verify checks the tree against it;
+# bun run verify --pin moves it to HEAD (then commit this file).
+25ab6045e37e5a5f7b0397f0d7752184fde5a7fb

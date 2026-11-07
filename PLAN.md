@@ -327,7 +327,7 @@ repo, so the next sweep only shows what's new. The triage goes in
 | `bun run conserve` | the no-lost-bugs check (§1); also: every source reference resolves **against its snapshot** (so references survive Phase 4 removing the originals) |
 | `bun run lint` | field and state rules (hegel-c's lint, ported), uuids well-formed and unique, links point at real bugs, `incomplete-fix-of` rules, state / presence / submission consistency, `partially-fixed` needs a residue and a witness, private bugs never in public output |
 | `bun run lint --dups` | also lists candidate duplicates: same file and function, or same file and overlapping 7.0.18 line ranges, not yet linked |
-| `bun run verify` | nothing lost: conserve, lint, every uuid in `data/uuids.txt` (append only) names a bug, and every bug of tag `migration-final` still exists, its `[imported]` records unchanged |
+| `bun run verify [--pin]` | nothing lost: conserve, lint, every uuid in `data/uuids.txt` names a bug; and against the last sound commit named in `data/verified-at.txt` (an ancestor of HEAD): `uuids.txt` only grew, every bug it had still exists, its `[imported]` records unchanged. `--pin` (clean tree, all ok) moves the pin to HEAD; commit it. The first pin is tag `migration-final` |
 | `bun run overlap [-v]` | the review's bugs we had too: before it (by date), independently after it (hegel-c), or again while working through it |
 | `bun run list [--project p] [--state s]… [--kind k] [--text t] [--open]` | terminal table, one line per bug (id, state, project, presence per version, title), sorted by project then id |
 | `bun run show <id\|uuid\|alias> [--full]` | one bug in full, links in both directions, the submissions fixing it, its `[imported.*]` records (one line each; `--full` prints them) |
