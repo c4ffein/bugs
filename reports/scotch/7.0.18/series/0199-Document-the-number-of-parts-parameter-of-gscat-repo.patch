@@ -1,0 +1,108 @@
+From 7a8835bb2a04cc6342c993045383153125a27cdf Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:19:52 +0000
+Subject: [PATCH 199/232] Document the number of parts parameter of `gscat'
+ [report PyScotch]
+
+The synopsis of `gscat' in the `dgscat' man page and in the PT-Scotch
+user's manual did not show its mandatory first parameter, the number
+of distributed graph fragment files to produce, so that a command line
+written after them was rejected as "invalid number of parts".
+
+Refs: PS3-G28-1
+---
+ doc/src/ptscotch/p_p.tex | 7 ++++++-
+ man/man1/Makefile        | 2 +-
+ man/man1/dgscat.1        | 6 ++++--
+ man/man1/dgscat.1.txt    | 6 ++++--
+ 4 files changed, 15 insertions(+), 6 deletions(-)
+
+diff --git a/doc/src/ptscotch/p_p.tex b/doc/src/ptscotch/p_p.tex
+index bffca6b6..01a95336 100644
+--- a/doc/src/ptscotch/p_p.tex
++++ b/doc/src/ptscotch/p_p.tex
+@@ -529,7 +529,9 @@ available options.
+ 
+ \begin{itemize}
+ \progsyn
+-{\tt dgscat} [{\it input\_graph\_file} [{\it output\_graph\_file}]] {\it options}
++{\tt dgscat} [{\it input\_graph\_file} [{\it output\_graph\_file}]] {\it options}\\
++~\\
++{\tt gscat} {\it number\_\lbt of\_\lbt parts} [{\it input\_graph\_file} [{\it output\_graph\_file}]] {\it options}
+ 
+ \progdes
+ 
+@@ -545,6 +547,9 @@ Section~\ref{sec-prog-filename}.
+ {\tt dgscat} has a sequential counterpart, called {\tt gscat}. The
+ latter operates by processing the source graph file on the fly, and
+ does not perform any consistency checking on the output it produces.
++As it is not run on a set of processes, {\tt gscat} must be given the
++number of distributed graph fragment files to produce, by means of
++its first parameter {\it number\_\lbt of\_\lbt parts}.
+ 
+ \progopt\\[-1em]
+ \begin{itemize}
+diff --git a/man/man1/Makefile b/man/man1/Makefile
+index e42b1596..cddcacdf 100644
+--- a/man/man1/Makefile
++++ b/man/man1/Makefile
+@@ -96,7 +96,7 @@ dgord.1		:	dgord.1.txt
+ 			$(TXT2MAN) -v "PT-Scotch user's manual" -s 1 -t dgord -Bmpirun -Imfile -Ipnum -Istrat -Itfile -Iverb < $(<) > $(@)
+ 
+ dgscat.1	:	dgscat.1.txt
+-			$(TXT2MAN) -v "PT-Scotch user's manual" -s 1 -t dgscat '-B%r' -Bmpirun -Inbr -Ipnum < $(<) > $(@)
++			$(TXT2MAN) -v "PT-Scotch user's manual" -s 1 -t dgscat '-B%r' -Bmpirun -Inbr -Inparts -Ipnum < $(<) > $(@)
+ 
+ dgtst.1		:	dgtst.1.txt
+ 			$(TXT2MAN) -v "PT-Scotch user's manual" -s 1 -t dgtst '-B%r' -Bmpirun -Ipnum < $(<) > $(@)
+diff --git a/man/man1/dgscat.1 b/man/man1/dgscat.1
+index 0ff674f4..c48f96e1 100644
+--- a/man/man1/dgscat.1
++++ b/man/man1/dgscat.1
+@@ -10,7 +10,7 @@
+ 
+ \fBdgscat\fP [\fIoptions\fP] [\fIigfile\fP] [\fIogfile\fP]
+ 
+-\fBgscat\fP [\fIoptions\fP] [\fIigfile\fP] [\fIogfile\fP]
++\fBgscat\fP [\fIoptions\fP] \fInparts\fP [\fIigfile\fP] [\fIogfile\fP]
+ 
+ .fam T
+ .fi
+@@ -33,7 +33,9 @@ the input centralized graph file as a text stream, it does not need
+ to load the full graph in memory before building the distributed
+ graph fragment files. It is therefore much less resource consuming,
+ but does not allow for the checking of graph consistency, as it has
+-no global vision of the graph structure.
++no global vision of the graph structure. As it is not run on a set
++of processes, \fBgscat\fP must be given the number \fInparts\fP of distributed
++graph fragment files to produce.
+ .PP
+ When file names are not specified, data is read from standard input
+ and written to standard output. Standard streams can also be
+diff --git a/man/man1/dgscat.1.txt b/man/man1/dgscat.1.txt
+index ddda59dc..d86fe7e2 100644
+--- a/man/man1/dgscat.1.txt
++++ b/man/man1/dgscat.1.txt
+@@ -6,7 +6,7 @@ SYNOPSIS
+ 
+   dgscat [options] [igfile] [ogfile]
+ 
+-  gscat [options] [igfile] [ogfile]
++  gscat [options] nparts [igfile] [ogfile]
+ 
+ DESCRIPTION
+   The dggath program gathers distributed graphs into centralized
+@@ -25,7 +25,9 @@ DESCRIPTION
+   to load the full graph in memory before building the distributed
+   graph fragment files. It is therefore much less resource consuming,
+   but does not allow for the checking of graph consistency, as it has
+-  no global vision of the graph structure.
++  no global vision of the graph structure. As it is not run on a set
++  of processes, gscat must be given the number nparts of distributed
++  graph fragment files to produce.
+ 
+   When file names are not specified, data is read from standard input
+   and written to standard output. Standard streams can also be
+-- 
+2.43.0
+

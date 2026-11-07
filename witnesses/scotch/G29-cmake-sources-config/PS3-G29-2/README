@@ -1,0 +1,17 @@
+PS3-G29-2  635741dd makes the CMake build impossible with the Ninja generator (dependency cycle)
+
+635741dd (v7.0.18, "enable parallel build with older Bison versions") listed scotch.h and ptscotch.h among the
+sources of the executables dummysizes and ptdummysizes, i.e. of the very programs that generate them, while the
+custom commands producing scotch.h/ptscotch.h DEPEND on dummysizes. Unix Makefiles accepts the cycle, Ninja rejects it.
+
+Usage:   ./run.sh <scotch source tree> [workdir]     (needs cmake, ninja, make; the source tree is not modified)
+
+Observed (CMake 4.4.4, Ninja 1.x):
+  v7.0.17                       Ninja: build OK       Unix Makefiles: build OK
+  635741dd^ (parent commit)     Ninja: build OK       Unix Makefiles: build OK
+  v7.0.18 (pristine)            Ninja: FAILED         Unix Makefiles: build OK
+      ninja: error: dependency cycle: src/libscotch/dummysizes -> src/libscotch/CMakeFiles/dummysizes.dir/dummysizes.c.o
+          -> cmake_object_order_depends_target_dummysizes -> src/include/scotch.h -> src/libscotch/dummysizes
+  v7.0.18 + our 232-patch series            Ninja: FAILED (the series does not touch this)
+  v7.0.18 + series + the fix commit         Ninja: build OK       Unix Makefiles: build OK
+Fix: patch "Bugfix: do not make the header generators depend on the headers they generate".

@@ -1,0 +1,18 @@
+== B:7.0.18-with-7.0.17-store(DEBUG_ALL)
+      1 (0): ERROR: vdgraphStoreUpdt: inconsistent graph data
+      1 (0): ERROR: vgraphCheck: invalid local part sizes
+      1 (1): ERROR: vdgraphStoreUpdt: inconsistent graph data
+      1 (1): ERROR: vgraphCheck: invalid local part sizes
+      1 (2): ERROR: vdgraphStoreUpdt: inconsistent graph data
+      1 (2): ERROR: vgraphCheck: invalid local part sizes
+      1 rank 0: OrderCompute rc=0
+      1 rank 1: OrderCompute rc=0
+      1 rank 2: OrderCompute rc=0
+== A:pristine-7.0.18(DEBUG_ALL)
+      1 rank 0: OrderCompute rc=0
+      1 rank 1: OrderCompute rc=0
+      1 rank 2: OrderCompute rc=0
+== C:patched(DEBUG_ALL)
+      1 rank 0: OrderCompute rc=0
+      1 rank 1: OrderCompute rc=0
+      1 rank 2: OrderCompute rc=0

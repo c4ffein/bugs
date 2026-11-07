@@ -1,0 +1,526 @@
+{
+  "aliases": {
+    "scotch-ps3-g12-1": [
+      "PS3-G02-4",
+      "PS3-G25-1"
+    ],
+    "scotch-ps3-g12-2": [
+      "PS3-G02-5"
+    ]
+  },
+  "duplicates": [
+    {
+      "bug": "scotch-ps3-g12-3",
+      "of": "scotch-ps3-g02-6",
+      "reason": "same kgraphMapRbVfloBuild hash loop on out-of-range fixed parts, same patch (G02 0008)"
+    },
+    {
+      "bug": "scotch-ps2-g10-4",
+      "of": "scotch-sep-09",
+      "reason": "same bgraph_bipart_fm.c:599-604 resize-failure path; SEP-09 also records the double free at :849"
+    },
+    {
+      "bug": "scotch-ps2-g30-4",
+      "of": "scotch-ps2-g29-4",
+      "reason": "same test_scotch_mesh_build_f.f90.in:71,83 unsuffixed calls, same patch (G30 0011); PyScotch: 'same defect as PS2-G29-4, found independently'"
+    },
+    {
+      "bug": "scotch-ps-dgr-5",
+      "of": "scotch-api-20",
+      "reason": "PyScotch's own title: 'duplicate of API-20'; same library_dgraph_grow.c:124-127, same patch"
+    },
+    {
+      "bug": "scotch-ps-cor-2",
+      "of": "scotch-cor-17",
+      "reason": "PyScotch: 'Same defect as COR-17'; commGatherv's local check, same patch (G07 0004)"
+    },
+    {
+      "bug": "scotch-ps2-g11-mesh-struct-io-2",
+      "of": "scotch-sep-21",
+      "reason": "PyScotch: 'Same defect as SEP-21'"
+    },
+    {
+      "bug": "scotch-ps2-g11-mesh-struct-io-4",
+      "of": "scotch-sep-23",
+      "reason": "PyScotch: 'Same defect as SEP-23'"
+    },
+    {
+      "bug": "scotch-ps2-g11-mesh-struct-io-6",
+      "of": "scotch-sep-08",
+      "reason": "PyScotch: 'Same defect as SEP-08'"
+    },
+    {
+      "bug": "scotch-ps2-g25-1",
+      "of": "scotch-ps2-g02-arch-tleaf-hcub-build-1",
+      "reason": "same archCmpltwArchBuild2 free of the caller's weight array, same one-line fix (G02 0007, 'Refs PS2-G25-1')"
+    },
+    {
+      "bug": "scotch-ps2-g24-2",
+      "of": "scotch-ps2-g22-5",
+      "reason": "dgmap opens a plain target file on root only, so non-root processes fail; same patch (G22 0007)"
+    },
+    {
+      "bug": "scotch-ps-dmo-3",
+      "of": "scotch-gra-16",
+      "reason": "the int 1 << 31 in common.h's bit-set macros; GRA-16: 'G22 records the same remainder as PS-DMO-3'; same patch (G13 0001)"
+    },
+    {
+      "bug": "scotch-ps2-g27-7",
+      "of": "scotch-ps2-g10-1",
+      "reason": "the 64-bit Gnum shift in mesh_induce_sepa.c:157-161 (UBSan exponent 48 is PS2-G10-1's 32-bit words with INTSIZEBITS indexing), reported by another group"
+    }
+  ],
+  "links": [
+    {
+      "bug": "scotch-ps-dmo-2",
+      "to": "scotch-ps2-g04-strategy-parser-3",
+      "rel": "covered-by",
+      "reason": "PS-DMO-2's hdgraph_order_st.c:81 default table is one of the three tables PS2-G04-strategy-parser-3 covers, same patch (G04 0009)"
+    },
+    {
+      "bug": "scotch-dorderperm-leaf-cblk-debug-return",
+      "to": "scotch-dmo-06",
+      "rel": "related",
+      "reason": "a follow-up QUESTIONS.md lists as remaining after the 7.0.14 fix"
+    },
+    {
+      "bug": "scotch-dorderperm-leaf-cblk-debug-return",
+      "to": "scotch-dmo-07",
+      "rel": "related",
+      "reason": "a follow-up QUESTIONS.md lists as remaining after the 7.0.14 fix"
+    },
+    {
+      "bug": "scotch-dorderperm-leaf-cblk-debug-return",
+      "to": "scotch-cli-09",
+      "rel": "related",
+      "reason": "a follow-up QUESTIONS.md lists as remaining after the 7.0.14 fix"
+    },
+    {
+      "bug": "scotch-ps2-g22-4",
+      "to": "scotch-ps2-g23-3",
+      "rel": "covered-by",
+      "reason": "PS2-G23-3 is the same wrong-name messages plus more, same patch (G23 0007)"
+    },
+    {
+      "bug": "scotch-dmo-08",
+      "to": "scotch-dgr-10",
+      "rel": "covered-by",
+      "reason": "fixed by DGR-10's patch (G18 0004, its hdgraph_gather.c hunk)"
+    },
+    {
+      "bug": "scotch-ps-dmo-4",
+      "to": "scotch-ps-dgr-4",
+      "rel": "covered-by",
+      "reason": "fixed by PS-DGR-4's patches (G18 0002-0003)"
+    },
+    {
+      "bug": "scotch-ps3-g26-1",
+      "to": "scotch-ps2-g14-2",
+      "rel": "incomplete-fix-of",
+      "reason": "upstream's 9c51d9df fix of PS2-G14-2 relies on signed overflow and leaves meshLoad unchecked"
+    },
+    {
+      "bug": "scotch-ps3-g26-1",
+      "to": "scotch-ps2-g11-mesh-struct-io-8",
+      "rel": "related",
+      "reason": "the meshLoad twin"
+    },
+    {
+      "bug": "scotch-ps2-g09-4",
+      "to": "scotch-gra-12",
+      "rel": "related",
+      "reason": "same kgraph_map_df.c barrier logic; abort paths vs an isolated anchor"
+    },
+    {
+      "bug": "scotch-archbuild-deco-distance",
+      "to": "scotch-archbuild-deco2-retval",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: same function (arch_deco_build.c:archdecoarchbuild), different defects"
+    },
+    {
+      "bug": "scotch-bgraphbipartfm-backtrack-relink-dead",
+      "to": "scotch-bgraphbipartfm-ignores-typeval",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: same function (bgraph_bipart_fm.c:bgraphbipartfm), different defects"
+    },
+    {
+      "bug": "scotch-bgraphbipartfm-backtrack-relink-dead",
+      "to": "scotch-bgraphbipartfm-swap-lower-bound",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: same function (bgraph_bipart_fm.c:bgraphbipartfm), different defects"
+    },
+    {
+      "bug": "scotch-bgraphbipartfm-ignores-typeval",
+      "to": "scotch-bgraphbipartfm-swap-lower-bound",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: same function (bgraph_bipart_fm.c:bgraphbipartfm), different defects"
+    },
+    {
+      "bug": "scotch-graph-tab-load-empty-mapping",
+      "to": "scotch-graph-tab-load-vlbltax-unbased",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: same function (library_graph_map_io.c:scotch_graphtabload), different defects"
+    },
+    {
+      "bug": "linux-sg-split-overshoot",
+      "to": "linux-sg-split-zero-size-silent",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: same function (scatterlist.c:sg_calculate_split), different defects"
+    },
+    {
+      "bug": "linux-sg-split-length-clobber",
+      "to": "linux-sg-split-zero-nents",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: same function (scatterlist.c:sg_split_phys), different defects"
+    },
+    {
+      "bug": "scotch-api-04",
+      "to": "scotch-api-12",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_dgraph_gather.c:83-98), different defects"
+    },
+    {
+      "bug": "scotch-cli-02",
+      "to": "scotch-cli-03",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (metis_graph_part.c:589-589), different defects"
+    },
+    {
+      "bug": "scotch-cli-03",
+      "to": "scotch-cli-07",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (parmetis_dgraph_part.c:133-133), different defects"
+    },
+    {
+      "bug": "scotch-cor-01",
+      "to": "scotch-cor-22",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (parser_yy.y:458-464), different defects"
+    },
+    {
+      "bug": "scotch-cor-06",
+      "to": "scotch-cor-21",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_arch.c:603-643), different defects"
+    },
+    {
+      "bug": "scotch-cor-06",
+      "to": "scotch-ps-api-4",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_arch.c:603-643), different defects"
+    },
+    {
+      "bug": "scotch-cor-06",
+      "to": "scotch-ps3-g02-3",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_arch.c:603-643), different defects"
+    },
+    {
+      "bug": "scotch-cor-06",
+      "to": "scotch-ps3-g03-1",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_arch.c:603-643), different defects"
+    },
+    {
+      "bug": "scotch-cor-07",
+      "to": "scotch-ps-api-4",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_arch.c:581-585), different defects"
+    },
+    {
+      "bug": "scotch-cor-07",
+      "to": "scotch-ps3-g02-3",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_arch.c:581-585), different defects"
+    },
+    {
+      "bug": "scotch-cor-10",
+      "to": "scotch-cor-11",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (common_thread.c:667-688), different defects"
+    },
+    {
+      "bug": "scotch-cor-22",
+      "to": "scotch-ps2-g04-strategy-parser-1",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (parser_yy.y:458-481), different defects"
+    },
+    {
+      "bug": "scotch-dgr-04",
+      "to": "scotch-dgr-14",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (dgraph_redist.c:439-472), different defects"
+    },
+    {
+      "bug": "scotch-dmo-12",
+      "to": "scotch-ps2-g22-4",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (vdgraph_check.c:106-109), different defects"
+    },
+    {
+      "bug": "scotch-dmo-16",
+      "to": "scotch-ps2-g23-2",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (kdgraph_map_rb_part.c:109-112), different defects"
+    },
+    {
+      "bug": "scotch-gra-23",
+      "to": "scotch-ps3-g12-2",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (kgraph_map_rb.c:469-472), different defects"
+    },
+    {
+      "bug": "scotch-ps-api-4",
+      "to": "scotch-ps3-g02-2",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_arch.c:557-588), different defects"
+    },
+    {
+      "bug": "scotch-ps-api-7",
+      "to": "scotch-ps2-g16-3",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_dgraph_map_view.c:150-153), different defects"
+    },
+    {
+      "bug": "scotch-ps2-g11-mesh-struct-io-3",
+      "to": "scotch-ps2-g11-mesh-struct-io-5",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (mesh_io.c:266-266), different defects"
+    },
+    {
+      "bug": "scotch-ps2-g11-mesh-struct-io-3",
+      "to": "scotch-ps2-g11-mesh-struct-io-8",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (mesh_io.c:266-266), different defects"
+    },
+    {
+      "bug": "scotch-ps2-g11-mesh-struct-io-5",
+      "to": "scotch-ps2-g11-mesh-struct-io-8",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (mesh_io.c:266-266), different defects"
+    },
+    {
+      "bug": "scotch-ps3-g02-2",
+      "to": "scotch-ps3-g02-3",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (library_arch.c:581-581), different defects"
+    },
+    {
+      "bug": "scotch-sep-06",
+      "to": "scotch-sep-20",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (bgraph_bipart_gg.c:269-276), different defects"
+    },
+    {
+      "bug": "scotch-sep-15",
+      "to": "scotch-sep-22",
+      "rel": "distinct-from",
+      "reason": "reviewed 2026-11-06: overlapping lines (hmesh_order_nd.c:155-160), different defects"
+    }
+  ],
+  "splits": [
+    {
+      "source": "pyscotch-questions",
+      "key": "SCOTCH_stratFree is public but undocumented — is it the intended \"back to default\"?",
+      "slug": "q-stratfree-bundle",
+      "title": "QUESTIONS.md entry bundling two defects: SCOTCH_stratFree undocumented, SCOTCH_stratSave on a never-set strategy",
+      "into": [
+        "scotch-stratfree-undocumented",
+        {
+          "slug": "stratsave-null-strategy",
+          "title": "SCOTCH_stratSave dereferences the inner strategy pointer without a NULL check, so it segfaults on a freshly SCOTCH_stratInit-ed strategy",
+          "where": "SCOTCH_stratSave() (the entry names no file)",
+          "kind": "null-deref",
+          "state": "reported"
+        }
+      ]
+    },
+    {
+      "source": "pyscotch-questions",
+      "key": "7.0.16: multi-threaded bgraphBipartGg() is not deterministic and ignores SCOTCH_DETERMINISTIC, so the default strategy lost reproducibility under threads (regression in 7.0.16; 7.0.13-7.0.15 fine)",
+      "slug": "q-bgraphbipartgg-bundle",
+      "title": "QUESTIONS.md entry bundling the threaded bgraphBipartGg() determinism bugs",
+      "into": [
+        "scotch-sep-13",
+        "scotch-ps2-g08-1",
+        "scotch-sep-06",
+        "scotch-ps-sep-3"
+      ]
+    },
+    {
+      "source": "pyscotch-static-analysis-01-library-interface-seq",
+      "key": "4 SCOTCH_graphMapView family destructively rewrites the user's part arra",
+      "slug": "sa01-4-bundle",
+      "title": "static-analysis lead bundling SCOTCH_graphMapView's part-array rewrite and its unmapped-vertex side note",
+      "into": [
+        "scotch-api-03",
+        "scotch-ps2-g16-1"
+      ]
+    },
+    {
+      "source": "pyscotch-static-analysis-01-library-interface-seq",
+      "key": "11 0/1/2 return contract violated on error paths of coarsening/coloring w",
+      "slug": "sa01-11-bundle",
+      "title": "static-analysis lead bundling the 0/1/2 return-code violations of coarsening and coloring",
+      "into": [
+        "scotch-api-23",
+        {
+          "slug": "graphcolor-return-codes",
+          "title": "SCOTCH_graphColor documents 2 = error but returns 1 on its error paths",
+          "where": "src/libscotch/library_graph_color.c:95-98, 112 (7.0.11)",
+          "kind": "contract",
+          "state": "lead"
+        }
+      ]
+    },
+    {
+      "source": "pyscotch-static-analysis-01-library-interface-seq",
+      "key": "13 SCOTCH_archBuild0: default-strategy stratInit result never checked",
+      "slug": "sa01-13-bundle",
+      "title": "static-analysis lead bundling archBuild0's unchecked stratInit and SCOTCH_stratGraphBipart's wrong error-message name",
+      "into": [
+        "scotch-api-23",
+        {
+          "slug": "stratbipart-error-name",
+          "title": "SCOTCH_stratGraphBipart's error message stringifies SCOTCH_stratBipart, a wrong and undeclared name that also bypasses the rename table",
+          "where": "src/libscotch/library_arch_build.c:95 (7.0.11): SCOTCH_stratGraphBipart()",
+          "kind": "other",
+          "state": "lead"
+        }
+      ]
+    },
+    {
+      "source": "pyscotch-static-analysis-01-library-interface-seq",
+      "key": "18 New SCOTCH_dmesh API: sizing checks demoted to debug; Build accepts ba",
+      "slug": "sa01-18-bundle",
+      "title": "static-analysis lead bundling two SCOTCH_dmesh API defects",
+      "into": [
+        "scotch-dmesh-init-sizing-debug-only",
+        {
+          "slug": "dmesh-buildadm-base-minus-one",
+          "title": "SCOTCH_dmeshBuildAdm's base check admits -1 while its comment says 0 or 1",
+          "where": "src/libscotch/library_dmesh_build_adm.c:84-87 (7.0.11): SCOTCH_dmeshBuildAdm()",
+          "kind": "contract",
+          "state": "lead"
+        }
+      ]
+    },
+    {
+      "source": "pyscotch-static-analysis-07-kway-mapping",
+      "key": "5 Library boundary: fixed/old part arrays tolerate only exactly -1 as \"f",
+      "slug": "sa07-5-bundle",
+      "title": "static-analysis lead bundling the fixed/old part-array checks at the library boundary",
+      "into": [
+        "scotch-gra-23",
+        {
+          "slug": "remapfixed-vfixnbr-inconsistent",
+          "title": "SCOTCH_graphRemapFixedCompute counts pfixtab != ~0 as fixed while kgraphMapRbVfloBuild keeps only >= 0, so a value like -2 is counted as fixed but treated as free",
+          "where": "src/libscotch/library_graph_map.c:385 vs src/libscotch/kgraph_map_rb.c:261-282 (7.0.11)",
+          "kind": "wrong-result",
+          "state": "lead"
+        }
+      ]
+    },
+    {
+      "source": "pyscotch-static-analysis-09-meshes",
+      "key": "12 Smaller items — LOW",
+      "slug": "sa09-12-bundle",
+      "title": "static-analysis lead bundling seven small mesh defects",
+      "into": [
+        "scotch-sep-23",
+        "scotch-sep-22",
+        "scotch-ps2-g10-2",
+        "scotch-sep-16",
+        "scotch-ps-sep-2",
+        {
+          "slug": "hmesh-order-gp-queue-leak",
+          "title": "hmeshOrderGp leaks queue.qtab on a debug-only error return (its twin check at 233-237 frees it)",
+          "where": "src/libscotch/hmesh_order_gp.c:187-191 (7.0.11): hmeshOrderGp()",
+          "kind": "leak",
+          "state": "lead"
+        },
+        {
+          "slug": "mesh-io-negative-edgenbr",
+          "title": "the mesh file loader has no < 0 check on edgenbr, the one header field without one",
+          "where": "src/libscotch/mesh_io.c:118-129 (7.0.11)",
+          "kind": "contract",
+          "state": "lead"
+        }
+      ]
+    },
+    {
+      "source": "pyscotch-static-analysis-12-ecosystem-tests",
+      "key": "F-minor — gout unchecked load returns and unbounded geometry count",
+      "slug": "sa12-gout-bundle",
+      "title": "static-analysis lead bundling gout's geometry-count wrap and its unchecked load returns",
+      "into": [
+        "scotch-gout-geom-vertex-count-unbounded",
+        "scotch-ps2-g27-8"
+      ]
+    }
+  ],
+  "set": [
+    {
+      "bug": "scotch-ordercompute-check-o",
+      "set": {
+        "state": "fixed-upstream",
+        "fixed_by": "0ec06aff42e8",
+        "fixed_in": "7.0.12",
+        "presence": {
+          "7.0.11": "present",
+          "7.0.12": "fixed"
+        },
+        "notes": "hegel-c withdrew it on 2026-10-25 because it no longer reproduced on 7.0.17: upstream had already fixed it in 0ec06aff42e8 (F. Pellegrini, 2026-04-15, \"accept more than two disconnected components, e.g. from hgraphOrderCc()\"; order_check.c's DICO check was hardcoded to 2 blocks), first released in 7.0.12. The static-analysis lead reproduced it on 7.0.11."
+      },
+      "reason": "found the fix: git log -S'cblknbr != 2' v7.0.11..v7.0.17 in upstream Scotch"
+    },
+    {
+      "bug": "scotch-strat-implicit-substrategy-dummy",
+      "set": {
+        "state": "unclear",
+        "unclear": "intended grammar (an omitted sub-strategy means do nothing), or a bug (it should error or default)? Asked upstream in QUESTIONS.md."
+      },
+      "reason": "phrased upstream as a question"
+    },
+    {
+      "bug": "scotch-strat-empty-string-do-nothing",
+      "set": {
+        "state": "unclear",
+        "unclear": "is \"\" valid grammar for a do-nothing method, or should it mean the default strategy? Asked upstream."
+      },
+      "reason": "phrased upstream as a question"
+    },
+    {
+      "bug": "scotch-strat-failed-parse-resets-default",
+      "set": {
+        "state": "unclear",
+        "unclear": "a design choice (callers must check the return code) or a trap worth fixing (keep the previous tree, or poison the strategy)?"
+      },
+      "reason": "only bites callers that ignore the return code"
+    },
+    {
+      "bug": "scotch-stratbuild-speed-quality-ignored",
+      "set": {
+        "state": "unclear",
+        "unclear": "possibly intended (mapping defaults lean to speed, ordering to quality); then it's a doc gap, not a code bug."
+      },
+      "reason": "the source itself says possibly intended"
+    },
+    {
+      "bug": "scotch-graphpartovl-parttab-unwritten",
+      "set": {
+        "state": "unclear",
+        "unclear": "a bug (parttab should be initialised) or a contract to document (an empty strategy writes nothing)?"
+      },
+      "reason": "the source offers fix or document"
+    },
+    {
+      "bug": "scotch-explicit-context-deterministic-ignored",
+      "set": {
+        "state": "unclear",
+        "unclear": "mechanism never identified: a Scotch bug, a missing step on our side when setting up the context, or a doc gap."
+      },
+      "reason": "the source asks whether a step is missing"
+    }
+  ]
+}

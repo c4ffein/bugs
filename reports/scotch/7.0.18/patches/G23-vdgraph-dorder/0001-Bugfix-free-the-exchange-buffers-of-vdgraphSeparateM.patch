@@ -1,0 +1,52 @@
+From ed5b8ded7d0e0d6c5bcca608ae6a6cab1bfef782 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 16:11:24 +0000
+Subject: [PATCH 1/7] Bugfix: free the exchange buffers of
+ `vdgraphSeparateMlUncoarsen()` when all coarse separators are invalid [report
+ R. Perry]
+
+The buffer group used to exchange fine part data was allocated before
+the reduction that selects the best coarse separator, and the routine
+returned without freeing it when every coarse separator had an empty
+part. This is a normal fallback path, after which the low strategy is
+applied at the upper level, so the leak repeated at every level of
+nested dissection where it occurred.
+
+Also compile the warning of this path under the Vdgraph debug flag
+rather than the Bdgraph one, which had been copied from the twin
+routine.
+
+Refs: DMO-05
+---
+ src/libscotch/vdgraph_separate_ml.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/src/libscotch/vdgraph_separate_ml.c b/src/libscotch/vdgraph_separate_ml.c
+index e11c8eb5..2e85ad48 100644
+--- a/src/libscotch/vdgraph_separate_ml.c
++++ b/src/libscotch/vdgraph_separate_ml.c
+@@ -46,7 +46,7 @@
+ /**                # Version 6.0  : from : 11 sep 2012     **/
+ /**                                 to   : 28 sep 2014     **/
+ /**                # Version 7.0  : from : 27 aug 2019     **/
+-/**                                 to   : 31 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -447,9 +447,10 @@ const DgraphCoarsenMulti * restrict const coarmulttax) /*+ Based multinode array
+   }
+ 
+   if (reduglbtab[0] == 1) {                       /* If all possible partitions are invalid */
+-#ifdef SCOTCH_DEBUG_BDGRAPH2
++#ifdef SCOTCH_DEBUG_VDGRAPH2
+     errorPrintW ("vdgraphSeparateMlUncoarsen: no valid partition");
+-#endif /* SCOTCH_DEBUG_BDGRAPH2 */
++#endif /* SCOTCH_DEBUG_VDGRAPH2 */
++    memFree (vsndcnttab);                         /* Free group leader                                                        */
+     return (1);                                   /* All invalid partitions will lead to low method be applied at upper level */
+   }
+ 
+-- 
+2.43.0
+

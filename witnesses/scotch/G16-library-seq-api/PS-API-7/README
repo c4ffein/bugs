@@ -1,0 +1,5 @@
+PS-API-7: SCOTCH_dgraphMapView prints -nan for a graph without edges (the report called the division "guarded", which is false).
+SCOTCH_dgraphMapStat returns early when edgeglbnbr == 0 and sets cdstmax = 0 with cmlosum = 0, so
+dgraphMapView prints "CommDilat=-nan (0)" and "Cmlosum[0]=-nan". SCOTCH_graphMapView prints nothing for such a graph.
+  SCOTCH_BUILD=<Scotch tree with include/ and lib/ built by `make ptscotch`> sh run.sh
+Pristine 7.0.18, np 1 and 2: the two -nan lines. With follow-up patch 0001 (parts/G16/patches): no output, rc=0.

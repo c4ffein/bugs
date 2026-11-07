@@ -1,0 +1,9 @@
+PS-API-1: SCOTCH_graphRemapView reads the old part array (parotax, un-based) with based vertex numbers.
+The ASan trace claimed by the report DOES reproduce on pristine 7.0.18 when libscotch itself is built with
+-fsanitize=address,undefined (an uninstrumented libscotch is silent; only MigrNbr=7 instead of 8 shows):
+  ==ERROR: AddressSanitizer: stack-buffer-overflow ... READ of size 4
+    #0 graphMapView2 library_graph_map_view.c:486
+    #1 SCOTCH_graphRemapView library_graph_map_view.c:647
+    #2 main remap.c:82      (run: ./remap 1, i.e. base 1)
+  sh run.sh   with  SCOTCH_BUILD=<ASan+UBSan build of libscotch>   (remap.c is a copy of API-16/remap.c)
+Base 0 is fine. Patched (series 0103): both bases print AvgMigrDist=7, MigrNbr=8(100 %), no sanitizer report.

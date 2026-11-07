@@ -1,0 +1,11 @@
+# Moved from hegel-c docs/findings.toml [[submission]] (source hegel-c-submissions).
+# `fixes` names bugs by id.
+id = "scotch-props-2026-10-report"
+project = "scotch"
+title = "three fixes and two crashes from the Scotch property suite"
+kind = "patch"
+fixes = ["scotch-archsub-off-by-one", "scotch-graphgeomloadchac-cleanup", "scotch-kgraphmapfm-domnnbr", "scotch-strat-k-sigabrt", "scotch-graphpart-strat-f-d-segv"]
+state = "planned"
+since = "2026-10-25"
+next = "Write to F. Pellegrini: the three fixes are the patches of pins archSubSingle, graphGeomLoadChac and kgraphMapFmDomnnbr; the two crashes (strategy \"k\" on graphOrder, \"f\"/\"d\" on graphPart) come with pins hgraphOrderKpDefault and kgraphRefineNoMapping. Nothing drafted yet."
+notes = "All five red on master b4801dbf (v7.0.17) and the three fixes green, checked 2026-10-25 (run 2026-10-25-scotch-pins in docs/runs.toml)."

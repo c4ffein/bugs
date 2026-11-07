@@ -1,0 +1,41 @@
+From aef5e58a960698adc2633c7b3608257f16e5b4a1 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:14:15 +0000
+Subject: [PATCH 2/5] Bugfix: reject sub-architectures without terminals
+ [report R. Perry]
+
+`archSubArchBuild()` and `archSubArchLoad()` accepted an empty list of
+terminal numbers, for which the number of domains, `2 * vnumnbr - 1`,
+is negative, and an allocation of negative size was attempted. At
+least one terminal is now required, as for all other architectures.
+
+Refs: COR-03
+---
+ src/libscotch/arch_sub.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/libscotch/arch_sub.c b/src/libscotch/arch_sub.c
+index fa975b14..eed284f3 100644
+--- a/src/libscotch/arch_sub.c
++++ b/src/libscotch/arch_sub.c
+@@ -89,7 +89,7 @@ FILE * restrict const       stream)
+ #endif /* SCOTCH_DEBUG_ARCH1 */
+ 
+   if ((intLoad (stream, &termnbr) != 1) ||
+-      (termnbr < 0)) {
++      (termnbr < 1)) {
+     errorPrint ("archSubArchLoad: bad input (1)");
+     return (1);
+   }
+@@ -395,7 +395,7 @@ const Anum * const          vnumtab)              /*+ Ordered list of remaining
+ 
+   archDomFrst (orgarchptr, &orgdomndat);          /* Get number of terminal domains in original architecture */
+   orgtermnbr = archDomSize (orgarchptr, &orgdomndat);
+-  if ((vnumnbr < 0) || (vnumnbr > orgtermnbr)) {
++  if ((vnumnbr < 1) || (vnumnbr > orgtermnbr)) {
+     errorPrint ("archSubArchBuild: invalid parameters");
+     return (2);
+   }
+-- 
+2.43.0
+

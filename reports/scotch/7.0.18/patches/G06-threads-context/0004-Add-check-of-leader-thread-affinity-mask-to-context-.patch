@@ -1,0 +1,70 @@
+From b0a210a4af19982818769047d9a9ffca23819ca3 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:17:02 +0000
+Subject: [PATCH 4/5] Add check of leader thread affinity mask to context
+ import test
+
+Since commit 6eb0aca3, the state of the master thread is saved when a
+thread context is imported, so that the affinity mask of the leader
+thread is properly restored when the context is destroyed. The context
+test now checks that this mask is preserved across the life of an
+imported context.
+
+Refs: COR-11
+---
+ src/check/test_scotch_context.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/src/check/test_scotch_context.c b/src/check/test_scotch_context.c
+index f401575d..fdc1c80b 100644
+--- a/src/check/test_scotch_context.c
++++ b/src/check/test_scotch_context.c
+@@ -48,6 +48,9 @@
+ **  The defines and includes.
+ */
+ 
++#ifndef _GNU_SOURCE
++#define _GNU_SOURCE                               /* For sched_getaffinity() */
++#endif /* _GNU_SOURCE */
+ #ifndef _XOPEN_SOURCE
+ #define _XOPEN_SOURCE               600
+ #endif /* _XOPEN_SOURCE */
+@@ -198,6 +201,9 @@ char *              argv[])
+   int                 thrdnum;
+   SCOTCH_Graph        graftab[2];                 /* Original graph and context container */
+   int *               coretab;
++#ifdef COMMON_PTHREAD_AFFINITY_LINUX
++  cpu_set_t           cpustab[2];                 /* Affinity masks before and after import */
++#endif /* COMMON_PTHREAD_AFFINITY_LINUX */
+ 
+   SCOTCH_errorProg (argv[0]);
+ 
+@@ -320,6 +326,10 @@ char *              argv[])
+     thrdtab[thrdnum].thrdnum = thrdnum;           /* All threads know their index in their thread group */
+   }
+ 
++#ifdef COMMON_PTHREAD_AFFINITY_LINUX
++  sched_getaffinity (0, sizeof (cpu_set_t), &cpustab[0]); /* Record affinity mask of leader thread */
++#endif /* COMMON_PTHREAD_AFFINITY_LINUX */
++
+   SCOTCH_contextInit          (&contdat);         /* Leader thread creates the context                */
+   SCOTCH_contextThreadImport1 (&contdat, thrdnbr); /* Leader thread calls "Import1" before any others */
+ 
+@@ -347,6 +357,14 @@ char *              argv[])
+   SCOTCH_graphExit   (&graftab[1]);
+   SCOTCH_contextExit (&contdat);                  /* Worker threads are released when the context is destroyed */
+ 
++#ifdef COMMON_PTHREAD_AFFINITY_LINUX
++  sched_getaffinity (0, sizeof (cpu_set_t), &cpustab[1]); /* Affinity mask of leader thread must not have changed */
++  if (! CPU_EQUAL (&cpustab[0], &cpustab[1])) {
++    SCOTCH_errorPrint ("main: affinity mask of imported leader thread changed");
++    exit (EXIT_FAILURE);
++  }
++#endif /* COMMON_PTHREAD_AFFINITY_LINUX */
++
+   free (thrdtab);
+ 
+   SCOTCH_graphExit (&graftab[0]);
+-- 
+2.43.0
+

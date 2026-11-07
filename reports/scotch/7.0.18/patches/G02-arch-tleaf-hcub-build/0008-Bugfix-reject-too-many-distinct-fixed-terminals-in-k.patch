@@ -1,0 +1,99 @@
+From c82dad595c9d678bbd286f9fff5f2f785c44b498 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:58:35 +0000
+Subject: [PATCH 239/248] Bugfix: reject too many distinct fixed terminals in
+ `kgraphMapRbVfloBuild()`
+
+The hash table of `kgraphMapRbVfloBuild()` is sized from the maximum
+number of fixed domains, i.e. the number of terminal domains of the
+architecture. Terminal numbers of the fixed part array were not
+validated before being hashed, so a fixed part array holding more
+distinct out-of-range terminal numbers than the table has slots (e.g.
+32 or more on `cmplt(4)`) made the probe loop run forever, instead of
+being rejected later by `archDomTerm()` in `kgraphMapRbVfloMerge()`.
+
+Count the slots created and return an error as soon as the count
+exceeds the maximum number of fixed domains, which valid input cannot
+do.
+
+Tested: new `SCOTCH_graphMapFixed` case in `test_scotch_graph_map`
+(12 distinct invalid terminals on `cmplt(1)`): times out on the base
+tree, returns an error after the fix; stand-alone reproducer with 40,
+100 and 300 invalid terminals on `cmplt(4)` likewise; 31 and 10 still
+give a clean error; `test_scotch_graph_map data/m4x4.grf` passes
+(ASan/UBSan, 64-bit), build without new warnings.
+---
+ src/check/test_scotch_graph_map.c | 23 +++++++++++++++++++++++
+ src/libscotch/kgraph_map_rb.c     |  8 ++++++++
+ 2 files changed, 31 insertions(+)
+
+diff --git a/src/check/test_scotch_graph_map.c b/src/check/test_scotch_graph_map.c
+index c13eacf..0fc6aed 100644
+--- a/src/check/test_scotch_graph_map.c
++++ b/src/check/test_scotch_graph_map.c
+@@ -357,6 +357,29 @@ char *              argv[])
+   SCOTCH_archExit  (&fixarchdat);
+   SCOTCH_graphExit (&fixgrafdat);
+ 
++  if (vertnbr >= 12) {                            /* Many distinct invalid fixed terminals must be rejected, not loop forever */
++    SCOTCH_Arch         invarchdat;
++
++    printf ("Many invalid fixed terminals\n");
++
++    if ((SCOTCH_archInit  (&invarchdat) != 0) ||
++        (SCOTCH_archCmplt (&invarchdat, 1) != 0)) { /* Single terminal domain: only terminal 0 is valid */
++      SCOTCH_errorPrint ("main: cannot initialize architecture");
++      exit (EXIT_FAILURE);
++    }
++
++    memset (parttab, ~0, vertnbr * sizeof (SCOTCH_Num));
++    for (vertnum = 0; vertnum < 12; vertnum ++)
++      parttab[vertnum] = 100 + vertnum;           /* Distinct terminal numbers, all out of range */
++
++    if (SCOTCH_graphMapFixed (&grafdat, &invarchdat, &stratab[0], parttab) == 0) {
++      SCOTCH_errorPrint ("main: invalid fixed terminals not detected");
++      exit (EXIT_FAILURE);
++    }
++
++    SCOTCH_archExit (&invarchdat);
++  }
++
+   for (archnum = 0; archnum < ARCHNBR; archnum ++)
+     SCOTCH_archExit (&archtab[archnum]);
+ 
+diff --git a/src/libscotch/kgraph_map_rb.c b/src/libscotch/kgraph_map_rb.c
+index b5d142f..e54dccd 100644
+--- a/src/libscotch/kgraph_map_rb.c
++++ b/src/libscotch/kgraph_map_rb.c
+@@ -243,6 +243,7 @@ KgraphMapRbVflo * restrict * restrict const vflotabptr) /*+ Pointer to fixed ver
+   Gnum                        hashnum;
+   Gnum                        hashmsk;            /* Mask for access to hash table           */
+   Gnum                        velomsk;            /* Zero if all fixed vertex loads are zero */
++  Gnum                        hashnbr;            /* Number of slots created in hash table  */
+   Anum                        vflonbr;
+ 
+   const Gnum * restrict const orgvelotax = orggrafptr->velotax;
+@@ -261,6 +262,7 @@ KgraphMapRbVflo * restrict * restrict const vflotabptr) /*+ Pointer to fixed ver
+ 
+   memSet (hashtab, ~0, hashsiz * sizeof (KgraphMapRbVflo)); /* Set all vertex numbers to ~0 */
+ 
++  hashnbr = 0;                                    /* No slot created yet                    */
+   velomsk = 0;                                    /* Assume all fixed vertex loads are zero */
+   for (orgvertnum = orggrafptr->baseval; orgvertnum < orggrafptr->vertnnd; orgvertnum ++) {
+     Anum                orgpfixval;
+@@ -284,6 +286,12 @@ KgraphMapRbVflo * restrict * restrict const vflotabptr) /*+ Pointer to fixed ver
+           break;
+         }
+         if (hashtab[hashnum].termnum == ~0) {     /* If hash slot empty */
++          if (hashnbr >= orgdfixmax) {            /* If more distinct terminals than the architecture can hold, table could fill up */
++            errorPrint ("kgraphMapRbVfloBuild: invalid fixed part array");
++            memFree    (hashtab);
++            return (1);
++          }
++          hashnbr ++;
+           hashtab[hashnum].termnum = orgpfixval;  /* Create slot        */
+           hashtab[hashnum].veloval = veloval;
+           break;
+-- 
+2.47.3
+

@@ -1,0 +1,651 @@
+[
+ {
+  "id": "API-15",
+  "our_title": "SCOTCH_dgraphCoarsen() copied the folded multinode array from NULL: fixed upstream",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "g21fi (MPI_Init_thread) on pristine 7.0.18 UBSan build /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi, np=2, no injection: `coarsen ring 0 8 1 2 0.8 1` (folding with a user multinode array) -> rank 0,1 coarsen rc=0, no runtime error (7.0.17: 'null pointer passed as argument 2' at library_dgraph_coarsen.c:163); `coarsen path 0 8 1 2 0.51 1 1` (ratio not met) -> rc=1 on both ranks, no crash (7.0.17: signal 11 on both). Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "higher than the review's low: with SCOTCH_COARSENFOLD and a user multinode array, a 'cannot coarsen' return (ratio not met, a normal outcome) is a SEGV on every process, not just UB on the senders",
+  "location_7_0_18": "src/libscotch/library_dgraph_coarsen.c:153-167",
+  "evidence": "library_dgraph_coarsen.c:163-166: `if (multlocptr != NULL) {\n        memCpy  (multloctab, multlocptr, coargrafptr->vertlocnbr * sizeof (DgraphCoarsenMulti));\n        memFree (multlocptr);\n      }`",
+  "upstream_change": "0536da0977 Bugfix: avoid memcpy with NULL source in `SCOTCH_dgraphCoarsen()` [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "0536da0977",
+   "verdict": "correct",
+   "details": "Guards the copy and the free with multlocptr != NULL, which covers both the sender case (size 0) and the 'ratio not met' return 1 (vertlocnbr already set, array never created). Verified by running both cases. Minor difference: the SCOTCH_DEBUG_LIBRARY2 size check above (l.153-161) still runs when no folded array exists; it compares the advised bound with coargrafptr->vertlocnbr, which on the 'ratio not met' path holds the unfolded multinode count; dgraphCoarsenVertLocMax() bounds that in every normal distribution, so this is not a defect worth a commit (not run: no LIBRARY2 build).",
+   "compared_with_ours": "Ours (7.0.17 0010) tested multlocptr in the outer condition, so it also skipped the debug size check; his is the smaller change and is enough. Ours is dropped (after his commit it would only add a redundant test)."
+  },
+  "review_accuracy": "accurate on the UB; its fix 'skip when vertlocnbr == 0' leaves the crash on the ratio-not-met path (vertlocnbr > 0, no array)",
+  "first_pass_critique": "Right, including the o != 0 observation and the preferred guard on the pointer; its claim that the o=1 case 'also reaches the memCpy' was shown on the size-0 path only (coarnbr=1000); the ratio-not-met path is the crash.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: copy only when a folded array exists (pointer guard)",
+    "summary": "`(foldval != DGRAPHCOARSENNONE) && (multlocptr != NULL)` around the debug size check, the copy and the free",
+    "diff_file": "",
+    "tested": "three cases above; 32-bit ASan+UBSan and 64-bit Gnum trees: all 15 CHECKPTSCOTCH targets (np=3) rc=0, the dgraph test programs and dgpart/dgord/dgtst at np 1, 2, 4 rc=0, `make ptcheck` rc=0, zero sanitizer reports (chk_32/chk_64_summary.txt); -DSCOTCH_DEBUG_ALL tree: dgraph targets rc=0 (chk_dbg_summary.txt); 0 build warnings in all trees",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "the routine already guards `if (multlocptr != NULL) memFree (multlocptr)` four lines above for the other branch"
+   },
+   {
+    "label": "B: size guard (review)",
+    "summary": "copy only when vertlocnbr > 0",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "still crashes when the ratio is not met",
+    "preferred": false,
+    "maintainer_fit": "incomplete"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (0536da09; our 0010 dropped)."
+ },
+ {
+  "id": "API-17",
+  "our_title": "SCOTCH_dgraphBand() copy of the band builder: NULL store, int-sized gather, leaks",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: `cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/common; FI_TIMEOUT=20 ./scan.sh <lib> bin_<build>/g21fi 4 1 5 7 -- band sparse 0 4 2` -> nth=5 exit=139 :: SCOTCH_dgraphBand: out of memory (2); library_dgraph_band.c:201:32: runtime error: store to null pointer of type 'Gnum'; signal 11. Patched (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/buildfi): nth=5,6,7 rc=1 on all four ranks, no sanitizer output. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "public API, but only after an allocation failure; the leak path is behind a hang that belongs to G20",
+  "location_7_0_18": "src/libscotch/library_dgraph_band.c:142, 200-209, 226-228, 247-250",
+  "evidence": "library_dgraph_band.c:142: `bandvnumgstsiz = MAX ((grafptr->vertgstnbr * sizeof (Gnum)), (grafptr->procglbnbr * sizeof (int)));`; :201 `bandgrafptr->procdsptab[0] = -1;` (procdsptab NULL when the private group failed)",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; 'free on all paths' is what the patch does",
+  "first_pass_critique": "source-read only, it did not run the NULL store (I did: l.201 under injection). Its patch sketch sizes the scratch array but leaves the halo-exchange leak ('still needs a free on that path') and the other leaking returns; its note 'dgraphExit on a Dgraph whose arrays are partly NULL' is not a defect (dgraphFree2 tests every pointer).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_band.c (internal twin, DGR-09)",
+    "quote": "same four defects plus uninitialised frees",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: same rework as dgraphBand() (shared commit)",
+    "summary": "see DGR-09 option A; SCOTCH_dgraphBand() uses dgraphExit() and its fail3 label is the former fail (CONTEXTEXIT)",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0005-Bugfix-fix-out-of-memory-handling-of-dgraphBand-and-.patch",
+    "tested": "see DGR-09",
+    "tradeoffs": "see DGR-09",
+    "preferred": true,
+    "maintainer_fit": "see DGR-09"
+   },
+   {
+    "label": "B: local Gnum flag and Gnum-sized scratch only (first pass)",
+    "summary": "see alt/DGR-09-B (both copies)",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/DGR-09-B-minimal-local.diff",
+    "tested": "untested here",
+    "tradeoffs": "leaves the leaks",
+    "preferred": false,
+    "maintainer_fit": "see DGR-09"
+   },
+   {
+    "label": "C: int Allreduce instead of the Allgather protocol (first pass option 2)",
+    "summary": "replace the gather-into-procdsptab error protocol by a one-int MPI_Allreduce before allocating",
+    "diff_file": "",
+    "tested": "untested: not written; it would add a collective to a routine that already carries the flag in a useful Allgather",
+    "tradeoffs": "one more collective per band call and a departure from the maintainer's 'TRICK' in both copies",
+    "preferred": false,
+    "maintainer_fit": "he kept the Allgather protocol when reworking dgraphInduce2() (3c9b3ab)"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0005-Bugfix-fix-out-of-memory-handling-of-dgraphBand-and-.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0010-Style-fix.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (file untouched)."
+ },
+ {
+  "id": "API-20",
+  "our_title": "SCOTCH_dgraphGrow() skips its context teardown on ghost failure; wrong routine name",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: `cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/common; FI_TIMEOUT=20 ./scan.sh <lib> bin_<build>/g21fi 2 1 1 2 -- grow ring 0 8 2` -> nth=1: (1): ERROR: SCOTCH_dgraphBand: cannot initialize context (printed by SCOTCH_dgraphGrow). Patched (P4): the same run prints 'SCOTCH_dgraphGrow: cannot initialize context'. Both trees HANG at nth=1 (see extra_instances). The ghost-array return path (l.124-127) is shown by reading. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "the ghost-array failure path (dgraphGhst failure inside SCOTCH_dgraphGrow) was not targeted by an injection index this round",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "as the review",
+  "location_7_0_18": "src/libscotch/library_dgraph_grow.c:116-117, 124-127",
+  "evidence": "library_dgraph_grow.c:117: `errorPrint (STRINGIFY (SCOTCH_dgraphBand) \": cannot initialize context\");`; :124-127 `if (dgraphGhst (&grafdat) != 0) { ... \": cannot compute ghost edge array\"); return (1); }` (skips dgraphExit and CONTEXTEXIT)",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; its fix (goto fail) would still leak the ghost edge array that dgraphGhst2() leaves attached to the clone when another process fails the agreement (dgraph_ghst.c after G19: the edge array is allocated and flagged DGRAPHFREEEDGEGST before the final reduction)",
+  "first_pass_critique": "Right, and it raised the dgraphExit question itself ('I did not verify dgraphGhst's cleanup on failure'): dgraphGhst2() can indeed leave edgegsttax attached, so the clone must be exited too; option A does that with a second label (fail1: dgraphExit, fail2: CONTEXTEXIT), its option 2 in spirit.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/context.h:113-118 (CONTEXTINIT) and every SCOTCH_dgraph* routine that uses it",
+    "quote": "contextThreadInit2: out of memory -> rank 1 grow rc=1, rank 0 HANG (pristine and patched, g21fi grow ring nth=1)",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: two cleanup labels (dgraphExit of the clone, CONTEXTEXIT) and the right name",
+    "summary": "fail1: dgraphExit (&grafdat); fail2: CONTEXTEXIT; ghost failure goes to fail1",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0004-Bugfix-release-the-context-and-the-cloned-graph-of-S.patch",
+    "tested": "message observed under injection; 32-bit ASan+UBSan and 64-bit Gnum trees: all 15 CHECKPTSCOTCH targets (np=3) rc=0, the dgraph test programs and dgpart/dgord/dgtst at np 1, 2, 4 rc=0, `make ptcheck` rc=0, zero sanitizer reports (chk_32/chk_64_summary.txt); -DSCOTCH_DEBUG_ALL tree: dgraph targets rc=0 (chk_dbg_summary.txt); 0 build warnings in all trees",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "labels numbered by order of definition as in dgraphInduce2() (3c9b3ab); same shape as SCOTCH_dgraphBand()'s fail label"
+   },
+   {
+    "label": "B: goto fail only (review)",
+    "summary": "return (1) -> goto fail; message fix",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/API-20-B-goto-only.diff",
+    "tested": "untested: trivial",
+    "tradeoffs": "leaks the ghost edge array attached to the clone when some other process failed",
+    "preferred": false,
+    "maintainer_fit": "incomplete cleanup"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0004-Bugfix-release-the-context-and-the-cloned-graph-of-S.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. New observation: a thread-context allocation failure inside CONTEXTINIT() on one process makes that process return while the others continue into the collective band/grow code (hang on both trees). It is a context-layer issue (G06), not fixed here."
+ },
+ {
+  "id": "DGR-07",
+  "our_title": "Point-to-point band/grow error path frees the caller's index array",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18, np=4 'sparse' (point-to-point): `cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/common; FI_TIMEOUT=20 ./scan.sh <lib> bin_<build>/g21fi 4 1 3 4 -- band sparse 1 4 2` -> nth=3 exit=139 (SCOTCH_dgraphBand: out of memory (1), signal 11), nth=4 exit=134 (dgraphBand2Ptop: out of memory (1), signal 6); `grow sparse 1 4 3` nth=3 -> exit=134 (dgraphGrow2Ptop: out of memory (1), signal 6: the user's partgsttab was freed). Patched (P1+P2): every case rc=1 on all four ranks. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "same as the review: reachable from the public SCOTCH_dgraphGrow() (user array freed) and from every bipartitioning/separation band strategy, but only after an allocation failure",
+  "location_7_0_18": "src/libscotch/dgraph_band_grow.c:369-401",
+  "evidence": "dgraph_band_grow.c:394-398: `if (reduglbtab[0] != 0) { if (vnumgsttax != NULL) { if (procvgbtab != NULL) memFree (procvgbtab); memFree (vnumgsttax);` versus Coll l.131 `procvgbtab = NULL; /* In case of error */`",
+  "upstream_change": "50bf0173b2 (same file; debug bound of the Coll variant only, see DGR-17)",
+  "upstream_fix_review": {
+   "commit": "50bf0173b2",
+   "verdict": "unrelated",
+   "details": "Touches only the SCOTCH_DEBUG_DGRAPH2 bound check of dgraphBand2Coll()/dgraphGrow2Coll() (l.239); the Ptop error path is unchanged.",
+   "compared_with_ours": "Our P1 still applies (date-only conflict)."
+  },
+  "review_accuracy": "accurate; it does not say that with a non-zero base the freed pointer is not even a malloc'ed address (invalid free rather than double free), nor that the missing NULL guard is a NULL store in the Ptop variant only when the caller's allocation failed",
+  "first_pass_critique": "Status, location, reproducer and preferred option are right. Its tradeoff note ('other ranks still hang because in non-debug builds the Ptop error is not propagated') is correct and is the defect I fixed separately (PS2-G21-1); the first pass filed it under 'DGR-13 class' and left it. Its option 2 (callee owns the array) was not implemented; it is alt/DGR-07-B.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_band_grow.c:131-132,158-162 (Coll variant)",
+    "quote": "procvgbtab = NULL;                              /* In case of error */\\n  if ((vnumgsttax == NULL) ||",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: make Ptop mirror Coll (NULL guard, free only the group leader)",
+    "summary": "procvgbtab = NULL; fold (vnumgsttax == NULL) into the allocation test; free only procvgbtab on error. The index array belongs to the caller, as the Coll variant and all four callers already assume.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0001-Bugfix-do-not-free-the-index-array-of-the-caller-in-.patch",
+    "tested": "fault injection np=4 Ptop and np=2 Coll, base 0 and 1, band / grow / internal dgraphBand (scans/fix1_*); 32-bit ASan+UBSan and 64-bit Gnum trees: all 15 CHECKPTSCOTCH targets (np=3) rc=0, the dgraph test programs and dgpart/dgord/dgtst at np 1, 2, 4 rc=0, `make ptcheck` rc=0, zero sanitizer reports (chk_32/chk_64_summary.txt); -DSCOTCH_DEBUG_ALL tree: dgraph targets rc=0 (chk_dbg_summary.txt); 0 build warnings in all trees",
+    "tradeoffs": "none: internal routines, no ABI or behaviour change on success",
+    "preferred": true,
+    "maintainer_fit": "it is the maintainer's own Coll code (dgraph_band_grow.c:131-162) applied to its twin; he mutualized the two variants in this very file ('mutualized between dgraphBand and dgraphGrow', header notes)"
+   },
+   {
+    "label": "B: callee owns the index array",
+    "summary": "both variants free vnumgsttax + baseval on error, the three callers stop freeing it, SCOTCH_dgraphGrow() works on an internal copy of the user array",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/DGR-07-B-callee-frees.diff",
+    "tested": "untested: sketch only (applies to the base tree)",
+    "tradeoffs": "inverts the ownership convention of four call sites, costs a vertgstnbr-Gnum copy per SCOTCH_dgraphGrow() call, and a NULL partgsttab is no longer handled gracefully",
+    "preferred": false,
+    "maintainer_fit": "no precedent: every dgraph routine that receives a user array (dgraphHaloSync, SCOTCH_dgraphGrow, SCOTCH_dgraphBand frontier) leaves it to the caller"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0001-Bugfix-do-not-free-the-index-array-of-the-caller-in-.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0002-Bugfix-make-error-handling-of-dgraphBand2Coll-and-dg.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "DGR-09",
+  "our_title": "dgraphBand() out-of-memory path: NULL store, uninitialised frees, int-sized gather",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: `cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/common; FI_TIMEOUT=20 ./scan.sh <lib> bin_<build>/g21fi 2 1 0 6 -- bandint path 0 8 2` -> nth=1 HANG (dgraphBand2Coll), nth=2 exit=139 (dgraph_band.c:224:32: runtime error: store to null pointer), nth=3,4 signal 11; base 1 (`bandint path 1 8 2`) nth=3..6 signal 6/11 on BOTH ranks. Patched (P5+P2): nth=0..6 rc=1 on both ranks, base 0 and 1, no sanitizer output. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "as the review: internal routine reached by every band strategy (bdgraphBipartBd, vdgraphSeparateBd), only after an allocation failure; the base-1 wrong-base free hits every process, not only the failing one",
+  "location_7_0_18": "src/libscotch/dgraph_band.c:156, 211-214, 224-233",
+  "evidence": "dgraph_band.c:156: `bandvnumgstsiz = MAX ((grafptr->vertgstnbr * sizeof (Gnum)), (grafptr->procglbnbr * sizeof (int)));` :224 `bandgrafptr->procdsptab[0] = -1;`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate on the four defects; it misses that every later failure (communication error (2), halo exchange, dgraphBuild4, debug checks) returns without freeing the five arrays and the half-built graph, which the maintainer fixed in the sibling dgraphInduce2() (3c9b3ab) by routing all errors through cleanup labels",
+  "first_pass_critique": "Right status, evidence and reproduction (including the 64-bit overflow on a real 64-bit tree). Its preferred option 1 is the minimal local patch (alt/DGR-09-B): it leaves the leaks on the later error paths, keeps the comma-chained allocation ladder that the maintainer removed from dgraphInduce2() in 3c9b3ab, and keeps 'if (bandfronloctab != NULL)' guards instead of a single cleanup path. It also writes 'MAX (vertgstnbr, procglbnbr) * sizeof (Gnum)' which I kept.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/library_dgraph_band.c:142,201-203,208,227 (SCOTCH_dgraphBand, separate copy)",
+    "quote": "bandgrafptr->procdsptab[0] = -1;\\n    if (MPI_Allgather (&bandgrafptr->procdsptab[0], 1, GNUM_MPI, /* Send received data to dummy array */",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/dgraph_band.c:157,159",
+    "quote": " if ((bandvnumgsttax = memAlloc (bandvnumgstsiz)) == NULL) /* Error will be propagated by dgraphBand2*() */\\n ...\\n else {   (one-space indentation)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: rework the error handling as in dgraphInduce2() (3c9b3ab)",
+    "summary": "local Gnum error flag, scratch sized in Gnums, work pointers NULL-initialised, edge arrays attached to the band graph as soon as allocated, fail1 (dummy Allgather) / fail2 (free index array) / fail3 (free work arrays, dgraphFree) labels reached from every error, free with the original base before the reset; same structure in SCOTCH_dgraphBand() with dgraphExit()",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0005-Bugfix-fix-out-of-memory-handling-of-dgraphBand-and-.patch",
+    "tested": "fault injection np=2/4, base 0/1, every allocation of both routines (scans/fix1_bandint_*, fix1_band_*): rc=1 on all ranks, no sanitizer output; 32-bit ASan+UBSan and 64-bit Gnum trees: all 15 CHECKPTSCOTCH targets (np=3) rc=0, the dgraph test programs and dgpart/dgord/dgtst at np 1, 2, 4 rc=0, `make ptcheck` rc=0, zero sanitizer reports (chk_32/chk_64_summary.txt); -DSCOTCH_DEBUG_ALL tree: dgraph targets rc=0 (chk_dbg_summary.txt); 0 build warnings in all trees",
+    "tradeoffs": "none on success; on error the band graph is now always freed/exited by the routine (SCOTCH_dgraphBand() on a dgraphBuild4 failure previously left it to the user's SCOTCH_dgraphExit, which is now a no-op)",
+    "preferred": true,
+    "maintainer_fit": "exact copy of the maintainer's 3c9b3ab (dgraphInduce2): 'Gnum dummval; ... fail1: dummval = -1; MPI_Allgather (&dummval, ...)' and 'fail2: dgraphExit (indgrafptr); return (1)' reached from the halo, build and debug failures; the Gnum sizing keeps his 'TRICK: re-use array' instead of adding an allocation"
+   },
+   {
+    "label": "B: minimal local fixes (first pass)",
+    "summary": "NULL-init bandfronloctab/bandpartgsttax, local dummval, Gnum-sized scratch, grafptr->baseval in the two frees, in both copies; structure unchanged",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/DGR-09-B-minimal-local.diff",
+    "tested": "untested here (first pass ran it on its own harness)",
+    "tradeoffs": "fixes the four reported defects only; the later error paths still leak the five arrays and the half-built graph",
+    "preferred": false,
+    "maintainer_fit": "keeps the comma-chained 'else if (x -= b, y -= b, memAllocGroup (...) == NULL)' ladder that he removed from dgraphInduce2() in 3c9b3ab"
+   },
+   {
+    "label": "C: fake private array for the error gather (3c9b3ab TRICK)",
+    "summary": "allocate a procglbnbr-Gnum procdsptab on the spot when the private group failed and gather into it, as dgraphInduce2() does, instead of sizing the index array in Gnums",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/DGR-09-C-fake-procdsptab.diff",
+    "tested": "untested: sketch (dgraphBand only)",
+    "tradeoffs": "one more allocation on the error path that can itself fail ('Cannot do a clean exit'), while an adequately sized array is already there",
+    "preferred": false,
+    "maintainer_fit": "it is his idiom in 3c9b3ab, but there the induced graph had no other buffer; here he wrote the 'TRICK: re-use array' himself"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0005-Bugfix-fix-out-of-memory-handling-of-dgraphBand-and-.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0010-Style-fix.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (file untouched)."
+ },
+ {
+  "id": "DGR-13",
+  "our_title": "Coarsening and matching allocation failures return before peers' collectives: hangs",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: `cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/common; FI_TIMEOUT=20 ./scan.sh <lib> bin_<build>/g21fi 2 1 3 26 -- coarsen ring 0 8 0` -> nth=6..11 HANG (dgraphMatchSyncColl: out of memory / dgraphCoarsenBuild: out of memory (1)), nth=13..17 HANG (dgraphCoarsenBuild: out of memory (2), dgraphCoarsenBuildSeq), nth=12 HANG (dgraphHaloSync2, G20). Patched (P7+P8): every injected failure gives coarsen rc=2 on both ranks except the dgraphHaloSync2 one (nth=6 in the patched allocation order), which still HANGs (G20's PS-DGR-2). Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "higher than the review's medium: every coarsening level of every parallel ordering/partitioning (dgord, dgpart, SCOTCH_dgraphOrder/Map) passes through these allocations, and one process out of memory hangs the whole job instead of failing; 20 of the 23 injected allocations hung",
+  "location_7_0_18": "src/libscotch/dgraph_match_sync_coll.c:121-124; src/libscotch/dgraph_coarsen.c:883-886, 1090-1101, 1251-1266",
+  "evidence": "dgraph_match_sync_coll.c:121: `if ((vsnddsptab = memAlloc (4 * grafptr->procglbnbr * sizeof (int))) == NULL) {` then return before MPI_Alltoall; dgraph_coarsen.c:885 `return (1);                                   /* TODO: cleaner exit */`; :1090 `#ifdef SCOTCH_DEBUG_DGRAPH1                       /* Communication cannot be overlapped by a useful one */`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate on mechanism and sites; its 'as dgraphGhst/dgraphFold do' is only true of debug builds in 7.0.17 (G18/G19 made those unconditional in the combined base); it misses dgraphCoarsenBuildThr and that the final reduction can carry the flag for free",
+  "first_pass_critique": "Status and reproduction right (it found PS-DGR-1 on the way). Its preferred option 1 ('hoist into the Init functions') is right in spirit but it adds a new DgraphMatchData field and 4P ints for an array that already exists twice: the coarse graph's procrcvtab/procsndtab and the coarsening count arrays, which the maintainer's own dgraphCoarsenBuildColl() uses with the comment 'TRICK: use coarse graph procrcvtab and procsndtab' (alt/DGR-13-C is its diff). It also left the Build sites as 'sketch only' and did not see that the final dgraphAllreduceMaxSum can carry the error flag (its option 3 sentinel idea, but on the reduction, where no sentinel convention is needed).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_coarsen.c:1002-1005",
+    "quote": "if (dgraphHaloSync (finegrafptr, coargsttax + finegrafptr->baseval, GNUM_MPI) != 0) { errorPrint (\"dgraphCoarsenBuild: cannot propagate multinode indices\"); return (1);",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: reuse existing arrays, hoist to Init, carry the flag in the final reduction, unconditional agreement where nothing else exists (two commits)",
+    "summary": "0007: dgraphMatchSyncColl() uses coarptr->vsndcnttab/vrcvcnttab and coargrafptr->procsndtab/procrcvtab exactly as dgraphCoarsenBuildColl() does (no allocation left). 0008: thrdtab moves into the dgraphCoarsenInit() group whose failure is already agreed upon by the thread-count reduction; the coarse-array agreement is performed in all build modes; the result of the adjacency computation (Seq or threads) rides the final dgraphAllreduceMaxSum (5 max + 1 sum) so that all processes free the coarse graph together; the edge arrays are shrunk only after that agreement.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0008-Bugfix-make-error-handling-of-dgraphCoarsenBuild-col.patch",
+    "tested": "fault injection on every coarsening allocation, np=2 Coll, np=4 Ptop, plain/fold/folddup, base 0/1 (scans/fix2_*): rc=2 on all ranks everywhere but the halo sync; 32-bit ASan+UBSan and 64-bit Gnum trees: all 15 CHECKPTSCOTCH targets (np=3) rc=0, the dgraph test programs and dgpart/dgord/dgtst at np 1, 2, 4 rc=0, `make ptcheck` rc=0, zero sanitizer reports (chk_32/chk_64_summary.txt); -DSCOTCH_DEBUG_ALL tree: dgraph targets rc=0 (chk_dbg_summary.txt); 0 build warnings in all trees",
+    "tradeoffs": "one int Allreduce per coarsening level added in release builds (the coarse-array agreement; the maintainer's comment says he avoided it); the final reduction grows from 5 to 6 Gnums; no new memory, five allocations per level removed",
+    "preferred": true,
+    "maintainer_fit": "dgraphGhst()'s 'TRICK: Processes not on error will perform collective communication at end of routine' (dgraph_ghst.c:86-131) for the final reduction; dgraphCoarsenBuildColl()'s own TRICK for the arrays; the 'Set execution context as it might be needed for initialization' comment at dgraph_coarsen.c:1358 for hoisting thrdtab; the unconditional agreement follows G18/G19's commits in the combined base (dgraphRedist, dgraphBuild3), themselves after hdgraphGather()"
+   },
+   {
+    "label": "B: an int Allreduce agreement after each allocation",
+    "summary": "keep every allocation, agree before the next collective (one per matching pass, one for thrdtab, one for the coarse arrays, one after the adjacency computation)",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/DGR-13-B-allreduce-per-site.diff",
+    "tested": "untested: sketch",
+    "tradeoffs": "up to seven collectives per level on the hot path",
+    "preferred": false,
+    "maintainer_fit": "exactly what his 'Communication cannot be overlapped by a useful one' comments avoid"
+   },
+   {
+    "label": "C: new syncdsptab field allocated by dgraphMatchInit() (first pass)",
+    "summary": "hoist the matching work array into the matching structure",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/DGR-13-C-syncdsptab-in-matchinit.diff",
+    "tested": "first pass ran it; not run here",
+    "tradeoffs": "4P ints and a struct field for arrays that already exist; covers the matching site only",
+    "preferred": false,
+    "maintainer_fit": "ignores his existing TRICK in dgraphCoarsenBuildColl()"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0007-Bugfix-do-not-allocate-communication-arrays-in-dgrap.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0008-Bugfix-make-error-handling-of-dgraphCoarsenBuild-col.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. P8 makes the coarse-array agreement unconditional (reverses the maintainer's explicit '#ifdef SCOTCH_DEBUG_DGRAPH1' choice): same open decision as G18/G19."
+ },
+ {
+  "id": "DGR-17",
+  "our_title": "Collective grow debug bound forgot the x2 data multiplier: fixed upstream",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "dgraph_band_grow.c is compiled into library_dgraph_grow.c; built it with -DSCOTCH_DEBUG_DGRAPH2 from v7.0.17 and from v7.0.18 sources as preloaded overrides of SCOTCH_dgraphGrow over the pristine 7.0.18 library (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/DGR-17/): `mpirun -np 2 g21fi grow ring 0 8 1` -> 7.0.17 code: 'dgraphGrow2Coll: internal error (1)' on both ranks, rc=1; 7.0.18 code: grow rc=0, bad=0 (also distance 3, and np=4 sparse/Ptop). Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/DGR-17/debug_grow_7018.txt",
+  "read_only": "the misnamed Ptop message (l.558) is only printed when a debug-only internal check fails; checked by reading",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "debug builds only (SCOTCH_DEBUG_DGRAPH2), but then every SCOTCH_dgraphGrow() call that reaches more than half of a neighbour's ghost vertices fails",
+  "location_7_0_18": "src/libscotch/dgraph_band_grow.c:239 (fixed), 558 (message name, remaining)",
+  "evidence": "dgraph_band_grow.c:239: `(nsndidxtab[procngbnum] >= (vsnddsptab[grafptr->procngbtab[procngbnum]] + DGRAPHBANDGROWSMUL (grafptr->procrcvtab[grafptr->procngbtab[procngbnum]])))) {`; :558 `errorPrint (DGRAPHBANDGROWNSTR \"dgraphBandPtop: internal error (3)\");`",
+  "upstream_change": "50bf0173b2 Bugfix: access proper array cells for debug computations [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "50bf0173b2",
+   "verdict": "correct",
+   "details": "Applies DGRAPHBANDGROWSMUL to the bound, matching how the area is built (l.175). Verified by running a debug build of the grow code. Not touched: the routine name in the Ptop variant's message (l.558: DGRAPHBANDGROWNSTR already holds 'dgraphBand2'/'dgraphGrow2', so the message reads 'dgraphBand2dgraphBandPtop'), which was part of our 7.0.17 0003 and of DGR-17's extra_instances.",
+   "compared_with_ours": "The bound change is identical to ours. Our commit is shrunk to the message fix (P3, no Bugfix prefix, like his 'Typo fix' 0e79c872)."
+  },
+  "review_accuracy": "accurate, including the fix",
+  "first_pass_critique": "Right. It did not notice the mislabeled message two checks below in the same routine (fixed in the same commit).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_band_grow.c:558",
+    "quote": "errorPrint (DGRAPHBANDGROWNSTR \"dgraphBandPtop: internal error (3)\");",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: apply DGRAPHBANDGROWSMUL in the bound",
+    "summary": "compare against vsnddsptab[...] + DGRAPHBANDGROWSMUL (procrcvtab[...]); fix the message name",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0003-Fix-routine-name-in-internal-error-message-of-dgraph.patch",
+    "tested": "debug tree run above; 32-bit ASan+UBSan and 64-bit Gnum trees: all 15 CHECKPTSCOTCH targets (np=3) rc=0, the dgraph test programs and dgpart/dgord/dgtst at np 1, 2, 4 rc=0, `make ptcheck` rc=0, zero sanitizer reports (chk_32/chk_64_summary.txt); -DSCOTCH_DEBUG_ALL tree: dgraph targets rc=0 (chk_dbg_summary.txt); 0 build warnings in all trees",
+    "tradeoffs": "none (debug-only code)",
+    "preferred": true,
+    "maintainer_fit": "one-token fix in the macro-instantiated style of the file; he already uses the multiplier three lines away in the Ptop twin"
+   },
+   {
+    "label": "B: per-neighbour end array like Ptop",
+    "summary": "record the end of each send sub-array in a debug-only nsndendtab and compare against it",
+    "diff_file": "",
+    "tested": "untested: compiles-by-inspection sketch",
+    "tradeoffs": "adds an #ifdef'd array to the allocation group for a check that a one-token change fixes",
+    "preferred": false,
+    "maintainer_fit": "symmetric with Ptop but heavier than what he does for debug checks"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0003-Fix-routine-name-in-internal-error-message-of-dgraph.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed (bound fixed by 50bf0173; misnamed Ptop message remains, fixed by P3)."
+ },
+ {
+  "id": "PS-DGR-1",
+  "our_title": "dgraphCoarsen() initialises matching data after a failed coarsening init",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: `cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/common; FI_TIMEOUT=20 ./scan.sh <lib> bin_<build>/g21fi 2 1 3 5 -- coarsen ring 0 8 0` -> nth=3,4 exit=139 :: dgraphCoarsenInit: out of memory (3)/(4); dgraph_match.c:93:31: runtime error: member access within misaligned address 0xfefefefefefefefe; signal 11. Patched (P6): nth=3,4,5 coarsen rc=2 on both ranks. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "crash (not a hang) of the failing process on any of the four initial allocations; the first pass's rating",
+  "location_7_0_18": "src/libscotch/dgraph_coarsen.c:1359-1371",
+  "evidence": "dgraph_coarsen.c:1359-1360: `cheklocval  = dgraphCoarsenInit (&matedat.c, finegrafptr, coargrafptr);\n  cheklocval |= dgraphMatchInit   (&matedat, 0.5F);`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "(first-pass finding) accurate; incomplete: it did not see that dgraphMatchExit() then frees an uninitialised procvgbtab and that dgraphCoarsenExit() runs twice on what dgraphCoarsenInit() already freed (coarprvptr, multloctmp): a double free on the 'out of memory (2)..(4)' paths even with its fix",
+  "first_pass_critique": "Its preferred fix ('call MatchInit only if cheklocval == 0') is half of the fix; its tradeoff note 'error branch must not call dgraphMatchExit on an uninitialised matedat' is right but it left the double dgraphCoarsenExit() unmentioned. Option A removes the self-cleanup from dgraphCoarsenInit() (its header comment now says that cleanup is the caller's, after the agreement) and exits the matching data only when it was initialised.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_coarsen.c:1363-1366 (MPI_Allreduce failure returns without any cleanup)",
+    "quote": "errorPrint (\"dgraphCoarsen: communication error (1)\");\\n    return (2);",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: init matching data only on success; one cleanup in dgraphCoarsen() after the agreement",
+    "summary": "`if (cheklocval == 0) cheklocval = dgraphMatchInit (...)`; dgraphCoarsenInit() no longer calls dgraphCoarsenExit() itself; on error, dgraphMatchExit() only if the matching data exists, then dgraphCoarsenExit(); the Allreduce failure falls into the same cleanup",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0006-Bugfix-do-not-initialize-matching-data-after-a-faile.patch",
+    "tested": "injection nth=3..6 (all four Init allocations and the MatchInit one): rc=2 on all ranks; 32-bit ASan+UBSan and 64-bit Gnum trees: all 15 CHECKPTSCOTCH targets (np=3) rc=0, the dgraph test programs and dgpart/dgord/dgtst at np 1, 2, 4 rc=0, `make ptcheck` rc=0, zero sanitizer reports (chk_32/chk_64_summary.txt); -DSCOTCH_DEBUG_ALL tree: dgraph targets rc=0 (chk_dbg_summary.txt); 0 build warnings in all trees",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "the 'TRICK: negative value on error' agreement already exists; he routes cleanup through one place after the agreement in 3c9b3ab and in G19's dgraphGhst2()"
+   },
+   {
+    "label": "B: make dgraphMatchInit()/Exit() tolerate a failed coarsening init",
+    "summary": "NULL-init coargsttax and set the graph pointers at the top of dgraphCoarsenInit(); bail out of dgraphMatchInit() early; guard dgraphMatchExit()",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/PS-DGR-1-B-tolerant-matchinit.diff",
+    "tested": "untested: sketch",
+    "tradeoffs": "hides the ordering in the callee, touches three files, keeps the double dgraphCoarsenExit()",
+    "preferred": false,
+    "maintainer_fit": "no precedent for defensive Init routines in the dgraph module"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0006-Bugfix-do-not-initialize-matching-data-after-a-faile.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (dgraph_coarsen.c untouched)."
+ },
+ {
+  "id": "PS-DGR-5",
+  "our_title": "SCOTCH_dgraphGrow() ghost-array failure bypasses the fail label (duplicate of API-20)",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "library_dgraph_grow.c:124-127 in 7.0.18",
+  "why_not_run": "duplicate of API-20 (same lines, same patch); see API-20 for the runs",
+  "severity": "low",
+  "severity_note": "same defect as API-20",
+  "location_7_0_18": "src/libscotch/library_dgraph_grow.c:124-127",
+  "evidence": "library_dgraph_grow.c:124-127: `if (dgraphGhst (&grafdat) != 0) { ... return (1); }`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "(first-pass finding) accurate; it is the same defect as API-20, which the first pass's API area had already recorded",
+  "first_pass_critique": "Duplicate of API-20 filed by the DGR area; its option 2 ('compute ghost array before CONTEXTINIT') is wrong: dgraphGhst() needs the clone with DGRAPHFREEALL cleared, which is created after the context",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: see API-20",
+    "summary": "",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0004-Bugfix-release-the-context-and-the-cloned-graph-of-S.patch",
+    "tested": "see API-20",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": "see API-20"
+   },
+   {
+    "label": "B: see API-20 option B",
+    "summary": "",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/API-20-B-goto-only.diff",
+    "tested": "untested",
+    "tradeoffs": "leaks the clone's ghost array",
+    "preferred": false,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0004-Bugfix-release-the-context-and-the-cloned-graph-of-S.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G21-1",
+  "our_title": "dgraphBand2Coll/Ptop allocation failure not agreed in release builds: others hang",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: `cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/common; FI_TIMEOUT=20 ./scan.sh <lib> bin_<build>/g21fi 2 1 3 4 -- band path 0 8 2` -> nth=3 HANG (dgraphBand2Coll: out of memory (1); only rank 1 returns); `grow ring 0 8 2` nth=2 HANG (dgraphGrow2Coll: out of memory (1)); `bandint path 0 8 2` nth=1 HANG. Patched (P2): rc=1 on both ranks in all three. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/dgraph_band_grow.c:145-157, 381-393",
+  "evidence": "dgraph_band_grow.c:145: `#ifdef SCOTCH_DEBUG_DGRAPH1                       /* Communication not needed and not absorbable by the algorithm */` around the only MPI_Allreduce of the error flag",
+  "upstream_change": "50bf0173b2 (same file, unrelated hunk)",
+  "upstream_fix_review": {
+   "commit": "50bf0173b2",
+   "verdict": "unrelated",
+   "details": "Only the debug bound of l.239; the release-build agreement is unchanged.",
+   "compared_with_ours": "Our P2 still applies unchanged."
+  },
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: perform the 3-Gnum agreement (error flag + distance bounds) in all build modes",
+    "summary": "drop the #ifdef, reduce reduloctab unconditionally, treat a communication error as an error, keep the distance consistency check (distmax is a user parameter of SCOTCH_dgraphGrow())",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0002-Bugfix-make-error-handling-of-dgraphBand2Coll-and-dg.patch",
+    "tested": "injection above; 32-bit ASan+UBSan and 64-bit Gnum trees: all 15 CHECKPTSCOTCH targets (np=3) rc=0, the dgraph test programs and dgpart/dgord/dgtst at np 1, 2, 4 rc=0, `make ptcheck` rc=0, zero sanitizer reports (chk_32/chk_64_summary.txt); -DSCOTCH_DEBUG_ALL tree: dgraph targets rc=0 (chk_dbg_summary.txt); 0 build warnings in all trees",
+    "tradeoffs": "one 3-Gnum MPI_Allreduce per band/grow call in release builds (the maintainer's comment explicitly avoided it); invalid distance parameters are now rejected in release builds too",
+    "preferred": true,
+    "maintainer_fit": "same decision as G18's dgraphRedist and G19's dgraphBuild3 commits in the combined base ('make error handling ... collective in all build modes', after hdgraphGather()); STYLE.md: a user-controlled parameter is checked unconditionally"
+   },
+   {
+    "label": "B: agree on the error flag only, keep the distance check debug-only",
+    "summary": "1-Gnum reduction in release, 3 in debug, through a REDUNBR macro",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/PS2-G21-1-B-flag-only.diff",
+    "tested": "untested: sketch",
+    "tradeoffs": "two more #ifdef blocks to save 16 bytes per reduction",
+    "preferred": false,
+    "maintainer_fit": "more conditional code than he writes for such checks"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0002-Bugfix-make-error-handling-of-dgraphBand2Coll-and-dg.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Same release-build agreement decision as G18/G19."
+ },
+ {
+  "id": "PS2-G21-2",
+  "our_title": "Unchecked shrinking reallocs of coarse edge and multinode arrays: crash or bad graph",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: `cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/common; FI_TIMEOUT=20 ./scan.sh <lib> bin_<build>/g21fi 2 1 3 26 -- coarsen ring 0 8 0` -> nth=19 exit=0 :: (0),(1): ERROR: dgraphCheck: inconsistent global graph data (2); coarsen rc=0 on both ranks (edge-load array lost by its shrink, success reported); nth=18 exit=1 (MPI abort after the edge array became NULL). Patched (P9): the shrink indices (now nth=12,13) give coarsen rc=0 with a consistent graph, no runtime error. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/dgraph_coarsen.c:1269-1272, 1434-1437",
+  "evidence": "dgraph_coarsen.c:1269: `coargrafptr->edgeloctax  = memRealloc (coargrafptr->edgeloctax + coargrafptr->baseval, coargrafptr->edgelocsiz * sizeof (Gnum));`; :1436 `matedat.c.multloctab = memRealloc (matedat.c.multloctab, matedat.c.multlocnbr * sizeof (DgraphCoarsenMulti));`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: keep the arrays as they are when shrinking fails",
+    "summary": "temporary pointer, assign only on success (edge arrays after the final agreement; multinode array in dgraphCoarsen)",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0009-Bugfix-keep-the-coarse-edge-arrays-and-the-multinode.patch",
+    "tested": "injection above; 32-bit ASan+UBSan and 64-bit Gnum trees: all 15 CHECKPTSCOTCH targets (np=3) rc=0, the dgraph test programs and dgpart/dgord/dgtst at np 1, 2, 4 rc=0, `make ptcheck` rc=0, zero sanitizer reports (chk_32/chk_64_summary.txt); -DSCOTCH_DEBUG_ALL tree: dgraph targets rc=0 (chk_dbg_summary.txt); 0 build warnings in all trees",
+    "tradeoffs": "the physical arrays may stay larger than edgelocsiz/multlocnbr (harmless: sizes are logical)",
+    "preferred": true,
+    "maintainer_fit": "G19's dgraphGhst2() in the combined base ('Shrink send index array; keep it as is if shrinking fails'), the pattern G19 recorded tree-wide as PS2-G19-6"
+   },
+   {
+    "label": "B: treat a failed shrink as an error",
+    "summary": "check and fail",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/PS2-G21-2-B-shrink-failure-is-error.diff",
+    "tested": "untested: sketch",
+    "tradeoffs": "fails for nothing (a larger array is usable), needs its own agreement between collectives, leaks the array",
+    "preferred": false,
+    "maintainer_fit": "contrary to his dgraphGhst2() choice"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/patches/0009-Bugfix-keep-the-coarse-edge-arrays-and-the-multinode.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G21-3",
+  "our_title": "CONTEXTINIT() ignores contextOptionsInit(): failed options run with defaults, rc=0",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18 and our series: `cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/common; FI_TIMEOUT=20 ./scan.sh <lib> bin_<build>/g21fi 2 1 0 0 -- band path 0 8 2` -> nth=0 exit=0 :: (1): ERROR: contextValuesInit: out of memory; rank 0: band rc=0; rank 1: band rc=0. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G21-dgraph-band-coarsen/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/context.h:113-118",
+  "evidence": "context.h:117: `contextOptionsInit (&c##_contdat),        \\` inside a comma expression whose value is that of contextCommit() only",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A (notes only, other group's file): fold the result of contextOptionsInit() into the macro value",
+    "summary": "(contextOptionsInit (...) || contextCommit (...))",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G21-dgraph-band-coarsen/PS2-G21-3-A-contextinit-result.diff",
+    "tested": "untested: sketch, not part of this series",
+    "tradeoffs": "contextExit() must tolerate a context without option values (not checked); behaviour change: routines fail instead of silently running with default options",
+    "preferred": true,
+    "maintainer_fit": "to be decided by the CTX group"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "owner decision",
+  "needs_note": "context.h belongs to G06; alt A still applies to v7.0.18.",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (context.h untouched)."
+ }
+]

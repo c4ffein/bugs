@@ -1,0 +1,14 @@
+FOLDCOMM-7e17084b: check that dgraphFold() keeps all vertices with skewed distributions (7.0.18 round)
+====================================================================================================
+foldskew.c  internal dgraphFold() on a ring whose per-process vertex counts are drawn from a skewed
+            distribution (seed; FOLDSKEW_EXTREME=1 for a few heavy processes and many tiny ones).
+            Receivers check dgraphCheck(), the global vertex count, the sum of local counts and the
+            sum of vnumloctax; prints "foldskew ... OK|BAD".
+  mpicc <CFLAGS> -DSCOTCH_PTSCOTCH -I$B/include -I$B/src/libscotch foldskew.c -o foldskew_<build> -L$B/lib -lptscotch -lscotch -lptscotcherr <LDFLAGS>
+  mpirun --oversubscribe -np P [-x FOLDSKEW_EXTREME] ./foldskew_<build> partval base seed
+libfoldcommpre.so: dgraph_fold_comm.c at 7e17084b^ (before the "mere receiver" fix), built as a shared object
+            and preloaded (LD_PRELOAD) over a 7.0.18 library to interpose _SCOTCHdgraphFoldComm (checked with
+            LD_DEBUG=bindings).
+Results: sweep_7018.txt: 64/64 OK on pristine 7.0.18 (../../pristinefi), 64/64 OK on the G18 series (../../buildfi).
+            The pre-fix code passes too (110 runs, np 4..12, prefix_extreme.txt): the sweep is a no-regression
+            check only; it does not reach the branch fixed by 7e17084b.

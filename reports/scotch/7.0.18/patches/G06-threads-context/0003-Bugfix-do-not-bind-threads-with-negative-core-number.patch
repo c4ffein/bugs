@@ -1,0 +1,51 @@
+From c9612f5419e691ac2b268ad198ad80aff4067b7b Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:16:43 +0000
+Subject: [PATCH 3/5] Bugfix: do not bind threads with negative core numbers
+ [report R. Perry]
+
+Since commit 52dcf602, explicit core numbers are mapped onto the
+process affinity mask by `threadProcessCoreNum()`. However, for the
+documented core number of -1, which means that the thread must not be
+bound, the modulus reduction kept a negative value, the mask lookup
+loop was not entered, and the thread was bound to core 0, even when
+the latter did not belong to the process affinity mask.
+`threadProcessCoreNum()` now returns -1 for negative core numbers,
+so that the thread is left unbound, as before.
+
+Refs: COR-24
+---
+ src/libscotch/common_thread.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/src/libscotch/common_thread.c b/src/libscotch/common_thread.c
+index 4ba29298..20e6936a 100644
+--- a/src/libscotch/common_thread.c
++++ b/src/libscotch/common_thread.c
+@@ -912,9 +912,11 @@ ThreadContext * const       contptr)
+ }
+ 
+ /* This routine returns the number of the core to be
+-** associated with the given thread number.
++** associated with the given logical core number,
++** which is subject to modulus reduction.
+ ** It returns:
+-** - x  : number of the core associated with the thread.
++** - >= 0  : number of the core associated with the thread.
++** - -1    : if the thread is not to be bound to a core.
+ */
+ 
+ static
+@@ -926,6 +928,9 @@ int                         thrdnum)
+   int                 corenum;
+   int                 corenbr;
+ 
++  if (thrdnum < 0)                                /* If thread is not to be bound to a core */
++    return (-1);
++
+   corenbr  = threadProcessCoreNbr (contptr);
+   thrdnum %= corenbr;                             /* Round-robin on thread allocation */
+ 
+-- 
+2.43.0
+

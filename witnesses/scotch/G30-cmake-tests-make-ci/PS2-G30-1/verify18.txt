@@ -1,0 +1,2 @@
+pristine_asan: before=1355 rc=2 after(lib)=3 after(src/libscotch)=3 gcc -shared -o libscotch.so graph.o undefined=10
+build: before=1355 rc=0 after(lib)=1355 after(src/libscotch)=1355 gcc -shared -o libscotch.so arch.o arch_cmplt.o arch_cmpltw.o arch_deco.o arch_d undefined=0

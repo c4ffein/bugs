@@ -1,0 +1,7 @@
+iters=1500 sanitizer_hits=53 unique_buckets=6
+  chac   _SCOTCHmemAllocGroup                     first_iter=25
+  grf    _SCOTCHgraphLoad2                        first_iter=760
+  mtx    _SCOTCHgraphGeomLoadMmkt                 first_iter=26
+  rsa    TIMEOUT                                  first_iter=563
+  rsa    _SCOTCHgraphGeomLoadHabo                 first_iter=27
+  rsa    graphGeomLoadHaboFormat                  first_iter=127

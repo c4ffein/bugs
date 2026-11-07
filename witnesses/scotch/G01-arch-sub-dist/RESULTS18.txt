@@ -1,0 +1,151 @@
+######## /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/lib
+== COR-02
+cmplt_bad: ret=1 sanitizer-hits=0
+== COR-03
+sub_range: ret= sanitizer-hits=2 msg=archSubArchBuild: invalid vertex number in vertex list
+sub_toomany: ret=1 sanitizer-hits=0 msg=archSubArchBuild: invalid parameters
+sub_dup: ret= sanitizer-hits=2 msg=archSubArchBuild: duplicate vertex number in vertex list
+sub_zero: ret= sanitizer-hits=2 msg=
+sub_neg: ret=1 sanitizer-hits=0 msg=archSubArchLoad: bad input (1)
+SCOTCH_archSub {0,99}: ret=2 sanitizer-hits=0
+== COR-04
+sub_badtype: ret=1 sanitizer-hits=0
+sub_badinner: ret=1 sanitizer-hits=0
+sub_short: ret=1 sanitizer-hits=0
+sub_var: ret=1 sanitizer-hits=0
+sub_dup: ret= sanitizer-hits=2
+v_subtleaf: ret= sanitizer-hits=2
+== COR-05
+dist_ok: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+dist_bad:  sanitizer-hits=5
+dist_var: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+dist_sub: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+dist_zero: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+dist_subsub: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+== COR-27
+n=5:
+  level 0: fine=5 coarse=3 nextpass=1 single: 4 covered=5
+  level 1: fine=3 coarse=2 nextpass=0 single: 0 covered=3
+  level 2: fine=2 coarse=1 nextpass=0 single: covered=2
+n=9:
+  level 0: fine=9 coarse=5 nextpass=1 single: 8 covered=9
+  level 1: fine=5 coarse=3 nextpass=0 single: 0 covered=5
+  level 2: fine=3 coarse=2 nextpass=1 single: 2 covered=3
+  level 3: fine=2 coarse=1 nextpass=1 single: covered=2
+n=11:
+  level 0: fine=11 coarse=6 nextpass=1 single: 10 covered=11
+  level 1: fine=6 coarse=3 nextpass=1 single: covered=6
+  level 2: fine=3 coarse=2 nextpass=0 single: 0 covered=3
+  level 3: fine=2 coarse=1 nextpass=0 single: covered=2
+coverage sweep failures (n=2..64,100,1023): 0
+== PS-COR-3
+SCOTCH_archSub {0,0} (Build fails): ret=2 leak-reports=0 other-sanitizer-hits=0
+== PS2-G01-1
+sub_one: load ret=1  sanitizer-hits=0
+sub_one_hcub: load ret=1  sanitizer-hits=0
+sub_one0: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+SCOTCH_archBuild2 m4x4 vertex 5: ret= sanitizer-hits=4
+SCOTCH_archBuild2 m4x4 vertex 0: ret=0 sanitizer-hits=0
+== new
+sub_range:  sanitizer-hits=2 first: AddressSanitizer: attempting double-free on 0x50b000000040 in thread T0:
+sub_dup:  sanitizer-hits=2 first: AddressSanitizer: attempting double-free on 0x50b000000040 in thread T0:
+sub_zero:  sanitizer-hits=2 first: AddressSanitizer: requested allocation size 0xffffffffffffffec (0x7f0 after adjustments for alignment, red zones etc.) exceeds maximum supported size of 0x10000000000 (thread T0)
+sub_subshort:  sanitizer-hits=5 first: arch.c:173:15: runtime error: member access within misaligned address 0xbebebebebebebebe for type 'struct Arch', which requires 8 byte alignment
+sub_tleafbad1:  sanitizer-hits=4 first: AddressSanitizer: SEGV on unknown address (pc 0x7f21d5044688 bp 0x7ffffc88e2f0 sp 0x7ffffc88e2b0 T0)
+sub_inbad: load ret=1  sanitizer-hits=0 first: 
+dist_subshort:  sanitizer-hits=5 first: arch.c:173:15: runtime error: member access within misaligned address 0xbebebebebebebebe for type 'struct Arch', which requires 8 byte alignment
+dist_distbad:  sanitizer-hits=5 first: arch.c:173:15: runtime error: member access within misaligned address 0xbebebebebebebebe for type 'struct Arch', which requires 8 byte alignment
+sub_distbad:  sanitizer-hits=5 first: arch.c:173:15: runtime error: member access within misaligned address 0xbebebebebebebebe for type 'struct Arch', which requires 8 byte alignment
+dist_nonum:  sanitizer-hits=5 first: arch.c:173:15: runtime error: member access within null pointer of type 'struct Arch'
+dist_bad:  sanitizer-hits=5 first: arch.c:173:15: runtime error: member access within null pointer of type 'struct Arch'
+dist_zero: load ret=0 name=dist size=4 var=0  sanitizer-hits=0 first: 
+dist_var: load ret=0 name=dist size=1 var=0  sanitizer-hits=0 first: 
+sub_dist: load ret=0 name=sub size=2 var=0  sanitizer-hits=0 first: 
+subapi2 0 0:  sanitizer-hits=2
+subapi2 0 99:  sanitizer-hits=2
+subapi2 3: archSub ret=2 sanitizer-hits=0
+subapi2 0 1: archSub ret=0 sanitizer-hits=0
+######## /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build/lib
+== COR-02
+cmplt_bad: ret=1 sanitizer-hits=0
+== COR-03
+sub_range: ret=1 sanitizer-hits=0 msg=archSubArchBuild: invalid vertex number in vertex list
+sub_toomany: ret=1 sanitizer-hits=0 msg=archSubArchBuild: invalid parameters
+sub_dup: ret=1 sanitizer-hits=0 msg=archSubArchBuild: duplicate vertex number in vertex list
+sub_zero: ret=1 sanitizer-hits=0 msg=archSubArchLoad: bad input (1)
+sub_neg: ret=1 sanitizer-hits=0 msg=archSubArchLoad: bad input (1)
+SCOTCH_archSub {0,99}: ret=2 sanitizer-hits=0
+== COR-04
+sub_badtype: ret=1 sanitizer-hits=0
+sub_badinner: ret=1 sanitizer-hits=0
+sub_short: ret=1 sanitizer-hits=0
+sub_var: ret=1 sanitizer-hits=0
+sub_dup: ret=1 sanitizer-hits=0
+v_subtleaf: ret= sanitizer-hits=2
+== COR-05
+dist_ok: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+dist_bad: load ret=1  sanitizer-hits=0
+dist_var: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+dist_sub: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+dist_zero: load ret=1  sanitizer-hits=0
+dist_subsub: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+== COR-27
+n=5:
+  level 0: fine=5 coarse=3 nextpass=1 single: 4 covered=5
+  level 1: fine=3 coarse=2 nextpass=0 single: 0 covered=3
+  level 2: fine=2 coarse=1 nextpass=0 single: covered=2
+n=9:
+  level 0: fine=9 coarse=5 nextpass=1 single: 8 covered=9
+  level 1: fine=5 coarse=3 nextpass=0 single: 0 covered=5
+  level 2: fine=3 coarse=2 nextpass=1 single: 2 covered=3
+  level 3: fine=2 coarse=1 nextpass=1 single: covered=2
+n=11:
+  level 0: fine=11 coarse=6 nextpass=1 single: 10 covered=11
+  level 1: fine=6 coarse=3 nextpass=1 single: covered=6
+  level 2: fine=3 coarse=2 nextpass=0 single: 0 covered=3
+  level 3: fine=2 coarse=1 nextpass=0 single: covered=2
+coverage sweep failures (n=2..64,100,1023): 0
+== PS-COR-3
+SCOTCH_archSub {0,0} (Build fails): ret=2 leak-reports=0 other-sanitizer-hits=0
+== PS2-G01-1
+sub_one: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+sub_one_hcub: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+sub_one0: load ret=0 save ret=0 reload ret=0  sanitizer-hits=0
+SCOTCH_archBuild2 m4x4 vertex 5: ret=0 sanitizer-hits=0
+SCOTCH_archBuild2 m4x4 vertex 0: ret=0 sanitizer-hits=0
+== new
+sub_range: load ret=1  sanitizer-hits=0 first: 
+sub_dup: load ret=1  sanitizer-hits=0 first: 
+sub_zero: load ret=1  sanitizer-hits=0 first: 
+sub_subshort: load ret=1  sanitizer-hits=0 first: 
+sub_tleafbad1: load ret=1  sanitizer-hits=0 first: 
+sub_inbad: load ret=1  sanitizer-hits=0 first: 
+dist_subshort: load ret=1  sanitizer-hits=0 first: 
+dist_distbad: load ret=1  sanitizer-hits=0 first: 
+sub_distbad: load ret=1  sanitizer-hits=0 first: 
+dist_nonum: load ret=1  sanitizer-hits=0 first: 
+dist_bad: load ret=1  sanitizer-hits=0 first: 
+dist_zero: load ret=1  sanitizer-hits=0 first: 
+dist_var: load ret=0 name=dist size=1 var=1  sanitizer-hits=0 first: 
+sub_dist: load ret=0 name=sub size=2 var=0  sanitizer-hits=0 first: 
+subapi2 0 0: archSub ret=2 sanitizer-hits=0
+subapi2 0 99: archSub ret=2 sanitizer-hits=0
+subapi2 3: archSub ret=0 sanitizer-hits=0
+subapi2 0 1: archSub ret=0 sanitizer-hits=0
+######## malloc-failure sweeps (plain builds: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plain = pristine, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plainp = patched)
+plain sub_ok.tgt: injected=10 crashes at malloc #: none
+plainp sub_ok.tgt: injected=10 crashes at malloc #: none
+plain sub_sub.tgt: injected=20 crashes at malloc #: 5 6 7 8 9
+plainp sub_sub.tgt: injected=20 crashes at malloc #: none
+plain dist_sub.tgt: injected=11 crashes at malloc #: 3 4 5 6 7 8 9 10
+plainp dist_sub.tgt: injected=11 crashes at malloc #: none
+plain dist_subsub.tgt: injected=21 crashes at malloc #: 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+plainp dist_subsub.tgt: injected=21 crashes at malloc #: none
+plain sub_one.tgt: injected=8 crashes at malloc #: none
+plainp sub_one.tgt: injected=10 crashes at malloc #: none
+plain dist_ok.tgt: injected=4 crashes at malloc #: 3
+plainp dist_ok.tgt: injected=4 crashes at malloc #: none
+plain sub_tleaf.tgt: injected=12 crashes at malloc #: 5
+plainp sub_tleaf.tgt: injected=12 crashes at malloc #: none
+plain sub_cmpltw.tgt: injected=13 crashes at malloc #: 5
+plainp sub_cmpltw.tgt: injected=13 crashes at malloc #: none

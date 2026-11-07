@@ -1,0 +1,38 @@
+# Moved from hegel-c docs/findings.toml [[submission]] (source hegel-c-submissions).
+# `fixes` names bugs by id.
+id = "linux-sg-split-series"
+project = "linux"
+title = "lib: scatterlist: fix sg_split() partial-coverage geometry, latent corruption bugs, and add KUnit tests"
+kind = "patch"
+fixes = ["linux-sg-split-overshoot", "linux-sg-split-length-clobber", "linux-sg-split-zero-nents", "linux-sg-split-zero-size-silent", "linux-sg-split-zero-first-entry", "linux-sg-split-unchecked-args"]
+state = "changes-requested"
+since = "2026-07-05"
+dir = "data/submissions/linux-sg-split-series"
+next = "Pick a v3: ours (5 patches; zero sizes -> -EINVAL) or agent (6 patches; adds 4/6 zero first entry and 5/6 argument checks) — decision D1 in v3-agent/REPORT.md. Then run KUnit in a real kernel (UML, x86_64 + KASAN), fill in the v2 Message-ID and the Testing paragraph, sign, and send in reply to akpm's 2026-07-05 mail."
+notes = "akpm, 2026-07-05: 'please incorporate any feedback, check the Sashiko feedback, refresh, retest and resend'. Two v3 candidates. ours: zero sizes -> -EINVAL, fixing zero-nents and zero-size-silent together; checkpatch-clean, steps in v3-ours/V3_SEND.md. agent: written by a blind agent with no access to ours, then tested further (mutation-adequate, 32-bit differential) and fixed for Sashiko's 2 Low findings; see v3-agent/REPORT.md. Not sent as of 2026-10-25."
+
+[[versions]]
+v = 1
+sent = "2026-05-31"
+patches = 2
+lore = "178027099087.72481.1976843064458686851@gmail.com"
+to = "akpm"
+
+[[versions]]
+v = 2
+sent = "2026-06-10"
+patches = 5
+lore = "178113124323.90620.6403136846887207198@gmail.com"
+to = "akpm"
+
+[[versions]]
+v = 3
+label = "ours"
+built = "2026-07-06"
+patches = 5
+
+[[versions]]
+v = 3
+label = "agent"
+built = "2026-10-24"
+patches = 6

@@ -1,0 +1,5 @@
+PS2-G11-mesh-struct-io-7 (new kit, 7.0.18 round): graphGeomSaveScot writes based vertex numbers for an unlabeled
+graph, graphGeomLoadScot expects 0..vertnbr-1, so the saved geometry of a base-1 graph cannot be reloaded.
+  gcc ggeo.c -o ggeo -fsanitize=address,undefined -I$B/include -L$B/lib -lscotch -lscotcherr -lz -lm -lpthread
+  ./ggeo $INFRA/v7.0.18/src/check/data/bump_b1.grf bump_b1.xyz out.xyz
+bump_b1.xyz = data/bump.xyz (labels 0..n-1, which the loader accepts for a base-1 graph).

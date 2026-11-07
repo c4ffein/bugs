@@ -1,0 +1,47 @@
+From fa32a560f68a1a058d42fa4747c37038fb8fa283 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 13:38:50 +0000
+Subject: [PATCH 105/232] Document edge load sum of `SCOTCH_graphStat()` and
+ `SCOTCH_dgraphStat()`
+
+Since 5a711ca5, every edge is counted once in the sum of edge loads,
+whether the graph has edge loads or not. State it in the manuals,
+since edges are represented by two arcs.
+
+Refs: API-19
+---
+ doc/src/ptscotch/p_l.tex | 3 ++-
+ doc/src/scotch/s_l.tex   | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/doc/src/ptscotch/p_l.tex b/doc/src/ptscotch/p_l.tex
+index de5c1a03..6305b459 100644
+--- a/doc/src/ptscotch/p_l.tex
++++ b/doc/src/ptscotch/p_l.tex
+@@ -2564,7 +2564,8 @@ degree, the average vertex degree, and the variance of the vertex
+ degrees, respectively.
+ {\tt edlomin}, {\tt edlomax}, {\tt edlosum}, {\tt edloavg} and
+ {\tt edlodlt} are the minimum edge load, the maximum edge
+-load, the sum of all edge loads, the average edge load,
++load, the sum of all edge loads (every edge being counted once,
++although it is represented by two arcs), the average edge load,
+ and the variance of the edge loads, respectively.
+ 
+ \progret
+diff --git a/doc/src/scotch/s_l.tex b/doc/src/scotch/s_l.tex
+index 16cc2b01..fc6527b6 100644
+--- a/doc/src/scotch/s_l.tex
++++ b/doc/src/scotch/s_l.tex
+@@ -3771,7 +3771,8 @@ degree, the average vertex degree, and the variance of the vertex
+ degrees, respectively.
+ {\tt edlomin}, {\tt edlomax}, {\tt edlosum}, {\tt edloavg} and
+ {\tt edlodlt} are the minimum edge load, the maximum edge
+-load, the sum of all edge loads, the average edge load,
++load, the sum of all edge loads (every edge being counted once,
++although it is represented by two arcs), the average edge load,
+ and the variance of the edge loads, respectively.
+ \end{itemize}
+ 
+-- 
+2.43.0
+

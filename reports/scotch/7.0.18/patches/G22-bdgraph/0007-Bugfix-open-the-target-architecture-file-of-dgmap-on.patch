@@ -1,0 +1,64 @@
+From 687be35ab4406057e942d1b334c1879c50b87567 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:59:27 +0000
+Subject: [PATCH 246/248] Bugfix: open the target architecture file of `dgmap`
+ on all processes [report PyScotch]
+
+By default, a file name given to the PT-Scotch programs is opened on
+the root process only. `dgmap` needs the target architecture on every
+process (SCOTCH_archLoad() is called everywhere), so that any plain
+target file name made all non-root processes fail with "target
+architecture file not provided" when run on two processes or more; only
+the "%-" prefix, which the manual does not mention for this file, worked.
+
+Prefix the target file name with "%-" (unless it is the standard input)
+so that it is always opened on all processes. File names which were
+already expanded keep working, as did one-process runs.
+
+Tested: mpirun -np 2 dgmap 4elt.grf tgt/k4.tgt out fails before the
+fix with the above error and succeeds after it (also with "%-"
+prefix, np 1 and 3, and dgpart); "make ptcheck" passes.
+---
+ src/scotch/dgmap.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/src/scotch/dgmap.c b/src/scotch/dgmap.c
+index bed455b..ae648f2 100644
+--- a/src/scotch/dgmap.c
++++ b/src/scotch/dgmap.c
+@@ -130,6 +130,7 @@ char *                      argv[])
+   SCOTCH_Strat        stradat;                    /* Mapping strategy          */
+   SCOTCH_Num          straval;
+   char *              straptr;
++  char *              tgtnamptr;                  /* Name of target file opened on all processes */
+   int                 flagval;
+   double              kbalval;                    /* Imbalance tolerance value */
+   int                 procglbnbr;
+@@ -361,8 +362,24 @@ char *                      argv[])
+   }
+ #endif /* SCOTCH_DEBUG_ALL */
+ 
++  tgtnamptr = NULL;
++  if (((flagval & C_FLAGPART) == 0) &&            /* If a target architecture file is wanted, every process needs it */
++      (fileBlockName (C_fileTab, 1) != NULL)      &&
++      (fileBlockName (C_fileTab, 1)[0] != '-')) {
++    if ((tgtnamptr = (char *) memAlloc (strlen (fileBlockName (C_fileTab, 1)) + 3)) == NULL) {
++      errorPrint ("main: out of memory");
++      exit       (EXIT_FAILURE);
++    }
++    strcpy (tgtnamptr, "%-");                     /* Force opening of the target file on all processes */
++    strcat (tgtnamptr, fileBlockName (C_fileTab, 1));
++    fileBlockName (C_fileTab, 1) = tgtnamptr;
++  }
++
+   fileBlockOpenDist (C_fileTab, C_FILENBR, procglbnbr, proclocnum, protglbnum); /* Open all files */
+ 
++  if (tgtnamptr != NULL)                          /* Expanded name has been copied by file opening */
++    memFree (tgtnamptr);
++
+   clockInit  (&runtime[0]);
+   clockStart (&runtime[0]);
+ 
+-- 
+2.47.3
+

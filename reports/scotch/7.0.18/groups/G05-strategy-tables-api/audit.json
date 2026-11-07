@@ -1,0 +1,501 @@
+[
+ {
+  "id": "GRA-06",
+  "our_title": "Else-less false conditional ordering fixed for hgraph only; hdgraph and hmesh twins still unset",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "repro/GRA-06/order.c (sequential, pristine 7.0.18): './order \"/(vert>1000)?s;\"' -> 'ret=0 ... invalid=0' (fixed by 8609a5cb). Twins, pristine 7.0.18: 'mpirun -np 3 asan/bin/dgord bump.grf out -o\"/(vert>100000)?s;\"' -> no output, killed by timeout 120 (rc=143) on 32- and 64-bit trees; 'asan/bin/mord small2.msh out -o\"/(vnod>100000)?s;\"' -> 'AddressSanitizer: SEGV ... #0 _SCOTCHorderPeri #1 SCOTCH_meshOrderComputeList'. Patched: dgord rc=0 with a 9801-line ordering (32 and 64 bit), mord rc=0, no sanitizer output. check_strat_seq, check_scotch_graph_map/order/coarsen/part_ovl, check_scotch_arch_build, check_scotch_mesh_graph, check_prog_mord, check_prog_gmap, and (mpicc) check_strat_par, check_scotch_dgraph_order, check_prog_dgpart, check_prog_dgord pass on the patched 32-bit ASan tree; check_strat_seq passes on the 64-bit tree; 0 warnings on both.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Distributed ordering hangs (all ranks) and mesh ordering crashes in orderPeri for a valid user strategy string.",
+  "location_7_0_18": "src/libscotch/hdgraph_order_st.c:199-202; src/libscotch/hmesh_order_st.c:273-276 (hgraph_order_st.c:293-297 fixed)",
+  "evidence": "hdgraph_order_st.c:200-201 'if (straptr->data.conddat.stratab[1] != NULL)  /* And if there is an else statement */ o = hdgraphOrderSt (grafptr, cblkptr, straptr->data.conddat.stratab[1]);' with no else; hmesh_order_st.c:274-275 same; hgraph_order_st.c:296-297 now 'else o = hgraphOrderSi (grafptr, ordeptr, ordenum, cblkptr); /* Apply default ordering strategy */'.",
+  "upstream_change": "8609a5cb adds the hgraphOrderSi() default for an empty else in hgraph_order_st.c",
+  "upstream_fix_review": {
+   "commit": "8609a5cb",
+   "verdict": "incomplete",
+   "details": "Right for the sequential graph dispatcher (hgraph_order_st.c:296-297), same choice as ours (identity ordering, like STRATNODEEMPTY). Missing the two twins named in the finding: hdgraph_order_st.c:200 (distributed: all ranks hang, ran) and hmesh_order_st.c:274 (mesh: SEGV in orderPeri, ran). No new bug.",
+   "compared_with_ours": "Our 7.0.17 commit fixed all three dispatchers in one commit; his fixes one. Rebased commit keeps only the two twins, with his comment wording."
+  },
+  "review_accuracy": "accurate, including the mechanism (orderPeri writes permtab[sentinel]) and the suggested fix (call hgraphOrderSi when stratab[1]==NULL). Review's note about the SCOTCH_DEBUG '&&' is cosmetic and not touched.",
+  "first_pass_critique": "Right status and fix. It only patched hgraph_order_st.c and folded the GRA-13 table change into the same diff; here the distributed and mesh twins are also fixed and the two defects are separate commits.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/hdgraph_order_st.c:200-201",
+    "quote": "if (straptr->data.conddat.stratab[1] != NULL)  /* And if there is an else statement */",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/hmesh_order_st.c:274-275",
+    "quote": "if (straptr->data.conddat.stratab[1] != NULL) /* And if there is an else statement */",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Apply the identity ordering in the else-less case",
+    "summary": "Call *OrderSi when stratab[1]==NULL, mirroring the STRATNODEEMPTY case.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0002-Bugfix-maintain-a-consistent-ordering-for-else-less-.patch",
+    "tested": "32/64-bit ASan; repro passes; check_scotch_graph_order, check_prog_gord, check_prog_mord pass.",
+    "tradeoffs": "Produces the identity (graph-order) ordering for the unmatched case; pure addition; precedent: STRATNODEEMPTY in the same routines.",
+    "preferred": true,
+    "maintainer_fit": "Same hgraphOrderSi call the empty-strategy case already uses; a repair, not a rejection, which ordering needs."
+   },
+   {
+    "label": "Reject else-less conditional ordering strategies",
+    "summary": "errorPrint and return 1 when stratab[1]==NULL.",
+    "diff_file": "",
+    "tested": "untested sketch.",
+    "tradeoffs": "Surfaces the mistake but breaks user strategies that omit the else (a documented no-op for mapping/separation); ordering uniquely needs a result.",
+    "preferred": false,
+    "maintainer_fit": "He treats else-less COND as a no-op elsewhere, so he would repair, not reject."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0002-Bugfix-maintain-a-consistent-ordering-for-else-less-.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed (8609a5cb covers hgraph only). Our commit shrunk to hdgraph/hmesh (same subject)."
+ },
+ {
+  "id": "GRA-13",
+  "our_title": "mdeg declared double over a Gnum: fixed in hgraph, still wrong in hdgraph and hmesh",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: './order \"/(mdeg>3)?s;\"' (sequential) -> ret=0, no UBSan (fixed by 075a77a6). Twins: bump.grf has max degree 8 (gtst) and small2.msh max degree 6 (mtst), so 'mdeg>3' is true; yet pristine 'mpirun -np 3 dgord bump.grf -o\"/(mdeg>3)?s;\"' hangs (timeout, rc=143, 32 and 64 bit) and 'mord small2.msh -o\"/(mdeg>3)?s;\"' SEGVs in orderPeri: the condition evaluated FALSE (garbage double read from the Gnum field) and took the empty else (GRA-06). Patched: both rc=0, and 'mdeg>100' takes the else branch as expected.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Matches review: wrong/out-of-bounds read of a strategy condition; reachable from any user ordering strategy string, but only mis-evaluates a condition (no write).",
+  "location_7_0_18": "src/libscotch/hdgraph_order_st.c:131-134; src/libscotch/hmesh_order_st.c:207-210 (hgraph_order_st.c:231 fixed)",
+  "evidence": "hdgraph_order_st.c:131 '{ STRATNODECOND,         STRATPARAMDOUBLE, \"mdeg\",' -> '&hdgraphorderstgraphdummy.s.degrglbmax' (Gnum, dgraph.h:182); hmesh_order_st.c:207 '{ STRATNODECOND,        STRATPARAMDOUBLE, \"mdeg\",' -> '&hmeshorderstmeshdummy.m.degrmax' (Gnum, mesh.h:127).",
+  "upstream_change": "075a77a6 declares hgraph mdeg as STRATPARAMINT",
+  "upstream_fix_review": {
+   "commit": "075a77a6",
+   "verdict": "incomplete",
+   "details": "Right for hgraph_order_st.c:231. The finding listed the hdgraph (:131) and hmesh (:207) tables as extra instances; both still declare STRATPARAMDOUBLE over a Gnum (ran: conditions evaluate wrong).",
+   "compared_with_ours": "Ours fixed the three tables in one commit; rebased to the two remaining ones."
+  },
+  "review_accuracy": "accurate; fix 'declare mdeg as STRATPARAMINT' is correct. The review cites only hgraph_order_st.c; the same table bug exists in the distributed (hdgraph) and mesh (hmesh) orderings.",
+  "first_pass_critique": "Correct status/evidence. Its preferred diff bundled the GRA-06 else-branch hunk into the GRA-13 diff (two distinct defects); split here. It missed the hdgraph and hmesh twins.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/hdgraph_order_st.c:131 (mdeg -> s.degrglbmax, a Gnum)",
+    "quote": "{ STRATNODECOND, STRATPARAMDOUBLE, \"mdeg\", ... &hdgraphorderstgraphdummy.s.degrglbmax, NULL }",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/hmesh_order_st.c:207 (mdeg -> m.degrmax, a Gnum)",
+    "quote": "{ STRATNODECOND, STRATPARAMDOUBLE, \"mdeg\", ... &hmeshorderstmeshdummy.m.degrmax, NULL }",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Declare mdeg as STRATPARAMINT",
+    "summary": "Match the other integer conditions (vert/edge/load/levl) in all three ordering tables.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0001-Bugfix-variable-type-of-maximum-degree-ordering-cond.patch",
+    "tested": "32-bit and 64-bit ASan/UBSan; repro passes; check_strat_seq, check_scotch_graph_order, check_prog_gord/mord pass.",
+    "tradeoffs": "mdeg is now an integer comparison (consistent with the other graph metrics); a fractional threshold such as mdeg>3.5 is promoted per stratTestEvalCast, as for vert/edge.",
+    "preferred": true,
+    "maintainer_fit": "Trivial type correction matching every sibling entry; cf. commit 813ef60 'Bugfix: variable type [report R. Perry]'."
+   },
+   {
+    "label": "Add a double mirror field",
+    "summary": "Keep STRATPARAMDOUBLE and store a double copy of the max degree in the dummy struct.",
+    "diff_file": "",
+    "tested": "untested: not written.",
+    "tradeoffs": "Structural change for a trivial variable; only justified for fractional thresholds, which the integer form already supports via promotion.",
+    "preferred": false,
+    "maintainer_fit": "He would not add a field where a type fix suffices."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0001-Bugfix-variable-type-of-maximum-degree-ordering-cond.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed."
+ },
+ {
+  "id": "GRA-15",
+  "our_title": "k-way FM fallback strategy still leaked and its result unchecked",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "kgraph_map_fm.c:1043-1048 read in 7.0.18; 25322c9a reviewed by reading.",
+  "why_not_run": "The fallback (kgraph_map_fm.c:1043-1048) runs only when the balance is violated after the initial mapping; the available reproducers ('f{bal=0.05}', 'b{...}' via repro/PS2-G12-2/map.c with LeakSanitizer) do not reach it (only the kit's own strategy leaks). The block is owned by G13 (GRA-02 commit).",
+  "severity": "low",
+  "severity_note": "Agrees: a small leaked strategy tree plus an ignored return on an internal fallback path; same rating as the review.",
+  "location_7_0_18": "src/libscotch/kgraph_map_fm.c:1047-1048",
+  "evidence": "kgraph_map_fm.c:1047 'strat = stratInit (&kgraphmapststratab, \"r{sep=h{pass=10}}\"); /* Use a standard algorithm */' :1048 'kgraphMapSt (grafptr, strat);               /* Perform mapping */' -- no NULL check, no stratExit, result dropped.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate (leak + unchecked NULL + ignored return).",
+  "first_pass_critique": "Correct; its preferred diff is the same change G13 committed for GRA-02.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Check NULL, run, stratExit, propagate (G13 patches/0006)",
+    "summary": "stratInit NULL check; capture and propagate kgraphMapSt result; stratExit after use; free on error paths.",
+    "diff_file": "",
+    "tested": "G13: LeakSanitizer + check_scotch_graph_map/order/mesh, 32/64-bit.",
+    "tradeoffs": "Parses the small string on each fallback (already the case).",
+    "preferred": true,
+    "maintainer_fit": "Committed in G13's GRA-02 series, which owns kgraph_map_fm.c."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 25322c9a ('manage error return codes', kgraph_map_fm.c) does not touch this block; reviewed in SUMMARY: it makes kgraphMapFmPartAdd/PartAdd2 return 1 on resize failure but the three callers (kgraph_map_fm.c:1122, :1493, :1630) ignore the result, and it adds a TAB at kgraph_map_fm.c:719; G13 owns that file. The 7.0.17 G05 patch dir carried a copy of G13's GRA-02 commit; it is not duplicated here (bare v7.0.18 base, G13 rebases it)."
+ },
+ {
+  "id": "API-07",
+  "our_title": "Strategy builders format imbalance ratios into small stack buffers unbounded",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/API-07 (32-bit ASan): pristine 7.0.18 './sb 1e300' and './sb 1e30' -> 'AddressSanitizer: stack-buffer-overflow'; 'mpirun -np 1 ./sbpt 1e300' / '1e30' -> same. Patched: 1e300 and nan rejected by all 5 sequential builders ('-> 1') and the parallel ones; 0.05 -> 0; 1e30 accepted by the 64-byte builders, rejected by the 32-byte ones, no overflow. New test_strat_seq loop crashes on the pristine library (SEGV) and passes patched. check_strat_seq, check_scotch_graph_map/order/coarsen/part_ovl, check_scotch_arch_build, check_scotch_mesh_graph, check_prog_mord, check_prog_gmap, and (mpicc) check_strat_par, check_scotch_dgraph_order, check_prog_dgpart, check_prog_dgord pass on the patched 32-bit ASan tree; check_strat_seq passes on the 64-bit tree; 0 warnings on both.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Raised from the review's medium: an attacker-free stack-buffer-overflow of 300+ bytes reachable directly from a public API argument (balrat), and from the common DBL_MAX 'no constraint' sentinel.",
+  "location_7_0_18": "src/libscotch/library_graph_map.c:669-670, :730-731; library_graph_part_ovl.c:169; library_graph_order.c:514; library_mesh_order.c:414; library_dgraph_map.c:307-308, :381-382; library_dgraph_order.c:403",
+  "evidence": "library_graph_part_ovl.c:169 'sprintf (kbaltab, \"%lf\", balrat);' (files unchanged since 7.0.17)",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate on mechanism, sites and size 309. Its '%g' suggestion changes the saved strategy text; 'reject non-finite' is adopted. First-pass claim that the FLOAT lexer has no sign so negatives already fail is WRONG: `SCOTCH_stratGraphMapBuild(&s,...,-0.5)` returns 0 on pristine (VALSDOUBLE accepts a leading sign), so negatives were silently accepted.",
+  "first_pass_critique": "Its option 1 (bounded snprintf keeping %lf) is the core of the chosen fix, but it did not reject non-finite or negative ratios and its note that negatives already fail in the parser is incorrect (verified -0.5 accepted). The chosen fix adds the isfinite/negative guard and covers all 8 builders and the twins and adds tests.",
+  "extra_instances": [
+   {
+    "location": "library_graph_map.c:730-731 (SCOTCH_stratGraphClusterBuild, bbaltab/denstab[32])",
+    "quote": "sprintf (bbaltab, \"%lf\", bbalval); sprintf (denstab, \"%lf\", densval);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "library_dgraph_map.c:307-308,381-382 (SCOTCH_stratDgraphMapBuild/ClusterBuild)",
+    "quote": "sprintf (kbaltab, \"%lf\", kbalval); ... sprintf (denstab, \"%lf\", densval);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "library_dgraph_order.c:403; library_graph_order.c:514; library_mesh_order.c:414",
+    "quote": "sprintf (bbaltab, \"%lf\", balrat);",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Reject non-finite/negative + bounded snprintf (keep %lf)",
+    "summary": "Guard each builder's ratio(s) with !isfinite/<0, convert with snprintf(sizeof) and return 1 on truncation; valid ratios keep their exact %lf text.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0003-Bugfix-do-not-overflow-the-strategy-string-buffers-w.patch",
+    "tested": "32/64-bit ASan sb.c/sbpt.c; check_strat_seq/par (new rejection cases); check_scotch_graph_map/order/part_ovl, check_prog_gmap/gord/mord, dgpart.",
+    "tradeoffs": "Behaviour change only for non-finite/negative and for finite values too large to fit (previously stack smash, now error 1). Output byte-identical for valid ratios.",
+    "preferred": true,
+    "maintainer_fit": "Matches the errorPrint+return(1) guard style (cf. b10825d) and the tools' own `-b` validation (dgmap.c rejects <0/>1); keeps %lf so SCOTCH_stratSave golden text is unchanged."
+   },
+   {
+    "label": "Format with %.15g and validate",
+    "summary": "snprintf '%.15g' (<=~25 chars) after rejecting non-finite.",
+    "diff_file": "",
+    "tested": "behaviour reasoned; not committed.",
+    "tradeoffs": "Cannot overflow but changes saved strategy text (0.05 vs 0.050000), visible through SCOTCH_stratSave and golden tests.",
+    "preferred": false,
+    "maintainer_fit": "He keeps the %lf textual form, so %g would churn saved strategies."
+   },
+   {
+    "label": "Enlarge the buffers to 320",
+    "summary": "Make every tab 320 bytes.",
+    "diff_file": "",
+    "tested": "untested.",
+    "tradeoffs": "Zero behaviour change but wastes stack and leaves sprintf and the 8192 bufftab exposed to ~10 copies of 316-char numbers.",
+    "preferred": false,
+    "maintainer_fit": "He bounds output, he does not inflate buffers."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0003-Bugfix-do-not-overflow-the-strategy-string-buffers-w.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_strat_seq.c and test_strat_par.c: a loop rejecting NaN, a negative and 1e300 for every builder",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Our commit's test_strat_seq hunk had G04's test commit as context; rebased onto bare v7.0.18 (adds its own 'int i' declaration)."
+ },
+ {
+  "id": "API-23",
+  "our_title": "Public wrappers ignore their own Init result; coarsen returns 1 not 2 on context failure",
+  "status": "still-present",
+  "method": "partly-run",
+  "ran": "Non-sanitized -O0 builds of pristine 7.0.18 and of the patched series; repro/API-23: 'SCOTCH_FAIL_AT=3 LD_PRELOAD=./failmalloc.so ./map' -> pristine 'ERROR: SCOTCH_graphMapInit: out of memory' then Segmentation fault (rc=139); patched '... SCOTCH_graphMap ret=1' (rc=1).",
+  "read_only": "library_graph_coarsen.c:100/:138 return (1) on context failure, library_arch_build.c:131-134, and the other wrappers were checked by reading (code identical to 7.0.17).",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Agrees with review: OOM-only NULL dereference (nondeterministic crash) plus a return-code inconsistency; most Init routines can only fail on allocation.",
+  "location_7_0_18": "library_graph_map.c:411, :438, :468, :501; library_dgraph_map.c:225; library_graph_order.c:447; library_mesh_order.c:319, :351; library_arch_build.c:131-134; library_graph_coarsen.c:100, :138",
+  "evidence": "library_graph_map.c:411 'SCOTCH_graphMapInit (grafptr, &mappdat, archptr, parttab);' (result dropped); library_graph_coarsen.c:100 'return (1);' after 'cannot initialize context'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; most Init functions fail only on OOM, hence low. The fix 'check every Init result and return documented codes' is correct.",
+  "first_pass_critique": "Correct, but method was source-read and 'needs: alloc-injection'; settled here by a malloc interposer that reproduces the SEGV on pristine and the clean return on patched. First pass did not mention the SCOTCH_dgraphMap twin, fixed here too.",
+  "extra_instances": [
+   {
+    "location": "library_dgraph_map.c:225 (SCOTCH_dgraphMap, twin of SCOTCH_graphMap)",
+    "quote": "SCOTCH_dgraphMapInit (grafptr, &mappdat, archptr, termloctab);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "library_graph_coarsen.c:136-138 (SCOTCH_graphCoarsenMatch, same 0/1/2 contract)",
+    "quote": "errorPrint (... \": cannot initialize context\"); return (1);",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Check each Init result and return documented codes",
+    "summary": "Return the error when *Init fails (as SCOTCH_graphOrder already does); check stratInit in archBuild0; return 2 from graphCoarsen/CoarsenMatch on context failure.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0006-Bugfix-check-initialization-results-in-public-mappin.patch",
+    "tested": "malloc-fault repro (SEGV->return 1); 32/64-bit builds 0-warning; check_scotch_graph_map/order, check_scotch_graph_coarsen, check_prog_gmap/gord/mord pass.",
+    "tradeoffs": "graphCoarsen's return on context failure changes from 1 to 2 (the documented error); a caller treating 1 as 'not coarsenable' will notice (now matches the dgraph twin).",
+    "preferred": true,
+    "maintainer_fit": "Mirrors the existing `if (SCOTCH_graphOrderInit (...) != 0) return (1);` idiom (library_graph_order.c:413) and the dgraph coarsen twin's `return (2)`."
+   },
+   {
+    "label": "Make Init infallible",
+    "summary": "Allocate nothing in *Init; defer to Compute.",
+    "diff_file": "",
+    "tested": "untested design note.",
+    "tradeoffs": "Changes Init/Exit allocation semantics of the public pair; larger redesign.",
+    "preferred": false,
+    "maintainer_fit": "Too invasive for an error-handling fix."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0005-Bugfix-return-the-documented-error-code-on-context-f.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0006-Bugfix-check-initialization-results-in-public-mappin.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present; both commits apply unchanged."
+ },
+ {
+  "id": "CLI-01",
+  "our_title": "dgmap/dgpart rebuild the default strategy after parsing, discarding -m",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "mpirun --oversubscribe -np 3 <bin>/dgpart 9 bump.grf /dev/null -Cd -m'r{sep=q{strat=f}}': pristine 7.0.18 completes rc=0 (user -m silently replaced by the default); patched: the user strategy reaches the mapper and hits PS2-G05-strategy-tables-api-1 ('dmapping_io.c:256:34: runtime error: load of null pointer of type Anum', SEGV at dmapping_io.c:196/:256). '-b0.1' with '-m' still gives 'options -b / -c and -m are exclusive' on both.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Agrees: every -m strategy on dgmap/dgpart was silently ignored (wrong result), a public-tool option that never took effect.",
+  "location_7_0_18": "src/scotch/dgmap.c:391-394 (unconditional Build); -m parsed at :259-262",
+  "evidence": "dgmap.c:392 'SCOTCH_stratDgraphClusterBuild (&stradat, straval, ...)' and :394 'SCOTCH_stratDgraphMapBuild (&stradat, straval, ...)' run even when -m was given (dgmap.c unchanged since 7.0.17).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; line numbers unshifted; suggested guard matches dgord.c/gmap.c. The first-pass caveat (an incomplete user -m now reaches the mapper and crashes in dmapSave) is confirmed and reported as PS2-G05-strategy-tables-api-1.",
+  "first_pass_critique": "Accurate and thorough (library + tool repro). Confirmed its note that dgord is not affected (it only Builds when straval!=0).",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Guard the default Build with straptr==NULL",
+    "summary": "Build the default strategy only when no -m string was given.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0004-Bugfix-do-not-discard-the-user-mapping-strategy-in-d.patch",
+    "tested": "repro shows -m now honoured; exclusivity preserved; check_prog_dgpart passes.",
+    "tradeoffs": "Smallest change; users who passed -m (previously ignored) now get it run, which may expose incomplete user strategies.",
+    "preferred": true,
+    "maintainer_fit": "Matches the `if (straptr != NULL)`/`if (straval != 0)` idioms in gmap.c and dgord.c."
+   },
+   {
+    "label": "Defer -m parsing to after the exclusivity check (gmap.c structure)",
+    "summary": "Remember straptr only, then apply -m or Build after the checks; drops the redundant Exit/Init.",
+    "diff_file": "",
+    "tested": "sketch; not committed.",
+    "tradeoffs": "Larger diff, same behaviour; mirrors gmap.c more closely.",
+    "preferred": false,
+    "maintainer_fit": "Also acceptable; the minimal guard is lower risk."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0004-Bugfix-do-not-discard-the-user-mapping-strategy-in-d.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present; commit applies unchanged."
+ },
+ {
+  "id": "PS-DMO-2",
+  "our_title": "Nested-dissection ordering with unset osq parameter dereferences a NULL strategy",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "mpirun --oversubscribe -np 3 asan/bin/dgord m16x16.grf /dev/null -o'n{sep=d{pass=3},ole=s,ose=s}': pristine 7.0.18 -> 'WARNING: strategy parameter \"osq\" of method \"n\" not set' then 'hgraph_order_st.c:276:18: runtime error: member access within null pointer of type const struct Strat' and SEGV on the 3 ranks (rc=1); with the G04-patched library (commit 0009 sets the osq default) rc=0, no warning.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Reachable only via a user strategy that omits the osq parameter of method n; the parser already warns.",
+  "location_7_0_18": "src/libscotch/hdgraph_order_st.c:81 (default table)",
+  "evidence": "hdgraph_order_st.c:81 '} hdgraphorderstdefaultnd = { { &stratdummy, &stratdummy, &stratdummy } };' for the four strategy fields of HdgraphOrderNdParam.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "n/a (PS-* found by the first pass).",
+  "first_pass_critique": "Accurate. Its option A ('reject at parse time') and option B ('guard at use') are both superseded: G04 adopted the maintainer's own idiom of a &stratdummy default for every strategy parameter (G04 patches/0009), which this group is based on, fixing PS-DMO-2 without a new idiom.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Set &stratdummy default for osq (G04 0009)",
+    "summary": "Add the missing fourth &stratdummy to hdgraphorderstdefaultnd (and the b/bd org defaults), so an unset strategy parameter is the empty strategy, as elsewhere.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0009-Bugfix-set-default-empty-strategies-for-all-strategy.patch",
+    "tested": "dgord reproducer passes against the rebuilt library; check_strat_par passes.",
+    "tradeoffs": "None beyond G04's series; consistent with every other default table.",
+    "preferred": true,
+    "maintainer_fit": "It is literally the pattern the maintainer uses for all other method parameters."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0009-Bugfix-set-default-empty-strategies-for-all-strategy.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Fixed by G04's commit 0009 (G04-strategy-parser/patches), not duplicated in G05's series. 7a2e069c touched the same file (debug operator) but not the table."
+ },
+ {
+  "id": "PS2-G05-strategy-tables-api-1",
+  "our_title": "Distributed mapping save dereferences NULL fragment part array of an incomplete mapping",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "With the CLI-01 fix (patched dgpart; dmapping_io.c untouched): mpirun -np 3 dgpart 9 bump.grf /dev/null -Cd -m'r{sep=q{strat=f}}' -> 'dmapping_io.c:196:19: runtime error: load of null pointer of type Anum' (rank 0 path) and 'dmapping_io.c:256:34: ...' on the other ranks, then SEGV.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/dmapping_io.c:196, :256",
+  "evidence": "dmapping_io.c:256 'termloctab[fraglocnum] = archDomNum (&dmapptr->archdat, &fragptr->domntab[fragptr->parttab[fraglocnum]]);' with fragptr->parttab NULL; :196 same expression in the root save loop.",
+  "upstream_change": "96a44b3d (dmapSave sanity check '&&' -> '||', procglbnbr -> vertglbnbr) touches the same routine but not this defect",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Pre-initialise / validate the distributed mapping like graphMapCompute2",
+    "summary": "As in 7.0.17: no patch written (needs the PT-Scotch mapping owner's design).",
+    "diff_file": "",
+    "tested": "Not written.",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 96a44b3d is unrelated to the NULL parttab."
+ },
+ {
+  "id": "PS2-G12-2",
+  "our_title": "Mapping strategy with no initial-mapping method dereferences a NULL part array",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/PS2-G12-2/map.c 32-bit ASan, pristine 7.0.18: 'f{bal=0.05}' and 'b{width=3,bnd=f,org=f}' -> 'kgraph_cost.c:104:13: runtime error: load of null pointer of type Anum'; 'd{pass=10}' -> SEGV. Patched: all 'ret=0 maxpart=0'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_graph_map.c:294-295 (graphMapCompute2)",
+  "evidence": "library_graph_map.c:294 'o = kgraphMapSt (&mapgrafdat, mapstraptr);' on a Kgraph whose m.parttax is NULL unless the strategy starts with an initial-mapping method.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Allocate+initialise the mapping in graphMapCompute2",
+    "summary": "mapAlloc(&mapgrafdat.m)+kgraphFrst after kgraphInit, as kgraphMapMlUncoarsen does, so every method starts from the trivial single-domain mapping.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0007-Bugfix-always-keep-a-valid-part-array-in-graphMapCom.patch",
+    "tested": "32/64-bit ASan repro; check_scotch_graph_map/map_copy/order pass.",
+    "tradeoffs": "One extra allocation (freed by kgraphExit); refinement-first strategies now return the trivial mapping instead of crashing.",
+    "preferred": true,
+    "maintainer_fit": "Same two calls as kgraph_map_ml.c:245-249."
+   },
+   {
+    "label": "Reject strategies whose first method needs a mapping",
+    "summary": "errorPrint+return in kgraphMapSt when m.parttax==NULL for a refinement method.",
+    "diff_file": "",
+    "tested": "untested.",
+    "tradeoffs": "Needs a per-method flag; returns an error where a trivial mapping is usable.",
+    "preferred": false,
+    "maintainer_fit": "More machinery."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0007-Bugfix-always-keep-a-valid-part-array-in-graphMapCom.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present; commit applies unchanged."
+ },
+ {
+  "id": "PS2-G13-1",
+  "our_title": "graphMapCompute2 copies back the mapping even after the strategy failed",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "library_graph_map.c:294-295",
+  "why_not_run": "A failing kgraphMapSt needs an allocation failure inside the mapping (ASan build cannot use the malloc interposer); the copy-back itself is visible in the source and unchanged since 7.0.17.",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_graph_map.c:295",
+  "evidence": "'mapTerm (&mapgrafdat.m, lmapptr->parttab - baseval); /* Propagate mapping result to part array */' runs regardless of o.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Propagate the result only on success",
+    "summary": "Guard mapTerm with `if (o == 0)` so a failed mapping is not exposed.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0007-Bugfix-always-keep-a-valid-part-array-in-graphMapCom.patch",
+    "tested": "built and run with the PS2-G12-2 repro; no regression.",
+    "tradeoffs": "On failure the user array keeps its prior contents and o!=0 is returned, as today on success.",
+    "preferred": true,
+    "maintainer_fit": "Consistent with returning o from graphMapCompute2 and his 'do not touch outputs on error' style; folded into the same commit as PS2-G12-2 (both in graphMapCompute2)."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G05-strategy-tables-api/patches/0007-Bugfix-always-keep-a-valid-part-array-in-graphMapCom.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (same commit as PS2-G12-2)."
+ }
+]

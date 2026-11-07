@@ -1,0 +1,48 @@
+[
+ {
+  "local_id": "PS3-G17-1",
+  "our_title": "SCOTCH_graphMapViewRaw undeclared in library.h; three view routines lack Fortran twins",
+  "severity": "low",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "nm -D $INFRA/asan/lib/libscotch.so: 'T SCOTCH_graphMapViewRaw', 'T SCOTCH_graphRemapViewRaw'; grep: SCOTCH_graphMapViewRaw only in module.h:1323 and library_graph_map_view.c; gcc -c /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/PS3-G17-1/decl.c: 'warning: implicit declaration of function SCOTCH_graphMapViewRaw' on pristine, clean with 0006. No scotchfgraphmapviewraw/scotchfgraphremapview/scotchfgraphremapviewraw symbols. With 0007: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/PS3-G17-1/views_b and views_b64 print 'graphmapviewraw: ierr=0 identical (70 bytes)', 'graphremapview: ierr=0 identical (505 bytes)', 'graphremapviewraw: ierr=0 identical (116 bytes)'. Also: SCOTCH_dgraphGhstReplace is exported but absent from library_pt.h (G19 area, not patched).",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/library.h:284 (MapViewRaw missing after MapView); src/libscotch/library_graph_map_view.c:639,658,674; src/libscotch/library_graph_map_view_f.c (only GRAPHMAPVIEW, GRAPHPARTOVLVIEW)",
+  "evidence": "library.h:284 'int SCOTCH_graphMapView (...)' then 293-294 'SCOTCH_graphRemapView', 'SCOTCH_graphRemapViewRaw' but no SCOTCH_graphMapViewRaw; module.h:1323 '#define SCOTCH_graphMapViewRaw SCOTCH_NAME_PUBLIC (SCOTCH_graphMapViewRaw)'",
+  "related_ids": [
+   "API-24",
+   "PS2-G17-5"
+  ],
+  "fix_options": [
+   {
+    "label": "A. Declare it, add the three wrappers (0006 + 0007)",
+    "summary": "one library.h line; three SCOTCH_FORTRAN wrappers copied from GRAPHMAPVIEW, emraval by address",
+    "diff_file": "",
+    "tested": "decl.c, views.c 32/64, 0 warnings",
+    "tradeoffs": "vmlotab cannot be NULL from Fortran (callers pass an array of ones)",
+    "preferred": true,
+    "maintainer_fit": "same shape as his f32c0cff"
+   },
+   {
+    "label": "B. Declaration only",
+    "summary": "0006 alone",
+    "diff_file": "",
+    "tested": "decl.c",
+    "tradeoffs": "Fortran API still incomplete",
+    "preferred": false,
+    "maintainer_fit": "minimal"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0006-Declare-SCOTCH_graphMapViewRaw-in-the-library-header.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0007-Add-the-Fortran-wrappers-of-the-raw-and-remapping-vi.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "f32c0cff20",
+   "verdict": "incomplete",
+   "details": "Added the graphpartovlview twin but not the three other view twins in the same file.",
+   "compared_with_ours": "new in this round"
+  }
+ }
+]

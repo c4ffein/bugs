@@ -1,0 +1,57 @@
+From 0a4ac33aaf0aa370db22c0024f38da37d22889cc Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:33:36 +0000
+Subject: [PATCH 3/9] Bugfix: check tree-leaf architecture size without
+ overflowing [report R. Perry]
+
+The size overflow checks of `archTleafArchLoad()` and
+`SCOTCH_archTleaf()` computed the product they were meant to guard,
+which is undefined behavior for signed integers, and which, when it
+wraps around, does not always yield a value smaller than the former
+one: e.g. "tleaf 2 100000 1 50000 1" was accepted with 705032704
+terminals on 32-bit builds. The product is now checked beforehand.
+
+Refs: COR-07, API-10, PS3-G02-2
+---
+ src/libscotch/arch_tleaf.c   | 2 +-
+ src/libscotch/library_arch.c | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/libscotch/arch_tleaf.c b/src/libscotch/arch_tleaf.c
+index 188cef7a..810dc72b 100644
+--- a/src/libscotch/arch_tleaf.c
++++ b/src/libscotch/arch_tleaf.c
+@@ -137,7 +137,7 @@ FILE * restrict const       stream)
+   }
+ 
+   for (levlnum = 0, archsiz = 1; levlnum < archptr->levlnbr; levlnum ++) {
+-    if ((archsiz * archptr->sizetab[levlnum]) < archsiz) {
++    if (archsiz > (ANUMMAX / archptr->sizetab[levlnum])) { /* If product would overflow */
+       errorPrint ("archTleafArchLoad: invalid architecture size");
+       return (1);
+     }
+diff --git a/src/libscotch/library_arch.c b/src/libscotch/library_arch.c
+index f915773d..1efd6b4c 100644
+--- a/src/libscotch/library_arch.c
++++ b/src/libscotch/library_arch.c
+@@ -57,7 +57,7 @@
+ /**                # Version 6.1  : from : 15 mar 2021     **/
+ /**                                 to   : 15 mar 2021     **/
+ /**                # Version 7.0  : from : 21 jan 2023     **/
+-/**                                 to   : 25 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -578,7 +578,7 @@ const SCOTCH_Num * const    linktab)              /*+ Link cost array, by increa
+       memFree    (tgtarchdatptr->sizetab);
+       return (1);
+     }
+-    if ((archsiz * tgtarchdatptr->sizetab[levlnum]) < archsiz) {
++    if (archsiz > (ANUMMAX / tgtarchdatptr->sizetab[levlnum])) { /* If product would overflow */
+       errorPrint (STRINGIFY (SCOTCH_archTleaf) ": invalid architecture size");
+       memFree    (tgtarchdatptr->sizetab);
+       return (1);
+-- 
+2.43.0
+

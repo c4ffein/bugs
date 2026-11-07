@@ -1,0 +1,34 @@
+== dmaptest c
+      1 1457rank 0: dmapSave rc=0
+      1 rank 1: dmapSave rc=0
+      1 rank 2: dmapSave rc=0
+   rc=0
+== dmaptest x
+      1 (0): ERROR: dmapSave: invalid mapping (1)
+      1 (1): (2): ERROR: dmapSave: invalid mapping (1)
+      1 ERROR: dmapSave: invalid mapping (1)
+      1 rank 0: dmapSave rc=1
+      1 rank 1: dmapSave rc=1
+      1 rank 2: dmapSave rc=1
+   rc=0
+== dmaptest n
+      1 (0): ERROR: dmapSave: invalid mapping (2)
+      1 (1): ERROR: dmapSave: invalid mapping (2)
+      1 (2): ERROR: dmapSave: invalid mapping (2)
+      1 rank 0: dmapSave rc=1
+      1 rank 1: dmapSave rc=1
+      1 rank 2: dmapSave rc=1
+   rc=0
+== dgpart -m r{sep=q{strat=f}}
+      1 bdgraph_bipart_bd.c:343:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_bd.c:382:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_bd.c:388:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+   rc=0 lines=15607 parts=0 1 2 3 
+== dtest map r{sep=q{strat=f}}
+      1 rank 0: Map rc=0
+      1 rank 1: Map rc=0
+      1 rank 2: Map rc=0
+== dgpart 2 lbl.grf (base 1, labels)
+      3 bgraph_bipart_ml.c:195:35: runtime error: applying non-zero offset 18446744073709551608 to null pointer
+   rc=0
+12 101	0 102	0 103	0 104	0 105	0 106	0 107	1 108	1 109	1 110	1 111	1 112	1 

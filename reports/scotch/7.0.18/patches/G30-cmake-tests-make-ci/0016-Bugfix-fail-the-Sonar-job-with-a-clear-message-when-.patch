@@ -1,0 +1,42 @@
+From 43965e05d017f2c9854930cdd366c4c8d5533746 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:55:45 +0000
+Subject: [PATCH 248/248] Bugfix: fail the Sonar job with a clear message when
+ the token is missing [report R. Perry]
+
+c531a5f3 passes the Sonar token to the scanner through the SONAR_TOKEN
+environment variable instead of "sonar-project.properties". If the
+SONARQUBE_LOGIN variable is empty or unset (unprotected branch, renamed
+variable), the scanner then starts without credentials and ends with an
+authentication error buried in its output, and since the job has
+"allow_failure: true" the pipeline stays green.
+
+Test explicitly that the token is set before running the scanner, so
+that the job log shows the reason. The job still uses "allow_failure:
+true", which is left to the maintainers.
+
+Tested: the new script line run with sh and SONAR_TOKEN empty prints the
+message and exits 1, with SONAR_TOKEN=tok exits 0; the modified
+.gitlab-ci.yml parses with PyYAML and the job script lists the three
+commands. The pipeline itself was not run.
+
+Refs: BLD-03
+---
+ .gitlab-ci.yml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.gitlab-ci.yml b/.gitlab-ci.yml
+index 62914d9..2468dac 100644
+--- a/.gitlab-ci.yml
++++ b/.gitlab-ci.yml
+@@ -133,6 +133,7 @@ scotch_sonar:
+     SONAR_TOKEN: $SONARQUBE_LOGIN
+   script:
+     - ci/analysis.sh
++    - test -n "$SONAR_TOKEN" || { echo "scotch_sonar - SONARQUBE_LOGIN is empty or unset, the scanner cannot authenticate"; exit 1; }
+     - sonar-scanner
+   allow_failure: true
+   coverage: /^\s*lines:\s*\d+.\d+\%/
+-- 
+2.47.3
+

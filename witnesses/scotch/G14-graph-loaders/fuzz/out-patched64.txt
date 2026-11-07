@@ -1,0 +1,4 @@
+iters=1500 sanitizer_hits=34 unique_buckets=3
+  chac   _SCOTCHmemAllocGroup                     first_iter=25
+  grf    _SCOTCHgraphLoad2                        first_iter=760
+  mtx    _SCOTCHgraphGeomLoadMmkt                 first_iter=98

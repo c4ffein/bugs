@@ -1,0 +1,6 @@
+7.0.18 round additions to the G04 kit
+- common/bases18.txt: default strategies printed by defstrat against 7.0.18 (stratTestSave output changed with 088a1279).
+- common/fuzz18_pristine.txt (pristine 7.0.18, seed 1), fuzz18_patched.txt (seed 1), fuzz18_patched2.txt (seed 2):
+  python3 -I fuzz.py ./st bases18.txt 600 <seed> <libdir>
+- run_strings.sh <libdir>: every reproducer string of the group (incl. empty scalar values f{move=}) through common/st.
+- COR-13/rt built against 7.0.18 internals: ./rt 2000 7 ; ./rt 3000 42 ; ./rt 5000 3

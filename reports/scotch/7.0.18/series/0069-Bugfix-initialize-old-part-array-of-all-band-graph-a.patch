@@ -1,0 +1,68 @@
+From 9173f9dc5fd46555cef1fc8624464249b6b8378d Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 09:12:54 +0000
+Subject: [PATCH 069/232] Bugfix: initialize old part array of all band graph
+ anchors [report R. Perry]
+
+In `kgraphBand()`, the band graph has as many anchor vertices as there
+are domains in the current mapping, but the old part array of the
+anchors was initialized according to the number of domains of the old
+mapping. When remapping onto more parts than the old mapping had, the
+old parts of some anchors were left uninitialized and used as domain
+indices by `kgraphMapFmPartAdd()`; when remapping onto fewer parts,
+the old parts of regular band vertices were overwritten.
+
+Add a remapping test case onto more parts, with a band strategy.
+
+Refs: GRA-05
+---
+ src/check/CMakeLists.txt    | 5 ++++-
+ src/check/Makefile          | 2 ++
+ src/libscotch/kgraph_band.c | 2 +-
+ 3 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/src/check/CMakeLists.txt b/src/check/CMakeLists.txt
+index a7e08667..3c60b3c6 100644
+--- a/src/check/CMakeLists.txt
++++ b/src/check/CMakeLists.txt
+@@ -730,7 +730,10 @@ add_test(NAME gpart_overlap_4 COMMAND ${BASH} -c "'$<TARGET_FILE:gpart>' -o 24 '
+ 
+ # check_prog_gpart_remap
+ 
+-add_test(NAME gpart_remap COMMAND $<TARGET_FILE:gpart> 32 ${dat}/bump_imbal_32.grf ${dev_null} -ro${dat}/bump_old.map -vmt)
++add_test(NAME gpart_remap_1 COMMAND $<TARGET_FILE:gpart> 32 ${dat}/bump_imbal_32.grf ${dev_null} -ro${dat}/bump_old.map -vmt)
++
++add_test(NAME gpart_remap_2 COMMAND ${BASH} -c "'$<TARGET_FILE:gpart>' 2 '${dat}/m16x16.grf' m16x16_k2.map && \
++  '$<TARGET_FILE:gpart>' 4 '${dat}/m16x16.grf' '${dev_null}' -rom16x16_k2.map -vmt '-Mr{sep=h{pass=10}}b{width=3,bnd=f{move=120,pass=-1,bal=0.05},org=f{move=120,pass=-1,bal=0.05}}'")
+ 
+ # check_prog_gscat
+ 
+diff --git a/src/check/Makefile b/src/check/Makefile
+index 628082f7..eadae0b7 100644
+--- a/src/check/Makefile
++++ b/src/check/Makefile
+@@ -829,6 +829,8 @@ check_prog_gpart_overlap	:
+ 
+ check_prog_gpart_remap		:
+ 					$(EXECS) $(SCOTCHBINDIR)/gpart 32 data/bump_imbal_32.grf /dev/null -rodata/bump_old.map -vmt
++					$(EXECS) $(SCOTCHBINDIR)/gpart 2 data/m16x16.grf $(TMPDIR)/m16x16_k2.map
++					$(EXECS) $(SCOTCHBINDIR)/gpart 4 data/m16x16.grf /dev/null -ro$(TMPDIR)/m16x16_k2.map -vmt '-Mr{sep=h{pass=10}}b{width=3,bnd=f{move=120,pass=-1,bal=0.05},org=f{move=120,pass=-1,bal=0.05}}'
+ 
+ check_prog_gscat		:
+ 					$(EXECS) $(SCOTCHBINDIR)/gscat 4 data/small1.grf $(TMPDIR)/small1-%r.grf
+diff --git a/src/libscotch/kgraph_band.c b/src/libscotch/kgraph_band.c
+index 04f23752..84cc9b88 100644
+--- a/src/libscotch/kgraph_band.c
++++ b/src/libscotch/kgraph_band.c
+@@ -264,7 +264,7 @@ fail:
+       errorPrint ("kgraphBand: out of memory (5)");
+       goto fail;
+     }
+-    memSet (bandparotax + bandvertnbr - bandgrafptr->r.m.domnnbr, ~0, bandgrafptr->r.m.domnnbr * sizeof (Gnum)); /* Old parts of anchors are unspecified */
++    memSet (bandparotax + bandvertnbr - domnnbr, ~0, domnnbr * sizeof (Gnum)); /* Old parts of anchors are unspecified */
+     bandparotax -= bandgrafptr->s.baseval;
+     bandgrafptr->r.m.flagval |= MAPPINGINCOMPLETE | MAPPINGFREEPART; /* Remapping may be incomplete */
+     bandgrafptr->r.m.parttax  = bandparotax;
+-- 
+2.43.0
+

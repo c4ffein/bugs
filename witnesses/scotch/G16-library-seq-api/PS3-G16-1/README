@@ -1,0 +1,11 @@
+PS3-G16-1 (and API-18): dgmap -v prints CommDelta = 2 x the sequential value since 27f4193c38 (Scotch 7.0.18).
+Unweighted graph: gmap -vm prints CommDelta=1.000000, dgmap -vm prints 2.000000 (7.0.17 printed 1.000000).
+Weighted m4x4_b1_ev.grf / k4.tgt: gmap 0.657106, dgmap 1.314211.
+Cause: library_dgraph_map_view.c:148 multiplies by edgeglbnbr (arcs) while the cm*sum values are edge sums.
+Fix: use (edgeglbnbr / 2) (series patch 0107, "count edges, not arcs").
+
+  SCOTCH_SRC=<Scotch source tree built with `make ptscotch scotch`, i.e. with bin/gmap and bin/dgmap> sh run.sh
+Needs mpirun. Expected pristine output: two CommDelta lines per graph that differ by a factor 2;
+patched: identical lines.
+Note: dgmap is run with one process; with more processes dgmap stops on non-root ranks with
+"target architecture file not provided" (already filed as PS2-G22-5 / PS2-G24-2).

@@ -1,0 +1,31 @@
+From 006e75e6fb91f7966f5cdc4a6e3b2242f764327c Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 16:04:24 +0000
+Subject: [PATCH 03/10] Fix routine name in internal error message of
+ `dgraphBand2Ptop()` and `dgraphGrow2Ptop()` [report R. Perry]
+
+The message is prefixed by `DGRAPHBANDGROWNSTR`, which already holds
+the routine name, so that it read `dgraphBand2dgraphBandPtop` or
+`dgraphGrow2dgraphBandPtop`.
+
+Refs: DGR-17
+---
+ src/libscotch/dgraph_band_grow.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/libscotch/dgraph_band_grow.c b/src/libscotch/dgraph_band_grow.c
+index 5cb2fba0..af712f94 100644
+--- a/src/libscotch/dgraph_band_grow.c
++++ b/src/libscotch/dgraph_band_grow.c
+@@ -540,7 +540,7 @@ Context *                         contptr)        /*+ Execution context
+         vertlocend = vrcvdatptr[vertrcvnum];      /* Get local vertex from message */
+ #ifdef SCOTCH_DEBUG_DGRAPH2
+         if ((vertlocend < grafptr->baseval) || (vertlocend >= vertlocnnd)) {
+-          errorPrint (DGRAPHBANDGROWNSTR "dgraphBandPtop: internal error (3)");
++          errorPrint (DGRAPHBANDGROWNSTR "Ptop: internal error (3)");
+           return (1);
+         }
+ #endif /* SCOTCH_DEBUG_DGRAPH2 */
+-- 
+2.43.0
+

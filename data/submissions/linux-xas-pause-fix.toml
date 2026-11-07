@@ -1,0 +1,17 @@
+# Moved from hegel-c docs/findings.toml [[submission]] (source hegel-c-submissions).
+# `fixes` names bugs by id.
+id = "linux-xas-pause-fix"
+project = "linux"
+title = "xarray: fix xas_pause() skipping entries from a sibling slot"
+kind = "patch"
+fixes = ["linux-xas-pause-sibling"]
+state = "draft"
+since = "2026-10-21"
+dir = "data/submissions/linux-xas-pause-fix"
+next = "Search lore for an existing fix, add a sentence citing f0f80e85841d and a Cc to its author, sign, send (v1/SEND.md)."
+notes = "Needs your Signed-off-by, a lore search, a sentence citing f0f80e85841d, and a Cc to its author (SEND.md)."
+
+[[versions]]
+v = 1
+built = "2026-10-21"
+patches = 1

@@ -1,0 +1,9 @@
+PS3-G26-1: 9c51d9df detects huge degrees in graphLoad() through signed overflow; meshLoad() has no check.
+  ovf32.grf / ovf64.grf: second vertex has degree INT_MAX / LONG_MAX (32 / 64-bit trees)
+  neg3.grf: middle vertex has degree -1 (accepted by the loader, caught later by graphCheck)
+  movf32.msh: mesh twin (meshLoad), second vertex degree INT_MAX
+  LD_LIBRARY_PATH=$T/lib $T/bin/gtst ovf32.grf   (mtst for .msh)
+Pristine 7.0.18 (ASan+UBSan): "graph_io.c:224:13: runtime error: signed integer overflow: 1 + 2147483647"
+then "graphLoad: invalid arc count (1)"; mesh: "mesh_io.c:246:15: runtime error: signed integer overflow"
+then "meshLoad: invalid arc count (2)"; neg3.grf: "graphCheck: arc data do not match".
+Patched (0009): "invalid arc count (1)" in all four cases, no UBSan report.

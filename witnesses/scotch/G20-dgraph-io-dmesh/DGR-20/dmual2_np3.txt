@@ -1,0 +1,14 @@
+######## pristinefi
+nth=14 exit=0 :: 1 (0): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDualHashEdgeResize: out of memory;1 (2): ERROR: dmeshDgraphDual: cannot build dual graph;1 r0 DgraphDual rc=1;1 r1 DgraphDual rc=1;1 r2 DgraphDual rc=1;
+nth=15 exit=0 :: 1 (0): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): (2): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDualHashEdgeResize: out of memory;1 ERROR: r2 DgraphDual rc=1;1 r0 DgraphDual rc=1;1 r1 DgraphDual rc=1;
+nth=16 exit=0 :: 1 (0): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDualHashEdgeResize: out of memory;1 (2): ERROR: dmeshDgraphDual: cannot build dual graph;1 r0 DgraphDual rc=1;1 r1 DgraphDual rc=1;1 r2 DgraphDual rc=1;
+nth=17 exit=124 :: HANG; 1 (1): ERROR: dmeshDgraphDual: out of memory (6);1 r1 DgraphDual rc=1;
+nth=18 exit=124 :: HANG; 1 (1): ERROR: dmeshDgraphDual: out of memory (6);1 r1 DgraphDual rc=1;
+nth=38 exit=1 :: 1 [vm:22043] [[15077,0],0] ORTE_ERROR_LOG: Data unpack would read past end of buffer in file ../../../orte/util/show_help.c at line 507;1 r0 DgraphDual rc=0;1 r1 DgraphDual rc=0;1 r2 DgraphDual rc=0;
+######## buildfi
+nth=14 exit=0 :: 1 (0): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDualHashEdgeResize: out of memory;1 (2): ERROR: dmeshDgraphDual: cannot build dual graph;1 r0 DgraphDual rc=1;1 r1 DgraphDual rc=1;1 r2 DgraphDual rc=1;
+nth=15 exit=0 :: 1 (0): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDualHashEdgeResize: out of memory;1 (2): ERROR: dmeshDgraphDual: cannot build dual graph;1 r0 DgraphDual rc=1;1 r1 DgraphDual rc=1;1 r2 DgraphDual rc=1;
+nth=16 exit=0 :: 1 (0): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDualHashEdgeResize: out of memory;1 (2): ERROR: dmeshDgraphDual: cannot build dual graph;1 r0 DgraphDual rc=1;1 r1 DgraphDual rc=1;1 r2 DgraphDual rc=1;
+nth=17 exit=0 :: 1 (1): ERROR: (0): ERROR: (2): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDual: out of memory (6);1 r0 DgraphDual rc=1;1 r1 DgraphDual rc=1;1 r2 DgraphDual rc=1;
+nth=18 exit=0 :: 1 (0): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDual: cannot build dual graph;1 (1): ERROR: dmeshDgraphDual: out of memory (6);1 (2): ERROR: dmeshDgraphDual: cannot build dual graph;1 r0 DgraphDual rc=1;1 r1 DgraphDual rc=1;1 r2 DgraphDual rc=1;
+nth=38 exit=1 :: 1 [vm:22309] [[15323,0],0] ORTE_ERROR_LOG: Data unpack had inadequate space in file ../../../orte/util/show_help.c at line 513;1 r0 DgraphDual rc=0;1 r1 DgraphDual rc=0;1 r2 DgraphDual rc=0;

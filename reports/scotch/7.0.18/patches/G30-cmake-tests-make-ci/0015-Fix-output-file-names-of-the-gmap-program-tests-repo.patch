@@ -1,0 +1,35 @@
+From 6a0be7332e5b5668eaced9d96ab7926e912b1baa Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:40:00 +0000
+Subject: [PATCH 15/15] Fix output file names of the `gmap' program tests
+ [report PyScotch]
+
+The two `gmap' runs on graph "bump.grf" in check_prog_gmap wrote the
+mapping onto the "h3" hypercube to "bump_sdm2d.map", and the mapping
+onto the "sub_dist_mesh2d" architecture to "bump_h3.map". Swap them
+back, so that they match their CMake twins "gmap_bump_h3" and
+"gmap_bump_sdm2d".
+
+Refs: PS3-G30-1
+---
+ src/check/Makefile | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/check/Makefile b/src/check/Makefile
+index b3570873..42fc1ae6 100644
+--- a/src/check/Makefile
++++ b/src/check/Makefile
+@@ -715,8 +715,8 @@ check_prog_mord                 :	check_prog_gmk_msh
+ 					$(EXECS) $(SCOTCHBINDIR)/mord data/ship001.msh | $(SCOTCHBINDIR)/gotst $(TMPDIR)/ship001.grf
+ 
+ check_prog_gmap			:
+-					$(EXECS) $(SCOTCHBINDIR)/gmap data/bump.grf $(SCOTCHTGTDIR)/h3.tgt $(TMPDIR)/bump_sdm2d.map -vmt
+-					$(EXECS) $(SCOTCHBINDIR)/gmap data/bump.grf data/sub_dist_mesh2d.tgt $(TMPDIR)/bump_h3.map -vmt
++					$(EXECS) $(SCOTCHBINDIR)/gmap data/bump.grf $(SCOTCHTGTDIR)/h3.tgt $(TMPDIR)/bump_h3.map -vmt
++					$(EXECS) $(SCOTCHBINDIR)/gmap data/bump.grf data/sub_dist_mesh2d.tgt $(TMPDIR)/bump_sdm2d.map -vmt
+ 					$(EXECS) $(SCOTCHBINDIR)/gmap data/small1.grf $(SCOTCHTGTDIR)/m11x13.tgt $(TMPDIR)/small1_m11x13.map -vmt
+ 
+ check_prog_gord			:	check_prog_gmk_msh
+-- 
+2.43.0
+

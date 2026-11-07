@@ -1,0 +1,6 @@
+pristine dgraph_fold.c: errors=0 Gnum->int=22
+pristine hdgraph_fold.c: errors=0 Gnum->int=18
+pristine dgraph_redist.c: errors=0 Gnum->int=4
+patched dgraph_fold.c: errors=0 Gnum->int=22
+patched hdgraph_fold.c: errors=0 Gnum->int=18
+patched dgraph_redist.c: errors=0 Gnum->int=4

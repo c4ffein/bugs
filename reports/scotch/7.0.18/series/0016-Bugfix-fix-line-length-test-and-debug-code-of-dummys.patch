@@ -1,0 +1,46 @@
+From c1627001c1f9cc678f676bc1626a629820b24dbe Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:55:36 +0000
+Subject: [PATCH 016/232] Bugfix: fix line length test and debug code of
+ dummysizes [report R. Perry]
+
+The line length test read the last character of the line buffer, which
+`fgets()` never fills, so that any line of `CHARMAX - 1` characters
+ending with a newline was reported as too long. Also, the
+`SCOTCH_DEBUG_MAIN1` file closing code referred to non-existent fields
+of the `File` structure, and did not compile.
+
+Refs: COR-20
+---
+ src/libscotch/dummysizes.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/libscotch/dummysizes.c b/src/libscotch/dummysizes.c
+index 6520b621..952bc89c 100644
+--- a/src/libscotch/dummysizes.c
++++ b/src/libscotch/dummysizes.c
+@@ -365,7 +365,7 @@ char *                      argv[])
+     int                 subsnum;
+ 
+     if ((strlen (chartab)) >= (CHARMAX - 1) &&    /* If line read is at least as long as maximum size              */
+-        (chartab[CHARMAX - 1] != '\n')) {         /* And last character is not a newline, that is, some is missing */
++        (chartab[CHARMAX - 2] != '\n')) {         /* And last character is not a newline, that is, some is missing */
+       fprintf (stderr, "dummysizes: ERROR: line too long\n");
+       exit    (EXIT_FAILURE);
+     }
+@@ -407,9 +407,9 @@ char *                      argv[])
+ 
+ #ifdef SCOTCH_DEBUG_MAIN1
+   for (i = 0; i < C_FILENBR; i ++) {              /* For all file names     */
+-    if ((C_fileTab[i].name[0] != '-') ||          /* If not standard stream */
+-        (C_fileTab[i].name[1] != '\0')) {
+-      fclose (C_fileTab[i].pntr);                 /* Close the stream */
++    if ((C_fileTab[i].nameptr[0] != '-') ||       /* If not standard stream */
++        (C_fileTab[i].nameptr[1] != '\0')) {
++      fclose (C_fileTab[i].fileptr);              /* Close the stream */
+     }
+   }
+ #endif /* SCOTCH_DEBUG_MAIN1 */
+-- 
+2.43.0
+

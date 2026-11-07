@@ -1,0 +1,8 @@
+7.0.18 round changes to the G24 kit
+- one.sh: WORK path updated; one.sh/onef.sh: 'timeout -k 5 20' (mpirun ignored SIGTERM after a hang and blocked the scan).
+- fishim2.c: fi_classify() resolves the calling routine (dladdr/backtrace) BEFORE taking fi_mutex. The old order deadlocked
+  against the dynamic loader lock with MPI_THREAD_MULTIPLE in this container (every run hung, even without injection).
+- reverify18.sh -> reverify18.txt: pristine 7.0.18 ($WORK/fi0) vs this series ($WORK/fi), per-routine injection (FI_FUNC).
+- reverify18_g18.txt: same key cases on $WORK/fi18 = this series + G18's rebased series (work18/G18-dgraph-fold-redist/patches),
+  for DMO-08 and PS-DMO-4, which bare v7.0.18 does not fix.
+Build: build.sh <tree> (bin_fi0, bin_fi, bin_fi18, bin_asan); shims: gcc -O1 -g -fPIC -shared -o fishim2.so fishim2.c -ldl -lpthread

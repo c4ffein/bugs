@@ -1,0 +1,171 @@
+== np=2 q{strat=f}
+rank 0: check=0
+rank 0: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+rank 1: check=0
+rank 1: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+== np=2 q{strat=f}x{bal=0.001}z
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+rank 0: check=0
+rank 0: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 1: check=0
+rank 1: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+== np=2 m{asc=/(levl<0)?z;,low=q{strat=f}x{bal=0},seq=q{strat=f}x{bal=0},fold=d,dvert=100000,vert=100}
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+rank 0: check=0
+rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=323 gainextn=0 fron=326 bal=0 balcalc=0
+rank 1: check=0
+rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=323 gainextn=0 fron=326 bal=0 balcalc=0
+== np=2 m{asc=/(levl<0)?z;,low=q{strat=f},seq=q{strat=f},fold=d}
+rank 0: check=0
+rank 0: ret=0 load0=7804 dlt=1 size0=7804 comm=323 gainextn=0 fron=326 bal=0.000128155837 balcalc=0.000128155837
+rank 1: check=0
+rank 1: ret=0 load0=7804 dlt=1 size0=7804 comm=323 gainextn=0 fron=326 bal=0.000128155837 balcalc=0.000128155837
+== np=2 q{strat=f}q{strat=/(bal<0)?z;}
+rank 0: check=0
+rank 0: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+rank 1: check=0
+rank 1: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+== np=2 q{strat=f}q{strat=/(bal>0)?z;}
+rank 0: check=0
+rank 0: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 1: check=0
+rank 1: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+== np=3 q{strat=f}
+rank 0: check=0
+rank 0: ret=0 load0=7851 dlt=48 size0=7851 comm=159 gainextn=0 fron=160 bal=0.0061514802 balcalc=0.0061514802
+rank 1: check=0
+rank 1: ret=0 load0=7851 dlt=48 size0=7851 comm=159 gainextn=0 fron=160 bal=0.0061514802 balcalc=0.0061514802
+rank 2: check=0
+rank 2: ret=0 load0=7851 dlt=48 size0=7851 comm=159 gainextn=0 fron=160 bal=0.0061514802 balcalc=0.0061514802
+== np=3 q{strat=f}x{bal=0.001}z
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+rank 0: check=0
+rank 0: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 1: check=0
+rank 1: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 2: check=0
+rank 2: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+== np=3 m{asc=/(levl<0)?z;,low=q{strat=f}x{bal=0},seq=q{strat=f}x{bal=0},fold=d,dvert=100000,vert=100}
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+rank 0: check=0
+rank 0: ret=0 load0=7804 dlt=1 size0=7804 comm=203 gainextn=0 fron=200 bal=0.000128155837 balcalc=0.000128155837
+rank 1: check=0
+rank 1: ret=0 load0=7804 dlt=1 size0=7804 comm=203 gainextn=0 fron=200 bal=0.000128155837 balcalc=0.000128155837
+rank 2: check=0
+rank 2: ret=0 load0=7804 dlt=1 size0=7804 comm=203 gainextn=0 fron=200 bal=0.000128155837 balcalc=0.000128155837
+== np=3 m{asc=/(levl<0)?z;,low=q{strat=f},seq=q{strat=f},fold=d}
+rank 0: check=0
+rank 0: ret=0 load0=7917 dlt=114 size0=7917 comm=305 gainextn=0 fron=308 bal=0.0146097655 balcalc=0.0146097655
+rank 1: check=0
+rank 1: ret=0 load0=7917 dlt=114 size0=7917 comm=305 gainextn=0 fron=308 bal=0.0146097655 balcalc=0.0146097655
+rank 2: check=0
+rank 2: ret=0 load0=7917 dlt=114 size0=7917 comm=305 gainextn=0 fron=308 bal=0.0146097655 balcalc=0.0146097655
+== np=3 q{strat=f}q{strat=/(bal<0)?z;}
+rank 0: check=0
+rank 0: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+rank 1: check=0
+rank 1: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+rank 2: check=0
+rank 2: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+== np=3 q{strat=f}q{strat=/(bal>0)?z;}
+rank 0: check=0
+rank 0: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 1: check=0
+rank 1: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 2: check=0
+rank 2: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+== np=4 q{strat=f}
+rank 0: check=0
+rank 0: ret=0 load0=7851 dlt=48 size0=7851 comm=159 gainextn=0 fron=160 bal=0.0061514802 balcalc=0.0061514802
+rank 1: check=0
+rank 1: ret=0 load0=7851 dlt=48 size0=7851 comm=159 gainextn=0 fron=160 bal=0.0061514802 balcalc=0.0061514802
+rank 2: check=0
+rank 2: ret=0 load0=7851 dlt=48 size0=7851 comm=159 gainextn=0 fron=160 bal=0.0061514802 balcalc=0.0061514802
+rank 3: check=0
+rank 3: ret=0 load0=7851 dlt=48 size0=7851 comm=159 gainextn=0 fron=160 bal=0.0061514802 balcalc=0.0061514802
+== np=4 q{strat=f}x{bal=0.001}z
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+rank 0: check=0
+rank 0: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 1: check=0
+rank 1: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 2: check=0
+rank 2: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 3: check=0
+rank 3: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+== np=4 m{asc=/(levl<0)?z;,low=q{strat=f}x{bal=0},seq=q{strat=f}x{bal=0},fold=d,dvert=100000,vert=100}
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+rank 0: check=0
+rank 0: ret=0 load0=7804 dlt=1 size0=7804 comm=309 gainextn=0 fron=305 bal=0.000128155837 balcalc=0.000128155837
+rank 1: check=0
+rank 1: ret=0 load0=7804 dlt=1 size0=7804 comm=309 gainextn=0 fron=305 bal=0.000128155837 balcalc=0.000128155837
+rank 2: check=0
+rank 2: ret=0 load0=7804 dlt=1 size0=7804 comm=309 gainextn=0 fron=305 bal=0.000128155837 balcalc=0.000128155837
+rank 3: check=0
+rank 3: ret=0 load0=7804 dlt=1 size0=7804 comm=309 gainextn=0 fron=305 bal=0.000128155837 balcalc=0.000128155837
+== np=4 m{asc=/(levl<0)?z;,low=q{strat=f},seq=q{strat=f},fold=d}
+rank 0: check=0
+rank 0: ret=0 load0=7906 dlt=103 size0=7906 comm=287 gainextn=0 fron=290 bal=0.0132000513 balcalc=0.0132000513
+rank 1: check=0
+rank 1: ret=0 load0=7906 dlt=103 size0=7906 comm=287 gainextn=0 fron=290 bal=0.0132000513 balcalc=0.0132000513
+rank 2: check=0
+rank 2: ret=0 load0=7906 dlt=103 size0=7906 comm=287 gainextn=0 fron=290 bal=0.0132000513 balcalc=0.0132000513
+rank 3: check=0
+rank 3: ret=0 load0=7906 dlt=103 size0=7906 comm=287 gainextn=0 fron=290 bal=0.0132000513 balcalc=0.0132000513
+== np=4 q{strat=f}q{strat=/(bal<0)?z;}
+rank 0: check=0
+rank 0: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+rank 1: check=0
+rank 1: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+rank 2: check=0
+rank 2: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+rank 3: check=0
+rank 3: ret=0 load0=7840 dlt=37 size0=7840 comm=184 gainextn=0 fron=186 bal=0.00474176599 balcalc=0.00474176599
+== np=4 q{strat=f}q{strat=/(bal>0)?z;}
+rank 0: check=0
+rank 0: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 1: check=0
+rank 1: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 2: check=0
+rank 2: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1
+rank 3: check=0
+rank 3: ret=0 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1

@@ -1,0 +1,13 @@
+diff --git a/src/libscotch/library_graph_map_view.c b/src/libscotch/library_graph_map_view.c
+index e91fe15c..cf9c509a 100644
+--- a/src/libscotch/library_graph_map_view.c
++++ b/src/libscotch/library_graph_map_view.c
+@@ -133,7 +133,7 @@ const Anum                  partval)              /*+ Part (index) value +*/
+     if (rootnum >= grafptr->vertnnd)              /* Exit if all of graph processed */
+       break;
+ 
+-    connval = distmax ++;                         /* Start from previous distance */
++    connval = distmax;                            /* Start from previous distance */
+     diamnum = rootnum;                            /* Start from found root        */
+ 
+     for (flagval = 1; flagval -- != 0; passnum ++) { /* Loop if modifications   */

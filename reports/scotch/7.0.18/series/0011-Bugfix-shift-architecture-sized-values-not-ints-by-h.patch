@@ -1,0 +1,451 @@
+From 40c80507046ebf3a3720389a3bf208620887ce3f Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 13:09:54 +0000
+Subject: [PATCH 011/232] Bugfix: shift architecture-sized values, not ints, by
+ hypercube dimensions [report R. Perry]
+
+The number of vertices, the terminal domain bound, the domain size and
+the bipartition bit of hypercube architectures were computed as
+`1 << n`, which is undefined for n >= 31 whatever the size of `Anum`,
+so that 64-bit builds, in which `archHcubArchLoad()` and
+`SCOTCH_archHcub()` accept dimensions up to 62, produced garbage
+sizes. The same int shifts sized the multinode arrays of
+sub-architecture and decomposition-defined architecture matchings, the
+terminal hash table of `kgraphBand()`, the vertex count of
+distributed hypercube graphs, and the vertex and terminal numbers of
+the `amk_ccc`, `amk_fft2`, `amk_hy`, `gmk_hy` and `gmk_ub2`
+generators, which bounded their dimension from below only.
+
+Shift a value of the target type everywhere, make `SCOTCH_archHcub()`
+reject non-positive dimensions, as `archHcubArchLoad()` does, and bound
+the dimension of each generator so that all of the values it computes
+fit in a `SCOTCH_Num`.
+
+Refs: COR-19, PS-API-3, API-10, CLI-24
+---
+ src/libscotch/arch_deco2.c        |  4 ++--
+ src/libscotch/arch_hcub.c         | 10 +++++-----
+ src/libscotch/arch_sub.c          |  2 +-
+ src/libscotch/dgraph_build_hcub.c |  6 +++---
+ src/libscotch/kgraph_band.c       |  6 +++---
+ src/libscotch/library_arch.c      |  3 ++-
+ src/scotch/amk_ccc.c              | 17 +++++++++--------
+ src/scotch/amk_fft2.c             | 19 ++++++++++---------
+ src/scotch/amk_hy.c               | 11 ++++++-----
+ src/scotch/gmk_hy.c               | 11 ++++++-----
+ src/scotch/gmk_ub2.c              | 11 ++++++-----
+ 11 files changed, 53 insertions(+), 47 deletions(-)
+
+diff --git a/src/libscotch/arch_deco2.c b/src/libscotch/arch_deco2.c
+index 8798df30..f7aa42e1 100644
+--- a/src/libscotch/arch_deco2.c
++++ b/src/libscotch/arch_deco2.c
+@@ -42,7 +42,7 @@
+ /**   DATES      : # Version 6.0  : from : 30 apr 2015     **/
+ /**                                 to   : 15 may 2018     **/
+ /**                # Version 7.0  : from : 18 feb 2018     **/
+-/**                                 to   : 15 jun 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -404,7 +404,7 @@ const ArchDeco2 * restrict const  archptr)
+ 
+   for (levlnbr = 1; domnmax > 0; levlnbr ++, domnmax >>= 1) ; /* Compute maximum recursion level in bipartitioning tree */
+ 
+-  multnbr = 1 << levlnbr;                         /* Maximum number of multinodes is the size of last level */
++  multnbr = (Anum) 1 << levlnbr;                  /* Maximum number of multinodes is the size of last level */
+   if ((matcptr->multtab = memAlloc (multnbr * sizeof (ArchCoarsenMulti))) == NULL) {
+     errorPrint ("archDeco2MatchInit: out of memory");
+     return (1);
+diff --git a/src/libscotch/arch_hcub.c b/src/libscotch/arch_hcub.c
+index e6b50f05..46290fb9 100644
+--- a/src/libscotch/arch_hcub.c
++++ b/src/libscotch/arch_hcub.c
+@@ -62,7 +62,7 @@
+ /**                # Version 6.0  : from : 14 feb 2011     **/
+ /**                                 to   : 02 may 2015     **/
+ /**                # Version 7.0  : from : 19 feb 2018     **/
+-/**                                 to   : 07 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -155,7 +155,7 @@ const ArchHcub * restrict const archptr)
+ {
+   Anum                vertnbr;
+ 
+-  vertnbr = 1 << archptr->dimnnbr;
++  vertnbr = (Anum) 1 << archptr->dimnnbr;
+   if ((matcptr->multtab = memAlloc ((vertnbr >> 1) * sizeof (ArchCoarsenMulti))) == NULL) { /* Multinodes are half the number of vertices */
+     errorPrint ("archHcubMatchInit: out of memory");
+     return (1);
+@@ -239,7 +239,7 @@ const ArchHcub * const      archptr,
+ ArchHcubDom * const         domnptr,
+ const ArchDomNum            domnnum)
+ {
+-  if (domnnum < (1 << archptr->dimnnbr)) {        /* If valid label */
++  if (domnnum < ((Anum) 1 << archptr->dimnnbr)) { /* If valid label */
+     domnptr->dimncur = 0;                         /* Set the domain */
+     domnptr->bitsset = domnnum;
+ 
+@@ -258,7 +258,7 @@ archHcubDomSize (
+ const ArchHcub * const      archptr,
+ const ArchHcubDom * const   domnptr)
+ {
+-  return (1 << domnptr->dimncur);
++  return ((Anum) 1 << domnptr->dimncur);
+ }
+ 
+ /* This function returns the average distance
+@@ -377,7 +377,7 @@ ArchHcubDom * restrict const  dom1ptr)
+   dom0ptr->dimncur =
+   dom1ptr->dimncur = domnptr->dimncur - 1;
+   dom0ptr->bitsset = domnptr->bitsset;
+-  dom1ptr->bitsset = domnptr->bitsset | (1 << dom1ptr->dimncur);
++  dom1ptr->bitsset = domnptr->bitsset | ((Anum) 1 << dom1ptr->dimncur);
+ 
+   return (0);
+ }
+diff --git a/src/libscotch/arch_sub.c b/src/libscotch/arch_sub.c
+index 403c4681..4be83564 100644
+--- a/src/libscotch/arch_sub.c
++++ b/src/libscotch/arch_sub.c
+@@ -535,7 +535,7 @@ const ArchSub * restrict const  archptr)
+ 
+   for (levlnbr = 1; domnmax > 0; levlnbr ++, domnmax >>= 1) ; /* Compute maximum recursion level in bipartitioning tree */
+ 
+-  multnbr = 1 << levlnbr;                         /* Maximum number of multinodes is the size of last level */
++  multnbr = (Anum) 1 << levlnbr;                  /* Maximum number of multinodes is the size of last level */
+   if ((matcptr->multtab = memAlloc (multnbr * sizeof (ArchCoarsenMulti))) == NULL) {
+     errorPrint ("archSubMatchInit: out of memory");
+     return (1);
+diff --git a/src/libscotch/dgraph_build_hcub.c b/src/libscotch/dgraph_build_hcub.c
+index 794c5a6d..a6fe500f 100644
+--- a/src/libscotch/dgraph_build_hcub.c
++++ b/src/libscotch/dgraph_build_hcub.c
+@@ -1,4 +1,4 @@
+-/* Copyright 2007,2008,2018,2023 IPB, Universite de Bordeaux, INRIA & CNRS
++/* Copyright 2007,2008,2018,2023,2026 IPB, Universite de Bordeaux, INRIA & CNRS
+ **
+ ** This file is part of the Scotch software package for static mapping,
+ ** graph partitioning and sparse matrix ordering.
+@@ -51,7 +51,7 @@
+ /**                # Version 6.0  : from : 15 may 2018     **/
+ /**                                 to   : 15 may 2018     **/
+ /**                # Version 7.0  : from : 17 jan 2023     **/
+-/**                                 to   : 17 jan 2023     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -107,7 +107,7 @@ const Gnum                  flagval)              /* Flags               */
+   Gnum                reduloctab[7];
+   Gnum                reduglbtab[7];
+ 
+-  vertglbnbr = 1 << hcubdim;
++  vertglbnbr = (Gnum) 1 << hcubdim;
+   vertlocnbr = DATASIZE (vertglbnbr, grafptr->procglbnbr, grafptr->proclocnum);
+   velolocnbr = ((flagval & 1) != 0) ? vertlocnbr : 0;
+   edgelocnbr = vertlocnbr * hcubdim;              /* Set local number of arcs */
+diff --git a/src/libscotch/kgraph_band.c b/src/libscotch/kgraph_band.c
+index f1722b86..04f23752 100644
+--- a/src/libscotch/kgraph_band.c
++++ b/src/libscotch/kgraph_band.c
+@@ -1,4 +1,4 @@
+-/* Copyright 2009-2011,2013-2016,2018,2019,2021,2023,2024 IPB, Universite de Bordeaux, INRIA & CNRS
++/* Copyright 2009-2011,2013-2016,2018,2019,2021,2023,2024,2026 IPB, Universite de Bordeaux, INRIA & CNRS
+ **
+ ** This file is part of the Scotch software package for static mapping,
+ ** graph partitioning and sparse matrix ordering.
+@@ -45,7 +45,7 @@
+ /**                # Version 6.1  : from : 19 apr 2021     **/
+ /**                                 to   : 30 jun 2021     **/
+ /**                # Version 7.0  : from : 24 aug 2019     **/
+-/**                                 to   : 19 jul 2024     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /**   NOTES      : # This code derives from the code of    **/
+ /**                  kdgraph_band.c in version 5.2 for     **/
+@@ -152,7 +152,7 @@ Gnum * restrict * restrict const  bandvnumptr)    /*+ Pointer to bandvnumtax
+     const ArchDom * restrict const  domntab = grafptr->m.domntab;
+ 
+     for (termhashsiz = 0, termhashmsk = domnnbr; termhashmsk != 0; termhashsiz ++, termhashmsk >>= 1) ; /* Get upper power of two */
+-    termhashsiz = 1 << (termhashsiz + 2);         /* Fill hash table at 25% maximum */
++    termhashsiz = (Anum) 1 << (termhashsiz + 2);  /* Fill hash table at 25% maximum */
+     termhashmsk = termhashsiz - 1;
+ 
+     if (memAllocGroup ((void **) (void *)         /* Allocation and initialization of fixed vertices temporary arrays */
+diff --git a/src/libscotch/library_arch.c b/src/libscotch/library_arch.c
+index 8e780c63..66a924da 100644
+--- a/src/libscotch/library_arch.c
++++ b/src/libscotch/library_arch.c
+@@ -347,7 +347,8 @@ const SCOTCH_Num            dimnnbr)              /*+ Number of dimensions +*/
+     errorPrint (STRINGIFY (SCOTCH_archHcub) ": internal error");
+     return (1);
+   }
+-  if (dimnnbr > (Anum) ((sizeof (SCOTCH_Num) << 3) - 2)) { /* Should have enough bits in ArchHcubDom bit-set field */
++  if ((dimnnbr < 1) ||
++      (dimnnbr > (Anum) ((sizeof (SCOTCH_Num) << 3) - 2))) { /* Should have enough bits in ArchHcubDom bit-set field */
+     errorPrint (STRINGIFY (SCOTCH_archHcub) ": invalid parameter");
+     return (1);
+   }
+diff --git a/src/scotch/amk_ccc.c b/src/scotch/amk_ccc.c
+index b78724e0..2c6a1610 100644
+--- a/src/scotch/amk_ccc.c
++++ b/src/scotch/amk_ccc.c
+@@ -1,4 +1,4 @@
+-/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023 IPB, Universite de Bordeaux, INRIA & CNRS
++/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023,2026 IPB, Universite de Bordeaux, INRIA & CNRS
+ **
+ ** This file is part of the Scotch software package for static mapping,
+ ** graph partitioning and sparse matrix ordering.
+@@ -59,7 +59,7 @@
+ /**                # Version 6.0  : from : 01 jan 2012     **/
+ /**                                 to   : 24 sep 2019     **/
+ /**                # Version 7.0  : from : 21 jan 2023     **/
+-/**                                 to   : 21 jan 2023     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -125,7 +125,8 @@ char *                      argv[])
+   for (i = 1; i < argc; i ++) {                   /* Loop for all option codes                        */
+     if ((argv[i][0] != '-') || (argv[i][1] == '\0') || (argv[i][1] == '.')) { /* If found a file name */
+       if (C_paraNum < 1) {                        /* If number of parameters not reached              */
+-        if ((ccdim = atoi (argv[i])) < 1)         /* Get the dimension                                */
++        if (((ccdim = atoi (argv[i])) < 1) ||     /* Get the dimension                                */
++            (ccdim > (SCOTCH_Num) ((sizeof (SCOTCH_Num) << 3) - 8))) /* Maximum terminal value must fit in a SCOTCH_Num */
+           errorPrint ("main: invalid dimension '%s'", argv[i]);
+         C_paraNum ++;
+         continue;                                 /* Process the other parameters */
+@@ -154,9 +155,9 @@ char *                      argv[])
+ 
+   fileBlockOpen (C_fileTab, C_FILENBR);           /* Open all files */
+ 
+-  ccnbr = ccdim * (1 << ccdim);                   /* Compute number of vertices           */
+-  ccbit = (1 << ccdim) - 1;                       /* Get maximum position number          */
+-  for (ccmax = ((1 << (ccdim + 1)) - 1), i = ccdim - 1; /* Compute biggest terminal value */
++  ccnbr = ccdim * ((SCOTCH_Num) 1 << ccdim);      /* Compute number of vertices           */
++  ccbit = ((SCOTCH_Num) 1 << ccdim) - 1;          /* Get maximum position number          */
++  for (ccmax = (((SCOTCH_Num) 1 << (ccdim + 1)) - 1), i = ccdim - 1; /* Compute biggest terminal value */
+        i != 0;
+        i >>= 1)
+     ccmax = (ccmax << 1) | (i & 1);
+@@ -167,7 +168,7 @@ char *                      argv[])
+ 
+   for (v.lvl = 0; v.lvl < ccdim; v.lvl ++) {      /* For all levels                    */
+     for (v.pos = 0; v.pos <= ccbit; v.pos ++) {   /* For all positions in these levels */
+-      t = (1 << ccdim) | v.pos;                   /* Perform the hypercube cuts        */
++      t = ((SCOTCH_Num) 1 << ccdim) | v.pos;      /* Perform the hypercube cuts        */
+       for (i = v.lvl, j = ccdim; j != 1; ) {      /* Perform the cycle cuts            */
+         t <<= 1;
+         k = (j + 1) >> 1;
+@@ -201,7 +202,7 @@ char *                      argv[])
+ 
+         d ++;                                     /* Search for neighbors at next level */
+         x.lvl = w.lvl;                            /* Add neighbors to queue             */
+-        x.pos = w.pos ^ (1 << x.lvl);
++        x.pos = w.pos ^ ((SCOTCH_Num) 1 << x.lvl);
+         C_distaPut (&x, d);
+         x.lvl = (w.lvl == 0) ? (ccdim - 1) : (w.lvl - 1);
+         x.pos = w.pos;
+diff --git a/src/scotch/amk_fft2.c b/src/scotch/amk_fft2.c
+index 03e64c27..718255c8 100644
+--- a/src/scotch/amk_fft2.c
++++ b/src/scotch/amk_fft2.c
+@@ -1,4 +1,4 @@
+-/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023 IPB, Universite de Bordeaux, INRIA & CNRS
++/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023,2026 IPB, Universite de Bordeaux, INRIA & CNRS
+ **
+ ** This file is part of the Scotch software package for static mapping,
+ ** graph partitioning and sparse matrix ordering.
+@@ -57,7 +57,7 @@
+ /**                # Version 6.0  : from : 01 jan 2012     **/
+ /**                                 to   : 24 sep 2019     **/
+ /**                # Version 7.0  : from : 21 jan 2023     **/
+-/**                                 to   : 21 jan 2023     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -122,7 +122,8 @@ char *                      argv[])
+   for (i = 1; i < argc; i ++) {                   /* Loop for all option codes                        */
+     if ((argv[i][0] != '-') || (argv[i][1] == '\0') || (argv[i][1] == '.')) { /* If found a file name */
+       if (C_paraNum < 1) {                        /* If number of parameters not reached              */
+-        if ((fdim = atoi (argv[i])) < 1)          /* Get the dimension                                */
++        if (((fdim = atoi (argv[i])) < 1) ||      /* Get the dimension                                */
++            (fdim > ((SCOTCH_Num) ((sizeof (SCOTCH_Num) << 3) - 3) / 2))) /* Maximum terminal value must fit in a SCOTCH_Num */
+           errorPrint ("main: invalid dimension '%s'", argv[i]);
+         C_paraNum ++;
+         continue;                                 /* Process the other parameters */
+@@ -151,8 +152,8 @@ char *                      argv[])
+ 
+   fileBlockOpen (C_fileTab, C_FILENBR);           /* Open all files */
+ 
+-  fnbr = (fdim + 1) * (1 << fdim);                /* Compute number of vertices      */
+-  fmsk = (1 << fdim) - 1;                         /* Get maximum position number     */
++  fnbr = (fdim + 1) * ((SCOTCH_Num) 1 << fdim);   /* Compute number of vertices      */
++  fmsk = ((SCOTCH_Num) 1 << fdim) - 1;            /* Get maximum position number     */
+   for (i = fdim, fmax = 1; i > 0; i --)           /* Compute maximum terminal number */
+     fmax = (fmax << 2) | 2;
+   fmax  |= 1;
+@@ -165,7 +166,7 @@ char *                      argv[])
+     for (v.pos = 0; v.pos <= fmsk; v.pos ++) {
+       SCOTCH_Num          b;                      /* Bitmask value */
+ 
+-      for (i = v.lvl, b = 1 << (fdim - 1), t = 1; /* Recurse through the vertical + horizontal cuts */
++      for (i = v.lvl, b = (SCOTCH_Num) 1 << (fdim - 1), t = 1; /* Recurse through the vertical + horizontal cuts */
+            i <= fdim;
+            i ++, b >>= 1) {
+         t <<= 1;                                  /* Vertical cut: tell if vertex is in left or...   */
+@@ -177,7 +178,7 @@ char *                      argv[])
+       else {                                      /* Else                                            */
+         t |= 1;                                   /* This time vertex is in the lower part           */
+         t <<= (v.lvl - 1);                        /* Make space for the chain bipartition            */
+-        t |= v.pos & ((1 << (v.lvl - 1)) - 1);    /* Bipartition the chain following the lowest bits */
++        t |= v.pos & (((SCOTCH_Num) 1 << (v.lvl - 1)) - 1); /* Bipartition the chain following the lowest bits */
+       }
+ 
+       fprintf (C_filepntrarcout, SCOTCH_NUMSTRING "\t1\t" SCOTCH_NUMSTRING "\n",
+@@ -210,7 +211,7 @@ char *                      argv[])
+           x.lvl = w.lvl - 1;
+           x.pos = w.pos;
+           C_distaPut (&x, d);
+-          x.pos = w.pos ^ (1 << (w.lvl - 1));
++          x.pos = w.pos ^ ((SCOTCH_Num) 1 << (w.lvl - 1));
+           C_distaPut (&x, d);
+         }
+         if (w.lvl < fdim) {
+@@ -219,7 +220,7 @@ char *                      argv[])
+           x.lvl = w.lvl + 1;
+           x.pos = w.pos;
+           C_distaPut (&x, d);
+-          x.pos = w.pos ^ (1 << w.lvl);
++          x.pos = w.pos ^ ((SCOTCH_Num) 1 << w.lvl);
+           C_distaPut (&x, d);
+         }
+       }
+diff --git a/src/scotch/amk_hy.c b/src/scotch/amk_hy.c
+index a96ef6c5..f70012aa 100644
+--- a/src/scotch/amk_hy.c
++++ b/src/scotch/amk_hy.c
+@@ -1,4 +1,4 @@
+-/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023 IPB, Universite de Bordeaux, INRIA & CNRS
++/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023,2026 IPB, Universite de Bordeaux, INRIA & CNRS
+ **
+ ** This file is part of the Scotch software package for static mapping,
+ ** graph partitioning and sparse matrix ordering.
+@@ -57,7 +57,7 @@
+ /**                # Version 6.0  : from : 01 jan 2012     **/
+ /**                                 to   : 24 sep 2019     **/
+ /**                # Version 7.0  : from : 21 jan 2023     **/
+-/**                                 to   : 21 jan 2023     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -117,7 +117,8 @@ char *                      argv[])
+   for (i = 1; i < argc; i ++) {                   /* Loop for all option codes                        */
+     if ((argv[i][0] != '-') || (argv[i][1] == '\0') || (argv[i][1] == '.')) { /* If found a file name */
+       if (C_paraNum < 1) {                        /* If number of parameters not reached              */
+-        if ((hdim = atoi (argv[i])) < 1)          /* Get the dimension                                */
++        if (((hdim = atoi (argv[i])) < 1) ||      /* Get the dimension                                */
++            (hdim > (SCOTCH_Num) ((sizeof (SCOTCH_Num) << 3) - 3))) /* Maximum terminal value must fit in a SCOTCH_Num */
+           errorPrint ("main: invalid dimension '%s'", argv[i]);
+         C_paraNum ++;
+         continue;                                 /* Process the other parameters */
+@@ -146,8 +147,8 @@ char *                      argv[])
+ 
+   fileBlockOpen (C_fileTab, C_FILENBR);           /* Open all files */
+ 
+-  hnbr =  1 << hdim;                              /* Compute number of terminals */
+-  hmax = (1 << (hdim + 1)) - 1;                   /* Maximum terminal value      */
++  hnbr =  (SCOTCH_Num) 1 << hdim;                 /* Compute number of terminals */
++  hmax = ((SCOTCH_Num) 1 << (hdim + 1)) - 1;      /* Maximum terminal value      */
+ 
+   fprintf (C_filepntrtgtout, "deco\n0\n" SCOTCH_NUMSTRING "\t" SCOTCH_NUMSTRING "\n", /* Print the file header */
+            (SCOTCH_Num) hnbr,                     /* Print number of terminal domains */
+diff --git a/src/scotch/gmk_hy.c b/src/scotch/gmk_hy.c
+index f50355f8..62e82e26 100644
+--- a/src/scotch/gmk_hy.c
++++ b/src/scotch/gmk_hy.c
+@@ -1,4 +1,4 @@
+-/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023 IPB, Universite de Bordeaux, INRIA & CNRS
++/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023,2026 IPB, Universite de Bordeaux, INRIA & CNRS
+ **
+ ** This file is part of the Scotch software package for static mapping,
+ ** graph partitioning and sparse matrix ordering.
+@@ -55,7 +55,7 @@
+ /**                # Version 6.0  : from : 01 jan 2012     **/
+ /**                                 to   : 24 sep 2019     **/
+ /**                # Version 7.0  : from : 21 jan 2023     **/
+-/**                                 to   : 21 jan 2023     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -114,7 +114,8 @@ char *                      argv[])
+   for (i = 1; i < argc; i ++) {                   /* Loop for all option codes                        */
+     if ((argv[i][0] != '-') || (argv[i][1] == '\0') || (argv[i][1] == '.')) { /* If found a file name */
+       if (C_paraNum < 1) {                        /* If number of parameters not reached              */
+-        if ((hdim = atoi (argv[i])) < 1)          /* Get the dimension                                */
++        if (((hdim = atoi (argv[i])) < 1) ||      /* Get the dimension                                */
++            (hdim > (SCOTCH_Num) ((sizeof (SCOTCH_Num) << 3) - 7))) /* Number of arcs must fit in a SCOTCH_Num */
+           errorPrint ("main: invalid dimension '%s'", argv[i]);
+         C_paraNum ++;
+         continue;                                 /* Process the other parameters */
+@@ -143,8 +144,8 @@ char *                      argv[])
+ 
+   fileBlockOpen (C_fileTab, C_FILENBR);           /* Open all files */
+ 
+-  hnbr = 1 <<  hdim;                              /* Compute number of vertices */
+-  hbit = 1 << (hdim - 1);                         /* Compute highest bit value  */
++  hnbr = (SCOTCH_Num) 1 <<  hdim;                 /* Compute number of vertices */
++  hbit = (SCOTCH_Num) 1 << (hdim - 1);            /* Compute highest bit value  */
+ 
+   fprintf (C_filepntrsrcout, "0\n" SCOTCH_NUMSTRING "\t" SCOTCH_NUMSTRING "\n0\t000\n",
+            (SCOTCH_Num) hnbr,                     /* Print number of vertices     */
+diff --git a/src/scotch/gmk_ub2.c b/src/scotch/gmk_ub2.c
+index ad95d3fe..28a6a02b 100644
+--- a/src/scotch/gmk_ub2.c
++++ b/src/scotch/gmk_ub2.c
+@@ -1,4 +1,4 @@
+-/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023 IPB, Universite de Bordeaux, INRIA & CNRS
++/* Copyright 2004,2007,2008,2010-2012,2014,2018,2019,2023,2026 IPB, Universite de Bordeaux, INRIA & CNRS
+ **
+ ** This file is part of the Scotch software package for static mapping,
+ ** graph partitioning and sparse matrix ordering.
+@@ -59,7 +59,7 @@
+ /**                # Version 6.0  : from : 01 jan 2012     **/
+ /**                                 to   : 24 sep 2019     **/
+ /**                # Version 7.0  : from : 21 jan 2023     **/
+-/**                                 to   : 21 jan 2023     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -132,7 +132,8 @@ char *                      argv[])
+   for (i = 1; i < argc; i ++) {                   /* Loop for all option codes                        */
+     if ((argv[i][0] != '-') || (argv[i][1] == '\0') || (argv[i][1] == '.')) { /* If found a file name */
+       if (C_paraNum < 1) {                        /* If number of parameters not reached              */
+-        if ((ubdim = (SCOTCH_Num) atol (argv[i])) < 1) /* Get dimension                               */
++        if (((ubdim = (SCOTCH_Num) atol (argv[i])) < 1) || /* Get dimension                          */
++            (ubdim > (SCOTCH_Num) ((sizeof (SCOTCH_Num) << 3) - 4))) /* Number of arcs must fit in a SCOTCH_Num */
+           errorPrint ("main: invalid dimension '%s'", argv[i]);
+         C_paraNum ++;
+         continue;                                 /* Process the other parameters */
+@@ -161,8 +162,8 @@ char *                      argv[])
+ 
+   fileBlockOpen (C_fileTab, C_FILENBR);           /* Open all files */
+ 
+-  ubnbr = 1 <<  ubdim;                            /* Compute number of vertices */
+-  ubbit = 1 << (ubdim - 1);                       /* Bit to add on the left     */
++  ubnbr = (SCOTCH_Num) 1 <<  ubdim;               /* Compute number of vertices */
++  ubbit = (SCOTCH_Num) 1 << (ubdim - 1);          /* Bit to add on the left     */
+ 
+   fprintf (C_filepntrsrcout, "0\n" SCOTCH_NUMSTRING "\t" SCOTCH_NUMSTRING "\n0\t000\n",
+            (SCOTCH_Num) ubnbr,                    /* Print number of vertices     */
+-- 
+2.43.0
+

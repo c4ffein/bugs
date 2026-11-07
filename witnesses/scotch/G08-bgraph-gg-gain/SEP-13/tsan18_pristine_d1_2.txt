@@ -1,0 +1,612 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Read of size 8 at 0x7fe1865ff750 by thread T2:
+    #0 _SCOTCHintRandSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_integer.c:288 (libscotch.so+0x4182b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:177 (libscotch.so+0x3baa5) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff750 by main thread:
+    #0 _SCOTCHintRandVal3 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_integer.c:435 (libscotch.so+0x41af8) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 _SCOTCHintRandVal /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_integer.c:463 (libscotch.so+0x41b5d) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:196 (libscotch.so+0x3c074) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:322 (libscotch.so+0x3debe) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:335 (libscotch.so+0x3e76f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #13 _SCOTCHkgraphMapRbPart /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:391 (libscotch.so+0x801aa) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #14 _SCOTCHkgraphMapRb /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb.c:170 (libscotch.so+0x7b6cf) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #15 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #16 kgraphMapMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:383 (libscotch.so+0x798b3) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #17 _SCOTCHkgraphMapMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:412 (libscotch.so+0x7a6b6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #18 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #19 graphMapCompute2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:294 (libscotch.so+0x8bd59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #20 SCOTCH_graphMapCompute /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:318 (libscotch.so+0x8be8a) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #21 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:469 (gpart+0x35bf) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Location is global '_SCOTCHintranddat' of size 32 at 0x7fe1865ff740 (libscotch.so+0xe8750)
+
+  Thread T2 (tid=8781, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_integer.c:288 in _SCOTCHintRandSpawn
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by thread T1:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by main thread:
+    #0 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:216 (libscotch.so+0x3bc35) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:322 (libscotch.so+0x3debe) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:335 (libscotch.so+0x3e76f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 _SCOTCHkgraphMapRbPart /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:391 (libscotch.so+0x801aa) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 _SCOTCHkgraphMapRb /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb.c:170 (libscotch.so+0x7b6cf) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #13 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #14 kgraphMapMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:383 (libscotch.so+0x798b3) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #15 _SCOTCHkgraphMapMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:412 (libscotch.so+0x7a6b6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #16 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #17 graphMapCompute2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:294 (libscotch.so+0x8bd59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #18 SCOTCH_graphMapCompute /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:318 (libscotch.so+0x8be8a) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #19 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:469 (gpart+0x35bf) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T1 (tid=8780, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by thread T1:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by thread T3:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T1 (tid=8780, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Thread T3 (tid=8782, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by thread T2:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by main thread:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:322 (libscotch.so+0x3debe) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:338 (libscotch.so+0x3e7a0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 _SCOTCHkgraphMapRbPart /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:391 (libscotch.so+0x801aa) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #13 _SCOTCHkgraphMapRb /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb.c:170 (libscotch.so+0x7b6cf) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #14 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #15 kgraphMapMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:383 (libscotch.so+0x798b3) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #16 _SCOTCHkgraphMapMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:412 (libscotch.so+0x7a6b6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #17 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #18 graphMapCompute2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:294 (libscotch.so+0x8bd59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #19 SCOTCH_graphMapCompute /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:318 (libscotch.so+0x8be8a) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #20 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:469 (gpart+0x35bf) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T2 (tid=8781, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by thread T3:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by thread T2:
+    #0 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:216 (libscotch.so+0x3bc35) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T3 (tid=8782, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Thread T2 (tid=8781, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by main thread:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:335 (libscotch.so+0x3e76f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:258 (libscotch.so+0x3fe49) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #13 _SCOTCHcontextThreadLaunchSplit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:301 (libscotch.so+0x403fc) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #14 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:316 (libscotch.so+0x7fda9) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #15 _SCOTCHkgraphMapRbPart /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:391 (libscotch.so+0x801aa) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #16 _SCOTCHkgraphMapRb /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb.c:170 (libscotch.so+0x7b6cf) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #17 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #18 kgraphMapMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:383 (libscotch.so+0x798b3) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #19 _SCOTCHkgraphMapMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:412 (libscotch.so+0x7a6b6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #20 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #21 graphMapCompute2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:294 (libscotch.so+0x8bd59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #22 SCOTCH_graphMapCompute /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:318 (libscotch.so+0x8be8a) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #23 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:469 (gpart+0x35bf) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by thread T2:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:335 (libscotch.so+0x3e76f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:266 (libscotch.so+0x3feae) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T2 (tid=8781, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by thread T3:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHthreadContextImport2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:711 (libscotch.so+0x4628f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:263 (libscotch.so+0x3fe76) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by thread T1:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHthreadContextImport2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:711 (libscotch.so+0x4628f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:255 (libscotch.so+0x3fe1f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T3 (tid=8782, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Thread T1 (tid=8780, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by thread T3:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHthreadContextImport2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:711 (libscotch.so+0x4628f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:263 (libscotch.so+0x3fe76) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by main thread:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 _SCOTCHbgraphBipartFm /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_fm.c:442 (libscotch.so+0x38664) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:303 (libscotch.so+0x3e681) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:335 (libscotch.so+0x3e76f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:258 (libscotch.so+0x3fe49) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 _SCOTCHcontextThreadLaunchSplit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:301 (libscotch.so+0x403fc) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:316 (libscotch.so+0x7fda9) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #13 _SCOTCHkgraphMapRbPart /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:391 (libscotch.so+0x801aa) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #14 _SCOTCHkgraphMapRb /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb.c:170 (libscotch.so+0x7b6cf) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #15 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #16 kgraphMapMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:383 (libscotch.so+0x798b3) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #17 _SCOTCHkgraphMapMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:412 (libscotch.so+0x7a6b6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #18 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #19 graphMapCompute2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:294 (libscotch.so+0x8bd59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #20 SCOTCH_graphMapCompute /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:318 (libscotch.so+0x8be8a) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #21 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:469 (gpart+0x35bf) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T3 (tid=8782, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7ffc2a4e3970 by thread T2:
+    #0 _SCOTCHintRandVal3 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_integer.c:435 (libscotch.so+0x41af8) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 _SCOTCHintRandVal /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_integer.c:463 (libscotch.so+0x41b5d) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:196 (libscotch.so+0x3c074) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:338 (libscotch.so+0x3e7a0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:266 (libscotch.so+0x3feae) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #13 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous read of size 8 at 0x7ffc2a4e3970 by thread T3:
+    #0 _SCOTCHintRandSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_integer.c:288 (libscotch.so+0x4182b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:177 (libscotch.so+0x3baa5) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHthreadContextImport2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:711 (libscotch.so+0x4628f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:263 (libscotch.so+0x3fe76) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Location is stack of main thread.
+
+  Location is global '<null>' at 0x000000000000 ([stack]+0x1d970)
+
+  Thread T2 (tid=8781, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Thread T3 (tid=8782, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_integer.c:435 in _SCOTCHintRandVal3
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by thread T2:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:338 (libscotch.so+0x3e7a0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:266 (libscotch.so+0x3feae) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by thread T3:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHthreadContextImport2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:711 (libscotch.so+0x4628f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:263 (libscotch.so+0x3fe76) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T2 (tid=8781, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Thread T3 (tid=8782, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by thread T1:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHthreadContextImport2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:711 (libscotch.so+0x4628f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:255 (libscotch.so+0x3fe1f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by main thread:
+    #0 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:216 (libscotch.so+0x3bc35) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:338 (libscotch.so+0x3e7a0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:258 (libscotch.so+0x3fe49) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 _SCOTCHcontextThreadLaunchSplit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:301 (libscotch.so+0x403fc) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #13 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:316 (libscotch.so+0x7fda9) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #14 _SCOTCHkgraphMapRbPart /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:391 (libscotch.so+0x801aa) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #15 _SCOTCHkgraphMapRb /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb.c:170 (libscotch.so+0x7b6cf) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #16 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #17 kgraphMapMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:383 (libscotch.so+0x798b3) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #18 _SCOTCHkgraphMapMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:412 (libscotch.so+0x7a6b6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #19 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #20 graphMapCompute2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:294 (libscotch.so+0x8bd59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #21 SCOTCH_graphMapCompute /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:318 (libscotch.so+0x8be8a) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #22 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:469 (gpart+0x35bf) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T1 (tid=8780, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by thread T2:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:338 (libscotch.so+0x3e7a0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:266 (libscotch.so+0x3feae) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by main thread:
+    #0 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:216 (libscotch.so+0x3bc35) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:338 (libscotch.so+0x3e7a0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:258 (libscotch.so+0x3fe49) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 _SCOTCHcontextThreadLaunchSplit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:301 (libscotch.so+0x403fc) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #13 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:316 (libscotch.so+0x7fda9) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #14 _SCOTCHkgraphMapRbPart /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:391 (libscotch.so+0x801aa) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #15 _SCOTCHkgraphMapRb /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb.c:170 (libscotch.so+0x7b6cf) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #16 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #17 kgraphMapMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:383 (libscotch.so+0x798b3) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #18 _SCOTCHkgraphMapMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:412 (libscotch.so+0x7a6b6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #19 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #20 graphMapCompute2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:294 (libscotch.so+0x8bd59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #21 SCOTCH_graphMapCompute /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:318 (libscotch.so+0x8be8a) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #22 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:469 (gpart+0x35bf) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T2 (tid=8781, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=8775)
+  Write of size 8 at 0x7fe1865ff7e8 by main thread:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 bgraphBipartGg2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:246 (libscotch.so+0x3bb0f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartGg /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_gg.c:359 (libscotch.so+0x3c630) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:301 (libscotch.so+0x3e661) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:338 (libscotch.so+0x3e7a0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #11 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:258 (libscotch.so+0x3fe49) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #12 _SCOTCHthreadLaunch /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:460 (libscotch.so+0x45f28) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #13 _SCOTCHcontextThreadLaunchSplit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:301 (libscotch.so+0x403fc) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #14 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:316 (libscotch.so+0x7fda9) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #15 _SCOTCHkgraphMapRbPart /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:391 (libscotch.so+0x801aa) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #16 _SCOTCHkgraphMapRb /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb.c:170 (libscotch.so+0x7b6cf) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #17 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #18 kgraphMapMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:383 (libscotch.so+0x798b3) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #19 _SCOTCHkgraphMapMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_ml.c:412 (libscotch.so+0x7a6b6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #20 _SCOTCHkgraphMapSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_st.c:392 (libscotch.so+0x806a2) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #21 graphMapCompute2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:294 (libscotch.so+0x8bd59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #22 SCOTCH_graphMapCompute /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_graph_map.c:318 (libscotch.so+0x8be8a) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #23 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:469 (gpart+0x35bf) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+  Previous write of size 8 at 0x7fe1865ff7e8 by thread T2:
+    #0 _SCOTCHgainTablAddLog /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 (libscotch.so+0x47779) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 _SCOTCHbgraphBipartFm /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_fm.c:442 (libscotch.so+0x38664) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:303 (libscotch.so+0x3e681) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:330 (libscotch.so+0x3db59) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_ml.c:359 (libscotch.so+0x3e5c0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:383 (libscotch.so+0x3e9a6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/bgraph_bipart_st.c:338 (libscotch.so+0x3e7a0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #8 kgraphMapRbPart2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/kgraph_map_rb_part.c:274 (libscotch.so+0x7fb52) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #9 contextThreadLaunchSplit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:266 (libscotch.so+0x3feae) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #10 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:413 (libscotch.so+0x45843) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+
+  Location is global 'gainLinkDummy' of size 24 at 0x7fe1865ff7e0 (libscotch.so+0xe87e8)
+
+  Thread T2 (tid=8781, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so.2+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 _SCOTCHcontextThreadInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:227 (libscotch.so+0x4019b) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 _SCOTCHcontextCommit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:127 (libscotch.so+0x40209) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #6 SCOTCH_contextBindGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context_graph.c:98 (libscotch.so+0x859f0) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #7 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/scotch/gmap.c:436 (gpart+0x3a33) (BuildId: 0de236e80b3c57e520374878c2b7594ada7df1ce)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/gain.c:311 in _SCOTCHgainTablAddLog
+==================
+ThreadSanitizer: reported 13 warnings

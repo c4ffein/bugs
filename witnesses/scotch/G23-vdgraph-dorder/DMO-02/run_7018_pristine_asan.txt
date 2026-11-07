@@ -1,0 +1,25 @@
+== np=1 dgord lbl.grf ord -T tree
+   rc=0
+   ord: 12 101	101 102	102 103	103 104	104 105	105 106	106 107	107 108	108 109	109 110	110 111	111 112	112 
+   tre: 12 101	-1 102	-1 103	-1 104	-1 105	-1 106	-1 107	-1 108	-1 109	-1 110	-1 111	-1 112	-1 
+== np=1 dgord lbl14.grf (glibc-aligned size)
+   rc=0
+== np=1 dgord lbl14.grf -T only
+      1     #0 0x7f1c4f8fd9c7 in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:69
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50600003d9d8 at pc 0x7f1c4f8fb303 bp 0x7fff6bc30660 sp 0x7fff6bc2fe08
+      1 SUMMARY: AddressSanitizer: heap-buffer-overflow ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors_memintrinsics.inc:115 in m
+   rc=1
+== np=3 dgord lbl.grf ord -T tree
+      2 dorder_io.c:144:12: runtime error: applying non-zero offset 18446744073709551612 to null pointer
+   rc=0
+   ord: 12 101	107 102	108 103	109 104	110 105	111 106	112 107	104 108	105 109	106 110	101 111	102 112	103 
+   tre: 12 101	5 102	5 103	5 104	5 105	5 106	-1 107	3 108	3 109	5 110	3 111	3 112	3 
+== np=3 dgord lbl14.grf (glibc-aligned size)
+      2 dorder_io.c:144:12: runtime error: applying non-zero offset 18446744073709551612 to null pointer
+   rc=0
+== np=3 dgord lbl14.grf -T only
+      1     #0 0x7f3dc7afd9c7 in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:69
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x506000040af8 at pc 0x7f3dc7afb303 bp 0x7ffc30634c10 sp 0x7ffc306343b8
+      1 SUMMARY: AddressSanitizer: heap-buffer-overflow ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors_memintrinsics.inc:115 in m
+      2 dorder_io.c:144:12: runtime error: applying non-zero offset 18446744073709551612 to null pointer
+   rc=1

@@ -1,0 +1,61 @@
+[
+ {
+  "local_id": "PS3-G13-1",
+  "our_title": "kgraphMapFm keeps a stale domain array pointer after its fallback reallocates it",
+  "severity": "medium",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "$WORK/repro/PS3-G13-1/vardom.c (gra02int on vcmplt). With 7.0.17's GRA-02 fix rebased alone: `./vardom 40 0 2` -> 'AddressSanitizer: heap-use-after-free READ ... #0 _SCOTCHarchVcmpltDomDist arch_vcmplt.c:155 #1 _SCOTCHkgraphMapFm kgraph_map_fm.c:1814', 'freed by thread T3 ... realloc ... _SCOTCHmapResize mapping.c:180 ... kgraphMapRbPart3 kgraph_map_rb_part.c:119'. Pristine 7.0.18 dies earlier on GRA-02 (kgraph_map_fm.c:129). Series (0006 also re-reads domntab): 'after: ret=0 domnnbr=1600 fronnbr=1600' and 64 0 2 -> domnnbr=4096, 32/64-bit.",
+  "read_only": "Public-API trigger not constructed: needs a frontier-less imbalanced mapping reaching kgraphMapFm on a variable-sized target with more than min(1023, vertnbr)+1 resulting domains.",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/kgraph_map_fm.c:1006 (`const ArchDom * restrict const  domntab = grafptr->m.domntab;`), fallback at :1048; src/libscotch/kgraph_map_rb_part.c:119 (mapResize); src/libscotch/mapping.c:105-108 (mapInit: domnmax = MIN (1023, vertnbr) + 1 for variable-sized targets)",
+  "evidence": "kgraph_map_fm.c:1006 caches domntab before :1048 `kgraphMapSt (grafptr, strat);`; kgraph_map_rb_part.c:119 `if ((o = mapResize (mappptr, domnnum + (domnnum >> 2) + 8)) != 0)` reallocates mappptr->domntab.",
+  "related_ids": [
+   "GRA-02"
+  ],
+  "fix_options": [
+   {
+    "label": "Re-read domntab with domnnbr after the fallback (folded into the GRA-02 commit)",
+    "summary": "domntab becomes a non-const local set at entry and after the fallback.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G13-kgraph-fm-df-bd/patches/0006-Bugfix-refresh-the-domain-count-after-the-fallback-i.patch",
+    "tested": "vardom 40 0 2 / 64 0 2 / 16 4 1 pass 32/64; GRA-02 kits pass; check_scotch_graph_map/gmap/gpart pass.",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "Same fix as the count, same place."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G13-kgraph-fm-df-bd/patches/0006-Bugfix-refresh-the-domain-count-after-the-fallback-i.patch"
+  ],
+  "upstream_fix_review": {}
+ },
+ {
+  "local_id": "PS3-G13-2",
+  "our_title": "kgraphMapFm error paths leak the imbalance, save and extended edge arrays",
+  "severity": "low",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "kgraph_map_fm.c:1096-1098 (out of memory (4): nothing freed but the table), :1107-1110 and :1483-1486 ('memFree (vexxtab); /* Free group leader */' although vexxtab, savetab and edxxtab are three separate memAlloc's, :1093-1095), :1475-1478 (out of memory (6) frees savetab only): comploadmax, savetab, edxxtab (and chektab under SCOTCH_DEBUG_KGRAPH3) leak; the normal exit frees all of them at :1843-1849.",
+  "why_not_run": "Allocation-failure paths; not injected this round (no plain build). Pre-existing, not introduced by 7.0.18; our GRA-17 remainder follows the same convention.",
+  "location_7_0_18": "src/libscotch/kgraph_map_fm.c:1096-1098, 1107-1110, 1475-1478, 1483-1486",
+  "evidence": "kgraph_map_fm.c:1107-1110 `errorPrint (\"kgraphMapFm: out of memory (5)\"); memFree    (vexxtab);                       /* Free group leader */ kgraphMapFmTablExit (tablptr); return (1);`",
+  "related_ids": [
+   "GRA-17",
+   "GRA-02"
+  ],
+  "fix_options": [
+   {
+    "label": "Single fail: label freeing all work arrays",
+    "summary": "Convert the error returns of kgraphMapFm to goto fail with the frees of the normal exit.",
+    "diff_file": "",
+    "tested": "not written",
+    "tradeoffs": "Touches every error path of a long routine.",
+    "preferred": true,
+    "maintainer_fit": "His usual fail: pattern."
+   }
+  ],
+  "patch_files": [],
+  "upstream_fix_review": {}
+ }
+]

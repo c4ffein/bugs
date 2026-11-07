@@ -1,0 +1,16 @@
+DMO-15 (+ forwarded PS2-G05-1 null part array): what dmapSave accepts
+Build the internal-API driver: B=$WORK/build (or buildp); CF="$(grep '^CFLAGS' $B/src/Makefile.inc | cut -d= -f2-)"
+  mpicc $CF -DSCOTCH_PTSCOTCH -I$B/src/libscotch -I$B/include dmaptest.c -o dmaptest_<tree> -L$B/lib -lptscotch -lscotch -lptscotcherr -lz -lm -lrt -pthread
+Run (np=3): LD_LIBRARY_PATH=$B/lib mpirun --oversubscribe -np 3 -x LD_LIBRARY_PATH ./dmaptest_<tree> 4elt.grf <c|x|n> > out 2> err
+  pristine x (root fragment claims one vertex too many): rc=0 on all ranks, file header 15607 for 15606 vertices.
+  pristine n (root fragment without part array): dmapping_io.c:196:19: runtime error: load of null pointer + SEGV.
+  patched  x: 'dmapSave: invalid mapping (1)' on all ranks, rc=1 ; n: 'dmapSave: invalid mapping (2)' on all ranks, rc=1, no hang ; c: rc=0, 15606 lines.
+User-reachable form (patch 0010 fixes the source):
+  CORRECTION (round-2 review): an earlier version of this README claimed that pristine
+  'dgpart 4 4elt.grf /dev/null -m"r{sep=q{strat=f}}"' crashes at dmapping_io.c:256. It does not: the stored pristine
+  run (run_7018_pristine.txt) shows rc=0 and 15607 lines (parts 0 1 2 3), with only UBSan shift reports.
+  What does crash is the library call, via dtest (internal driver):
+  pristine: ./dtest_<tree> 4elt.grf -1 map 'r{sep=q{strat=f}}' 4 n -  -> dmapping.c:224:47 null pointer load + SEGV (dmapTerm, SCOTCH_dgraphMap)
+  patched:  dtest Map rc=0 on all ranks (dgpart output unchanged: 15607 lines, parts 0,1,2,3).
+G20's guard (alt/PS2-G05-dmapSave-null-parttab-guard.diff of G20) applied to buildfi, run './dtest_buildfi 4elt.grf -1 map "r{sep=q{strat=f}}" 4 s /dev/null':
+  np=1 'invalid mapping (4)' rc=1 ; np=3: '(2): ERROR: dmapSave: invalid mapping (4)', root never returns -> HANG (redo.txt).

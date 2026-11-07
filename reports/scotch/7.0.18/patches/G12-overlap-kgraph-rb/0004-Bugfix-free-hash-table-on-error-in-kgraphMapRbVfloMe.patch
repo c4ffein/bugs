@@ -1,0 +1,92 @@
+From 468de25c586b2d95f70cc666e8ddad10c3bf784c Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:26:10 +0000
+Subject: [PATCH 4/8] Bugfix: free hash table on error in
+ `kgraphMapRbVfloMerge()` [report PyScotch]
+
+The error paths of `kgraphMapRbVfloMerge()`, including the one added
+for invalid terminal domain numbers in 6f734966, returned without
+freeing the hash table. Route them all through a single exit point,
+as `mapBuild3()` does, which also keeps the number of domains of the
+mapping consistent with the domains already created.
+
+Refs: GRA-23
+---
+ src/libscotch/kgraph_map_rb.c | 20 +++++++++++++-------
+ 1 file changed, 13 insertions(+), 7 deletions(-)
+
+diff --git a/src/libscotch/kgraph_map_rb.c b/src/libscotch/kgraph_map_rb.c
+index ee892c93..7dd97563 100644
+--- a/src/libscotch/kgraph_map_rb.c
++++ b/src/libscotch/kgraph_map_rb.c
+@@ -407,6 +407,7 @@ const Anum * restrict const pfixtax)              /*+ Array of fixed vertex term
+   Gnum                            hashsiz;        /* Size of hash table                    */
+   Gnum                            hashnum;
+   Gnum                            hashmsk;        /* Mask for access to hash table         */
++  int                             o;
+ 
+   const Arch * restrict const archptr = mappptr->archptr;
+   Anum * restrict const       parttax = mappptr->parttax;
+@@ -422,6 +423,8 @@ const Anum * restrict const pfixtax)              /*+ Array of fixed vertex term
+   }
+   memSet (hashtab, ~0, hashsiz * sizeof (KgraphMapRbVfloHash)); /* Set all vertex numbers to ~0 */
+ 
++  o = 1;                                          /* Assume loop will fail */
++
+   for (domnnum = 0; domnnum < mappptr->domnnbr; domnnum ++) { /* Load all existing domains into hash table */
+     Anum                termnum;
+ 
+@@ -445,7 +448,7 @@ const Anum * restrict const pfixtax)              /*+ Array of fixed vertex term
+ #ifdef SCOTCH_DEBUG_KGRAPH2
+       if (mappptr->parttax[vertnum] < 0) {        /* If vertex has not been mapped */
+         errorPrint ("kgraphMapRbVfloMerge: internal error (1)");
+-        return (1);
++        goto fail;
+       }
+ #endif /* SCOTCH_DEBUG_KGRAPH2 */
+       continue;                                   /* Skip to next vertex */
+@@ -454,7 +457,7 @@ const Anum * restrict const pfixtax)              /*+ Array of fixed vertex term
+ #ifdef SCOTCH_DEBUG_KGRAPH2
+     if (mappptr->parttax[vertnum] >= 0) {         /* If fixed vertex has been mapped */
+       errorPrint ("kgraphMapRbVfloMerge: internal error (2)");
+-      return (1);
++      goto fail;
+     }
+ #endif /* SCOTCH_DEBUG_KGRAPH2 */
+ 
+@@ -465,12 +468,12 @@ const Anum * restrict const pfixtax)              /*+ Array of fixed vertex term
+         if (domnnum >= mappptr->domnmax) {
+           if (mapResize (mappptr, mappptr->domnmax + (mappptr->domnmax >> 2) + 8) != 0) { /* Increase size by 25% */
+             errorPrint ("kgraphMapRbVfloMerge: out of memory (2)");
+-            return (1);
++            goto fail;
+           }
+         }
+         if (archDomTerm (archptr, &mappptr->domntab[domnnum], pfixval) != 0) { /* Add new domain to domain array */
+           errorPrint ("kgraphMapRbVfloMerge: invalid part array");
+-          return (1);
++          goto fail;
+         }
+ 
+         hashtab[hashnum].termnum = pfixval;       /* Create slot */
+@@ -481,11 +484,14 @@ const Anum * restrict const pfixtax)              /*+ Array of fixed vertex term
+     }
+     parttax[vertnum] = hashtab[hashnum].domnnum;  /* Assign fixed vertex to existing domain */
+   }
+-  mappptr->domnnbr = domnnum;
++  o = 0;                                          /* Success */
++
++fail:
++  mappptr->domnnbr = domnnum;                     /* Set updated number of domains */
+ 
+-  memFree (hashtab);
++  memFree (hashtab);                              /* Free hash table */
+ 
+-  return (0);
++  return (o);
+ }
+ 
+ /*****************************************/
+-- 
+2.43.0
+

@@ -1,0 +1,300 @@
+# Every source of bugs imported into this repo (PLAN.md §1, §2).
+# Written by hand; `bun run snapshot <checkout>` prints sha256 and items.
+# Import is one-shot: once a source is imported its snapshot is frozen.
+
+# ---- hegel-c ------------------------------------------------------------
+
+[[source]]
+id       = "hegel-c-findings"
+repo     = "https://github.com/c4ffein/hegel-c"
+commit   = "11b87e3"
+dirty    = true          # uncommitted edits to findings.toml on top of 11b87e3
+path     = "docs/findings.toml"
+importer = "toml"
+sha256   = "dab18af5118d5ff689738abb78fd17bb5b93f94ec9e15cbeb1c0ac484bcb0e38"
+items    = 28
+select   = "finding"
+key      = "id"
+
+[[source]]
+id       = "hegel-c-submissions"
+repo     = "https://github.com/c4ffein/hegel-c"
+commit   = "11b87e3"
+dirty    = true
+path     = "docs/findings.toml"
+importer = "toml"
+sha256   = "dab18af5118d5ff689738abb78fd17bb5b93f94ec9e15cbeb1c0ac484bcb0e38"
+items    = 5
+select   = "submission"
+key      = "id"
+
+[[source]]
+id       = "hegel-c-corpus"
+repo     = "https://github.com/c4ffein/hegel-c"
+commit   = "11b87e3"
+path     = "docs/corpus.toml"
+importer = "toml"
+sha256   = "72e5e530f6663b18e23e42683d2da4a17fe25bbbd86c0cfc4b32a699a7670daf"
+items    = 22
+select   = "target"
+key      = ["fixed_by", "finding"]   # upstream targets by fix SHA, our own by finding id
+note     = "stays in hegel-c; upstream-fixed targets are set aside, the 2 mirroring our findings are mapped"
+
+[[source]]
+id       = "hegel-c-upstream-float"
+repo     = "https://github.com/c4ffein/hegel-c"
+commit   = "11b87e3"
+dirty    = true          # untracked
+path     = "docs/upstream/float-simplest-nonzero-internal-error.md"
+importer = "file"
+sha256   = "1b2c913dae6b33180bfa3eb3dc01bb8e8916550bf6cfbc30d0c6f07aa06604e5"
+items    = 1
+
+[[source]]
+id       = "hegel-c-upstream-collection-size"
+repo     = "https://github.com/c4ffein/hegel-c"
+commit   = "11b87e3"
+dirty    = true          # untracked
+path     = "docs/upstream/collection-average-size.md"
+importer = "file"
+sha256   = "6ab176c8a679c52d153d28dc4861366d443c938cf80440ae98bc114ade56d8cb"
+items    = 1
+note     = "a feature request for hegeldev/hegel, not a bug"
+
+[[source]]
+id       = "hegel-c-todo"
+repo     = "https://github.com/c4ffein/hegel-c"
+commit   = "11b87e3"
+dirty    = true
+path     = "TODO.md"
+importer = "manual"
+sha256   = "e7b135480474cbc73208e49471c1a3b1926194333b2d3597a34e724b40872828"
+items    = 1
+keys     = ["Engine bug: float draw between two drawn floats hits an internal error"]
+note     = "the only bug in TODO.md that is in no ledger; the rest of the file is swept"
+
+# ---- PyScotch -----------------------------------------------------------
+# Each findings.json holds two lists: the third-party review's findings
+# (`findings`, by id) and PyScotch's own (`new`, by local_id).
+
+[[source]]
+id       = "pyscotch-7.0.17-review"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/reports/7.0.17/findings.json"
+importer = "json"
+sha256   = "53db48649854235562610106deb9498d2aadb7ff57e8e44e6c37219ce2c4064f"
+items    = 192
+select   = "findings"
+key      = "id"
+
+[[source]]
+id       = "pyscotch-7.0.17-new"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/reports/7.0.17/findings.json"
+importer = "json"
+sha256   = "53db48649854235562610106deb9498d2aadb7ff57e8e44e6c37219ce2c4064f"
+items    = 158
+select   = "new"
+key      = "local_id"
+
+[[source]]
+id       = "pyscotch-7.0.18-review"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/reports/7.0.18/findings.json"
+importer = "json"
+sha256   = "6be69eb54399d6424d7cb07ac4260fbf5cb54613261b619d50da12cded0ed13d"
+items    = 192
+select   = "findings"
+key      = "id"
+
+[[source]]
+id       = "pyscotch-7.0.18-new"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/reports/7.0.18/findings.json"
+importer = "json"
+sha256   = "6be69eb54399d6424d7cb07ac4260fbf5cb54613261b619d50da12cded0ed13d"
+items    = 189
+select   = "new"
+key      = "local_id"
+
+[[source]]
+id       = "pyscotch-questions"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/QUESTIONS_FOR_SCOTCH_TEAM.md"
+importer = "pyscotch-questions"
+sha256   = "9e1250813b99fff63aab855719731a813fc2ec066015f0db8aff9c15a85f2609"
+items    = 26
+
+[[source]]
+id       = "pyscotch-findings-md"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "docs/FINDINGS.md"
+importer = "md-rows"
+sha256   = "413099c10d4b33049f645aa53c707ccc5030e0ac96509eae7d5cb4cbd1c08a41"
+items    = 13
+note     = "5 Scotch rows (mapped, same bugs as QUESTIONS.md), 6 PyScotch binding bugs and 2 process findings (stay in PyScotch)"
+
+[[source]]
+id       = "pyscotch-coloring"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "docs/COLORING_BUG_RESOLUTION.md"
+importer = "file"
+sha256   = "4246b24bae772c15f0df2b1952ccb29d68e12e5fee34e90124ea12261fa9bd2f"
+items    = 1
+note     = "a Scotch bug (SCOTCH_graphColor, fixed in 7.0.11): mapped"
+
+[[source]]
+id       = "pyscotch-static-analysis-01-library-interface-seq"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/01-library-interface-seq.md"
+importer = "static-analysis"
+sha256   = "b7479af3137b43496497660325934423548a1e8d964287e4829034be7ad77549"
+items    = 18
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-02-library-interface-par"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/02-library-interface-par.md"
+importer = "static-analysis"
+sha256   = "62364faffd87e6cdee18b12ad32f2fe45f4a58a4a60d7f8e08f580658c883965"
+items    = 13
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-03-common-infra"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/03-common-infra.md"
+importer = "static-analysis"
+sha256   = "a994b286d5dcfacd8dad96dc1df0b14b89c9e006f77df676183dcfeba64bfe82"
+items    = 6
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-04-graph-core"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/04-graph-core.md"
+importer = "static-analysis"
+sha256   = "118fadf6dda774879a81c7f4b2c3e614c4e86c58d640577b303bcbb5a42480d1"
+items    = 3
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-05-architectures"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/05-architectures.md"
+importer = "static-analysis"
+sha256   = "ca9f7b225d1ad318cd3445c73a53a11ac9ad46edeee2ee5dea9ca793e313c7d6"
+items    = 5
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-06-bipartitioning"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/06-bipartitioning.md"
+importer = "static-analysis"
+sha256   = "2b9e04e2f52301a87b14f36d1c7a7b3b5b706701a37255a46b0b3fa375fee533"
+items    = 11
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-07-kway-mapping"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/07-kway-mapping.md"
+importer = "static-analysis"
+sha256   = "826f79239bf7e913c1a6e15265fc9a61de8e553607bf16bbac50045f1d55a605"
+items    = 6
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-08-separators-ordering"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/08-separators-ordering.md"
+importer = "static-analysis"
+sha256   = "ede017ad3813f6724745f687c95af7ecab45fb5e476b3e339fbafba0fbffa416"
+items    = 4
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-09-meshes"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/09-meshes.md"
+importer = "static-analysis"
+sha256   = "1429034b8cd99b52ef7207cd80f4777b6d853673e3df8a856d8aee9f7217d9cc"
+items    = 12
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-10-distributed-core"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/10-distributed-core.md"
+importer = "static-analysis"
+sha256   = "3d03832649a688e6709289fc68df8f236f2bfea9131460943635f91e94f7da8b"
+items    = 9
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-11-distributed-algos"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/11-distributed-algos.md"
+importer = "static-analysis"
+sha256   = "2d6bfa889b3ed83a56d37d9fb48c21353b623b91275bba6b95700b1e565e49c7"
+items    = 9
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+[[source]]
+id       = "pyscotch-static-analysis-12-ecosystem-tests"
+repo     = "https://github.com/c4ffein/pyscotch"
+commit   = "a6d43b75fa145ba04d0068576898e8a689f894c6"
+path     = "upstream/scotch-static-analysis-history/claude_2026-07-13/12-ecosystem-tests.md"
+importer = "static-analysis"
+sha256   = "12891ae9c7a0597f726379c2d8edf764a2ce8bd458829e128f5f7c852df1cdee"
+items    = 12
+note     = "the items of its Findings section; unverified leads (state lead)"
+
+# ---- c4ffein/scotch (mirror), branch hegel ------------------------------
+
+[[source]]
+id       = "scotch-hegel-bug-report"
+repo     = "https://github.com/c4ffein/scotch"
+commit   = "ff403d445b36ee1723ff53d2478d368b21a3341f"
+path     = "REPORTS/BUG_REPORT.md"
+importer = "manual"
+keys     = ["hgraphOrderCp writes permutation at wrong offset when ordenum != 0"]
+sha256   = "881ecbd7baf66730e1b379405824ea6e9128c3aafcf58728bfb5d7b8f94893a8"
+items    = 1
+note     = "the bug the hegel branch fixes"
+
+[[source]]
+id       = "scotch-hegel-report"
+repo     = "https://github.com/c4ffein/scotch"
+commit   = "ff403d445b36ee1723ff53d2478d368b21a3341f"
+path     = "REPORTS/REPORT.md"
+importer = "manual"
+keys     = [
+  "Bug found: SCOTCH_STRATDISCONNECTED ordering produces garbage permutation",
+  "Other findings (not bugs): Scotch coloring uses up to n-1 colors on n-vertex graphs",
+  "Other findings (not bugs): graphRemap requires SCOTCH_STRATREMAP flag",
+  "Other findings (not bugs): _FORTIFY_SOURCE incompatibility",
+]
+sha256   = "19a13685439e3c8470d4be54cdbf069b2c73ed0ee47c9feb1ca5a80c27458897"
+items    = 4
+note     = "1 bug (the same as BUG_REPORT.md) and 3 items the report itself calls not bugs"

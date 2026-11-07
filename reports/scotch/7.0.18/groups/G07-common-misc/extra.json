@@ -1,0 +1,42 @@
+[
+ {
+  "local_id": "PS3-G07-1",
+  "our_title": "SCOTCH_graphTabLoad() reads mapping files with fscanf: out-of-range numbers silently wrap",
+  "severity": "low",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/COR-15-twins/tabload.c on m4x4.grf (from git show v7.0.18): pristine 32-bit mapping '1\\n0 4294967298' -> 'SCOTCH_graphTabLoad ret=0 parttab[0]=2'; count '4294967297' -> ret=0 (read as 1); label '4294967296' -> ret=0 (label 0); pristine 64-bit '0 18446744073709551618' -> parttab[0]=9223372036854775807 (saturated). Patched (commit 0006): 'ERROR: intLoad: overflow' / 'SCOTCH_graphTabLoad: bad input (1|2)', ret=1, parttab untouched (-1), 32 and 64 bit; valid file '2\\n1 3\\n0 2' -> ret=0 parttab {2,3}. check_prog_gmap, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_part_ovl pass on 32/64-bit trees.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/library_graph_map_io.c:99, :120-122",
+  "evidence": "library_graph_map_io.c:99 'if ((fscanf (stream, GNUMSTRING, &mappfileval) != 1) || /* Read number of mapping pairs */' and :120 'if (fscanf (stream, GNUMSTRING GNUMSTRING,' -- C leaves fscanf %d overflow undefined; glibc wraps (int) or saturates (long).",
+  "related_ids": [
+   "COR-15",
+   "API-21"
+  ],
+  "fix_options": [
+   {
+    "label": "A. Read the numbers with intLoad() like every other Scotch loader (recommended)",
+    "summary": "Replace the two fscanf calls by intLoad(), which rejects out-of-range values since ff9d5a54.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0006-Bugfix-read-mapping-files-with-intLoad-in-SCOTCH_gra.patch",
+    "tested": "Ran (see 'ran'); 0 warnings 32/64-bit.",
+    "tradeoffs": "Same accepted syntax (whitespace, optional sign, decimal digits).",
+    "preferred": true,
+    "maintainer_fit": "One-line idiom swap; library_graph_map_io.c already includes common.h."
+   },
+   {
+    "label": "B. Leave fscanf and document the limit",
+    "summary": "",
+    "diff_file": "",
+    "tested": "",
+    "tradeoffs": "Silent corruption stays.",
+    "preferred": false,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0006-Bugfix-read-mapping-files-with-intLoad-in-SCOTCH_gra.patch"
+  ],
+  "upstream_fix_review": {}
+ }
+]

@@ -1,0 +1,236 @@
+[
+ {
+  "local_id": "PS3-G02-1",
+  "our_title": "18911e4f's tleaf/ltleaf loader error paths free arrays archTleafArchFree frees again",
+  "severity": "high",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/repro (7.0.17 kits; common/archload.c, common/archbuild.c (modes 3/4/6/7 now query the size only on success), new/mapfixed.c, new/run.sh <tree> <suffix>; transcript RESULTS18.txt). Pristine = INFRA/asan, INFRA/asan64; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build64 (ASan+UBSan). Pristine 32/64: 'tleaf 2 4 1 x' -> 'attempting double-free ... #1 _SCOTCHarchTleafArchFree arch_tleaf.c:172 #2 _SCOTCHarchLoad arch.c:216; freed by _SCOTCHarchTleafArchLoad arch_tleaf.c:135'; 'tleaf 2 65536 1 65536 1' -> same after 'invalid architecture size' (arch_tleaf.c:143); 'ltleaf 2 4 1 2 1 8 0 1 2 3 4 5 6 x' -> freed by arch_tleaf.c:700; 'sub 2 0 1 tleaf 2 4 1 x' -> same through archSubArchLoad. In 7.0.17 all were clean (ran: v_tleaf2, v_ltleaf). Patched (0002): ret=1, no report.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/arch_tleaf.c:135, 143, 699-700, 172",
+  "evidence": "arch_tleaf.c:133-136: '      errorPrint (\"archTleafArchLoad: bad input (2)\");' / '      memFree    (archptr->sizetab);' / '      return (1);'; 172: '  memFree (archptr->sizetab);                     /* Free group leader */'",
+  "related_ids": [
+   "COR-07",
+   "COR-06",
+   "COR-02"
+  ],
+  "fix_options": [
+   {
+    "label": "A. Loaders free nothing; archTleafArchFree() tolerates a NULL tree part (0002)",
+    "summary": "Remove the three memFree calls and the ltleaf fail label; archLoad() cleans up through the hook as for every other class.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/patches/0002-Bugfix-do-not-free-tree-leaf-arrays-twice-on-loading.patch",
+    "tested": "see 'ran'",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "the protocol d555f2c and ecaf094 rely on"
+   },
+   {
+    "label": "B. Keep his frees and NULL the pointer after each",
+    "summary": "archptr->sizetab = NULL after memFree.",
+    "diff_file": "",
+    "tested": "not written",
+    "tradeoffs": "three extra lines, two owners",
+    "preferred": false,
+    "maintainer_fit": "possible"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/patches/0002-Bugfix-do-not-free-tree-leaf-arrays-twice-on-loading.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "18911e4f61",
+   "verdict": "wrong",
+   "details": "Introduced by the new memFree calls on the loaders' error paths.",
+   "compared_with_ours": "Our 7.0.17 0002 freed nothing in the loaders (temporaries + Build routine), so it had no such path."
+  }
+ },
+ {
+  "local_id": "PS3-G02-2",
+  "our_title": "Size overflow checks of 18911e4f/3df345a8 overflow themselves and miss wraps",
+  "severity": "medium",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/repro (7.0.17 kits; common/archload.c, common/archbuild.c (modes 3/4/6/7 now query the size only on success), new/mapfixed.c, new/run.sh <tree> <suffix>; transcript RESULTS18.txt). Pristine = INFRA/asan, INFRA/asan64; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build64 (ASan+UBSan). Pristine 32-bit: 'tleaf 2 100000 1 50000 1' -> 'arch_tleaf.c:141:18: runtime error: signed integer overflow: 100000 * 50000', load ret=0 size=705032704; mesh twin: 'mesh2D 100000 50000' -> 'arch_mesh.c:127:41: runtime error: signed integer overflow' then ASan out of memory in atst (G03 PS3-G03-1). Patched (0003): rejected with 'invalid architecture size', no UBSan line.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/arch_tleaf.c:141; src/libscotch/library_arch.c:581",
+  "evidence": "arch_tleaf.c:141: '    if ((archsiz * archptr->sizetab[levlnum]) < archsiz) {'",
+  "related_ids": [
+   "COR-07",
+   "API-10",
+   "PS3-G03-1"
+  ],
+  "fix_options": [
+   {
+    "label": "A. 'archsiz > (ANUMMAX / sizetab[levlnum])' (0003)",
+    "summary": "Check before multiplying.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/patches/0003-Bugfix-check-tree-leaf-architecture-size-without-ove.patch",
+    "tested": "see 'ran'",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "standard idiom"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/patches/0003-Bugfix-check-tree-leaf-architecture-size-without-ove.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "18911e4f61",
+   "verdict": "wrong",
+   "details": "The guard computes the overflowing signed product (UB) and a wrapped product can exceed the previous one.",
+   "compared_with_ours": "Our 7.0.17 0002 used the ANUMMAX division idiom."
+  }
+ },
+ {
+  "local_id": "PS3-G02-3",
+  "our_title": "Rejected SCOTCH_archTleaf/Ltleaf calls leave freed arrays for SCOTCH_archExit to free again",
+  "severity": "medium",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/repro (7.0.17 kits; common/archload.c, common/archbuild.c (modes 3/4/6/7 now query the size only on success), new/mapfixed.c, new/run.sh <tree> <suffix>; transcript RESULTS18.txt). Pristine = INFRA/asan, INFRA/asan64; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build64 (ASan+UBSan). Pristine: archbuild 0 -> 'SCOTCH_archLtleaf: invalid permutation index' then 'attempting double-free ... archTleafArchFree arch_tleaf.c:174 ... freed by SCOTCH_archLtleaf library_arch.c:630'; archbuild 1 -> same (:637); archbuild 4 -> 'SCOTCH_archTleaf: invalid level data' then heap-use-after-free/double free in SCOTCH_archExit. Patched (0004): r=1, 'exit ok', no report.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/library_arch.c:559, 576-585, 614-641",
+  "evidence": "library_arch.c:629-631: '      errorPrint (STRINGIFY (SCOTCH_archLtleaf) \": invalid permutation index\");' / '      memFree    (tgtarchdatptr->permtab);' / '      return (1);'",
+  "related_ids": [
+   "API-10",
+   "PS-API-4"
+  ],
+  "fix_options": [
+   {
+    "label": "A. Empty Arch on failure (0004)",
+    "summary": "Class set only on success in SCOTCH_archTleaf(); fail label in SCOTCH_archLtleaf() frees both parts and resets the class.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/patches/0004-Bugfix-leave-tree-leaf-architectures-freeable-when-b.patch",
+    "tested": "see 'ran'",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "small"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/patches/0004-Bugfix-leave-tree-leaf-architectures-freeable-when-b.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "18911e4f61",
+   "verdict": "wrong",
+   "details": "Introduced by the new builder error paths.",
+   "compared_with_ours": "Our 7.0.17 builders published fields only on success."
+  }
+ },
+ {
+  "local_id": "PS3-G12-1",
+  "our_title": "kgraphMapRbVfloMerge hash table sized for fixed domains only: infinite loop",
+  "severity": "high",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/repro (7.0.17 kits; common/archload.c, common/archbuild.c (modes 3/4/6/7 now query the size only on success), new/mapfixed.c, new/run.sh <tree> <suffix>; transcript RESULTS18.txt). Pristine = INFRA/asan, INFRA/asan64; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build64 (ASan+UBSan). repro/new/mapfixed (SCOTCH_graphMapFixed, default strategy) on bump.grf: pristine cmplt 64 / cmplt 200 with 2 fixed vertices -> no return within 60 s (timeout rc=143); gdb on the live process: '#0 _SCOTCHkgraphMapRbVfloMerge (mappptr=0x7f8968700148, dfixmax=2, vfixnbr=2, pfixtax=...) at kgraph_map_rb.c:428 #1 _SCOTCHkgraphMapRb kgraph_map_rb.c:176 #2 _SCOTCHkgraphMapSt'; cmplt 8 and cmplt 64 with 64 fixed vertices return. Patched (0008): cmplt 64/200/1000 with 2-3 fixed vertices -> ret=0, max part = n-1; check_scotch_graph_map, check_scotch_graph_map_copy, check_prog_gpart_remap pass 32/64-bit.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/kgraph_map_rb.c:413-415 (sizing), 424-434 (insertion of all existing domains)",
+  "evidence": "kgraph_map_rb.c:413: '  for (hashmsk = 1; hashmsk < dfixmax; hashmsk = 2 * hashmsk + 1) ; /* Get upper power of two */' then 424: '  for (domnnum = 0; domnnum < mappptr->domnnbr; domnnum ++) { /* Load all existing domains into hash table */'",
+  "related_ids": [
+   "COR-19"
+  ],
+  "fix_options": [
+   {
+    "label": "A. Size by existing plus fixed domains (0008)",
+    "summary": "'hashmsk < (mappptr->domnnbr + dfixmax)'.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/patches/0002-Bugfix-account-for-existing-domains-when-sizing-fixe.patch",
+    "tested": "see 'ran'",
+    "tradeoffs": "table up to 4x the number of domains, as in 7.0.17",
+    "preferred": true,
+    "maintainer_fit": "one-line change to his loop; 7.0.17 used domnnbr + vflonbr"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/patches/0002-Bugfix-account-for-existing-domains-when-sizing-fixe.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "22c9c42e87",
+   "verdict": "wrong",
+   "details": "Regression introduced by replacing 'mappptr->domnnbr + vflonbr' with 'dfixmax' in the Merge sizing.",
+   "compared_with_ours": "Not covered by any 7.0.17 patch (kgraph_map_rb.c is the RB-mapping group's file; owner may be G12 - report there too)."
+  },
+  "notes": "Merged into PS3-G12-1 (same defect, same hunk; G12 owns kgraph_map_rb.c and its patch carries the regression test). Former id PS3-G02-4."
+ },
+ {
+  "local_id": "PS3-G12-2",
+  "our_title": "kgraphMapRbVfloMerge leaks its hash table on error returns",
+  "severity": "low",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/repro (7.0.17 kits; common/archload.c, common/archbuild.c (modes 3/4/6/7 now query the size only on success), new/mapfixed.c, new/run.sh <tree> <suffix>; transcript RESULTS18.txt). Pristine = INFRA/asan, INFRA/asan64; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build64 (ASan+UBSan). mapfixed bump.grf onto cmplt 4 with vertices 0..5 fixed to parts 0..5 (4 and 5 invalid): pristine -> 'kgraphMapRbVfloMerge: invalid part array' and LSan 'Direct leak of 264 byte(s)' (the hash table) among others; patched (0009): that leak gone (the remaining leaks come from kgraphMapRbBgraph's error path, kgraph_map_rb.c:536, another group's file).",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/kgraph_map_rb.c:465-472",
+  "evidence": "kgraph_map_rb.c:470-471: '          errorPrint (\"kgraphMapRbVfloMerge: invalid part array\");' / '          return (1);'",
+  "related_ids": [
+   "PS3-G02-4"
+  ],
+  "fix_options": [
+   {
+    "label": "A. Shared fail label freeing hashtab (0009)",
+    "summary": "goto fail from the mapResize() path; fail frees hashtab.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/patches/0004-Bugfix-free-hash-table-on-error-in-kgraphMapRbVfloMe.patch",
+    "tested": "see 'ran'",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "his label style"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/patches/0004-Bugfix-free-hash-table-on-error-in-kgraphMapRbVfloMe.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "6f734966ab",
+   "verdict": "incomplete",
+   "details": "The new error return (and the pre-existing mapResize one) do not free hashtab.",
+   "compared_with_ours": "no 7.0.17 patch"
+  },
+  "notes": "Merged into PS3-G12-2 (same defect, same hunk; G12 owns kgraph_map_rb.c and its patch carries the regression test). Former id PS3-G02-5."
+ },
+ {
+  "local_id": "PS3-G02-6",
+  "our_title": "Out-of-range fixed vertex parts make kgraphMapRbVfloBuild loop forever",
+  "severity": "medium",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/repro (7.0.17 kits; common/archload.c, common/archbuild.c (modes 3/4/6/7 now query the size only on success), new/mapfixed.c, new/run.sh <tree> <suffix>; transcript RESULTS18.txt). Pristine = INFRA/asan, INFRA/asan64; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G02-arch-tleaf-hcub-build/build64 (ASan+UBSan). mapfixed bump.grf onto cmplt 4 with vertices 0..39 fixed to parts 0..39 ('raw' mode): no return within 30 s on pristine and patched; gdb: '#0 _SCOTCHkgraphMapRbVfloBuild (orggrafptr=..., orgdfixmax=4, orgvfixnbr=40, ...) at kgraph_map_rb.c:276'. With 6 such vertices it errors out cleanly ('invalid part array').",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/kgraph_map_rb.c:148-160 (dfixmax capped by the architecture size), 245-247, 276-286; src/libscotch/library_graph_map.c:228-255 (no validation of fixed parts)",
+  "evidence": "kgraph_map_rb.c:156-157: '      if (dfixmax > archsiz)                      /* If we can reduce the number of fixed domains              */' / '        dfixmax = archsiz;' -- invalid parts can be more numerous than archsiz, so the table fills up",
+  "related_ids": [
+   "PS3-G02-4",
+   "PS3-G02-5"
+  ],
+  "fix_options": [
+   {
+    "label": "A. Validate fixed parts against the architecture size in graphMapCompute2() / SCOTCH_graphMapFixed*()",
+    "summary": "Reject parttab values >= archDomSize for fixed-size architectures before mapping (one loop over the fixed vertices).",
+    "diff_file": "",
+    "tested": "not written: library mapping API is another group's file",
+    "tradeoffs": "O(n) check",
+    "preferred": true,
+    "maintainer_fit": "6f734966 shows he wants invalid parts detected; the check comes too late"
+   },
+   {
+    "label": "B. Size the Build table by vfixnbr when the architecture is fixed-size",
+    "summary": "Drop the archsiz cap, or detect a full table.",
+    "diff_file": "",
+    "tested": "not written",
+    "tradeoffs": "masks the invalid input",
+    "preferred": false,
+    "maintainer_fit": "no"
+   }
+  ],
+  "patch_files": [],
+  "upstream_fix_review": {
+   "commit": "22c9c42e87",
+   "verdict": "incomplete",
+   "details": "Pre-existing (7.0.17 used the same min(vfixnbr, archsiz) bound); not introduced by 22c9c42e but not addressed by it nor by 6f734966.",
+   "compared_with_ours": "not covered by any 7.0.17 patch"
+  }
+ }
+]

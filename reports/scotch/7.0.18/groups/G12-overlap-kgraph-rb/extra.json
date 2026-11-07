@@ -1,0 +1,75 @@
+[
+ {
+  "local_id": "PS3-G12-1",
+  "our_title": "Fixed-vertex mapping hangs with few fixed vertices and many parts (22c9c42e regression)",
+  "severity": "high",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "gcc fewfix.c against $INFRA/asan and asan64; LD_LIBRARY_PATH=$INFRA/asan/lib timeout 60 $WORK/repro/bin-pristine/PS3-G12-1_fewfix 1 64 -> rc=124 (also '4 64' and '1 1024 64' on a 64x64 grid; 32/64-bit); gdb attach: '#0 _SCOTCHkgraphMapRbVfloMerge (mappptr=..., dfixmax=1, vfixnbr=1, pfixtax=...) at kgraph_map_rb.c:428 #1 _SCOTCHkgraphMapRb kgraph_map_rb.c:176 #2 _SCOTCHkgraphMapSt #3 kgraphMapMl2'. Pristine-compiled extended test_scotch_graph_map data/m4x4.grf also hangs there. '1 8' and '64 64' finish (table just large enough). Patched (0002): all ret=0 badparts=0.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/kgraph_map_rb.c:413-415 (sizing), :423-436 (insertion loop without exit)",
+  "evidence": "kgraph_map_rb.c:413 `for (hashmsk = 1; hashmsk < dfixmax; hashmsk = 2 * hashmsk + 1) ;` :414 `hashmsk = hashmsk * 4 + 3;` then :423 `for (domnnum = 0; domnnum < mappptr->domnnbr; domnnum ++) {` ... :427 `for (hashnum = (termnum * KGRAPHMAPRBVFLOHASHPRIME) & hashmsk; ; hashnum = (hashnum + 1) & hashmsk) {` -- breaks only on a match or an empty slot.",
+  "related_ids": [
+   "GRA-01",
+   "PS3-G25-1",
+   "PS3-G02-4"
+  ],
+  "fix_options": [
+   {
+    "label": "Size Merge's table from mappptr->domnnbr + dfixmax",
+    "summary": "One expression in the sizing loop; regression tests (single fixed vertex on cmplt(vertnbr), zero-load fixed vertices) in test_scotch_graph_map.c.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/patches/0002-Bugfix-account-for-existing-domains-when-sizing-fixe.patch",
+    "tested": "fewfix and check_scotch_graph_map/gmap/gpart pass 32/64-bit; new test hangs on pristine 7.0.18.",
+    "tradeoffs": "None significant.",
+    "preferred": true,
+    "maintainer_fit": "Minimal change to his new code."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/patches/0002-Bugfix-account-for-existing-domains-when-sizing-fixe.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "22c9c42e87",
+   "verdict": "wrong",
+   "details": "Introduced by this commit: 7.0.17 sized the Merge table from domnnbr + vflonbr; 7.0.18 from dfixmax only, while the routine inserts all existing domains first. SCOTCH_graphPartFixed/MapFixed with one fixed vertex and >= 9 parts (and generally domnnbr > 4 * 2^ceil(log2(dfixmax+1))) loops forever.",
+   "compared_with_ours": "Our 7.0.17 0003 kept the domnnbr term and would not hang. Same defect as PS3-G25-1 (found independently by G25, hang at kgraph_map_rb.c:430 onto K32). G25's 0007 is the same one-line fix without a test; our 0002 now uses its hashnbr form and keeps the regression test, so G25's 0007 should be dropped at merge. Also found by G02 (PS3-G02-4, its 0008: same one-line fix, no test). Recommendation: keep G12 0002 (fix + regression test, kgraph_map_rb.c is a G12 file) and drop G02 0008 and G25 0007."
+  }
+ },
+ {
+  "local_id": "PS3-G12-2",
+  "our_title": "kgraphMapRbVfloMerge leaks its hash table on the new invalid-terminal error path",
+  "severity": "low",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "ASAN_OPTIONS=detect_leaks=1 LD_LIBRARY_PATH=$INFRA/asan/lib $WORK/repro/bin-pristine/GRA-23_gra23b 100 -> 'ERROR: kgraphMapRbVfloMerge: invalid part array' ... 'Direct leak of 72 byte(s) ... #1 _SCOTCHkgraphMapRbVfloMerge kgraph_map_rb.c:417'; gra21 100 c -> 136 bytes at the same line; patched (0004): no Merge leak.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/kgraph_map_rb.c:417 (allocation), :443-446, :451-454, :464-467, :469-472 (returns without memFree)",
+  "evidence": "kgraph_map_rb.c:469-472: `if (archDomTerm (archptr, &mappptr->domntab[domnnum], pfixval) != 0) { errorPrint (\"kgraphMapRbVfloMerge: invalid part array\"); return (1); }`",
+  "related_ids": [
+   "GRA-23",
+   "PS3-G02-5"
+  ],
+  "fix_options": [
+   {
+    "label": "Single exit point freeing the hash table",
+    "summary": "o / goto fail / fail: as in mapBuild3().",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/patches/0004-Bugfix-free-hash-table-on-error-in-kgraphMapRbVfloMe.patch",
+    "tested": "LeakSanitizer clean on gra23b/gra21; check_scotch_graph_map passes 32/64.",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "Mirrors mapBuild3."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/patches/0004-Bugfix-free-hash-table-on-error-in-kgraphMapRbVfloMe.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "6f734966ab",
+   "verdict": "incomplete",
+   "details": "The new return (1) at :471 (like the older out-of-memory (2) one) skips memFree (hashtab).",
+   "compared_with_ours": "Our 7.0.17 0005 routed all Merge errors through one exit. G02's 0009 (PS3-G02-5) frees hashtab on the two release-mode returns via a fail: label inside the nested if, but leaves the two SCOTCH_DEBUG_KGRAPH2 returns leaking and does not update mappptr->domnnbr; G12 0004 (single exit like mapBuild3) is more complete."
+  }
+ }
+]

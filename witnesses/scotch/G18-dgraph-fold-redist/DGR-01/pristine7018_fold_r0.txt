@@ -1,0 +1,9 @@
+nth=0 exit=124 :: HANG; 1 (0): ERROR: rank 3: fold rc=0 seen=0;1 fishim: rank 0: failing allocation #0;1 rank 0: fold rc=1 seen=1;1 rank 2: fold rc=0 seen=0;
+nth=1 exit=124 :: HANG; 1 (0): ERROR: dgraphFold2: cannot compute folding communications (1);1 (0): ERROR: dgraphFoldComm: out of memory (1);1 fishim: rank 0: failing allocation #1;1 rank 0: fold rc=1 seen=2;1 rank 2: fold rc=0 seen=0;1 rank 3: fold rc=0 seen=0;
+nth=2 exit=124 :: HANG; 1 (0): ERROR: dgraphFold2: cannot compute folding communications (1);1 (0): ERROR: dgraphFoldComm: out of memory (2);1 fishim: rank 0: failing allocation #2;1 rank 0: fold rc=1 seen=3;1 rank 2: fold rc=0 seen=0;1 rank 3: fold rc=0 seen=0;
+nth=3 exit=124 :: HANG; 1 (0): ERROR: dgraphFold2: out of memory (3);1 fishim: rank 0: failing allocation #3;1 rank 0: fold rc=1 seen=4;1 rank 2: fold rc=0 seen=0;1 rank 3: fold rc=0 seen=0;
+nth=4 exit=124 :: HANG; 1 (0): ERROR: dgraphFold2: out of memory (4);1 fishim: rank 0: failing allocation #4;1 rank 0: fold rc=1 seen=5;1 rank 2: fold rc=0 seen=0;1 rank 3: fold rc=0 seen=0;
+nth=5 exit=124 :: HANG; 1 (0): ERROR: dgraphFold2: out of memory (5);1 fishim: rank 0: failing allocation #5;1 rank 0: fold rc=1 seen=6;1 rank 2: fold rc=0 seen=0;1 rank 3: fold rc=0 seen=0;
+nth=6 exit=124 :: HANG; 1 (0): ERROR: dgraphFold2: out of memory (6);1 fishim: rank 0: failing allocation #6;1 rank 0: fold rc=1 seen=7;1 rank 2: fold rc=0 seen=0;1 rank 3: fold rc=0 seen=0;
+nth=7 exit=0 :: 1 rank 0: fold rc=0 seen=7;1 rank 1: fold rc=0 seen=0;1 rank 2: fold rc=0 seen=0;1 rank 3: fold rc=0 seen=0;
+nth=8 exit=0 :: 1 rank 0: fold rc=0 seen=7;1 rank 1: fold rc=0 seen=0;1 rank 2: fold rc=0 seen=0;1 rank 3: fold rc=0 seen=0;

@@ -1,0 +1,13 @@
+bump np=2              dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): same cut abs=780 signed=780
+bump_b100000 np=2      dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): same cut abs=790 signed=790
+m16x16 np=2            dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): same cut abs=71 signed=71
+4elt np=2              dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): same cut abs=711 signed=711
+bump np=3              dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): nondeterministic cut abs=777 signed=777
+bump_b100000 np=3      dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): nondeterministic cut abs=780 signed=778
+m16x16 np=3            dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): same cut abs=71 signed=71
+4elt np=3              dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): same cut abs=694 signed=694
+bump np=4              dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): nondeterministic cut abs=774 signed=774
+bump_b100000 np=4      dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): nondeterministic cut abs=776 signed=770
+m16x16 np=4            dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): nondeterministic cut abs=71 signed=71
+4elt np=4              dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): nondeterministic cut abs=739 signed=748
+small1-r np=4          dgord(-Cd) abs-vs-signed: same (det=True) | dgpart(-Cd): nondeterministic cut abs=14 signed=14

@@ -1,0 +1,41 @@
+From 5fe18b8c81f0156bd64860889fa62e21e08a31e8 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 16:11:12 +0000
+Subject: [PATCH] Bugfix: make generated Fortran headers depend on their
+ templates in CMake [report R. Perry]
+
+The custom commands that generate "scotchf.h" and "ptscotchf.h" from
+"library_f.h" and "library_pt_f.h" declared a dependency on
+"library.h" instead, so that editing a Fortran template did not
+regenerate the corresponding header.
+
+Refs: BLD-09
+---
+ src/libscotch/CMakeLists.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/libscotch/CMakeLists.txt b/src/libscotch/CMakeLists.txt
+index a80be8fb..286d9e87 100644
+--- a/src/libscotch/CMakeLists.txt
++++ b/src/libscotch/CMakeLists.txt
+@@ -74,7 +74,7 @@ add_custom_command(OUTPUT ${GENERATED_INCLUDE_DIR}/scotch.h
+ add_custom_command(OUTPUT ${GENERATED_INCLUDE_DIR}/scotchf.h
+   COMMAND $<TARGET_FILE:dummysizes>  "-s${SCOTCH_NAME_SUFFIX}"
+   ${CMAKE_CURRENT_SOURCE_DIR}/library_f.h ${GENERATED_INCLUDE_DIR}/scotchf.h DEPENDS dummysizes
+-  DEPENDS library.h
++  DEPENDS library_f.h
+   COMMENT "Generate scotchf.h")
+ 
+ ################
+@@ -95,7 +95,7 @@ if(BUILD_PTSCOTCH)
+   add_custom_command(OUTPUT ${GENERATED_INCLUDE_DIR}/ptscotchf.h
+     COMMAND $<TARGET_FILE:ptdummysizes> "-s${SCOTCH_NAME_SUFFIX}"
+     ${CMAKE_CURRENT_SOURCE_DIR}/library_pt_f.h ${GENERATED_INCLUDE_DIR}/ptscotchf.h DEPENDS ptdummysizes
+-    DEPENDS library.h
++    DEPENDS library_pt_f.h
+     COMMENT "Generate ptscotchf.h")
+ endif()
+ 
+-- 
+2.43.0
+

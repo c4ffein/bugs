@@ -1,0 +1,506 @@
+[
+ {
+  "id": "CLI-05",
+  "our_title": "PartMeshDual passes Fortran-null vwgt to graphBuild, rebases NULL vsize, ignores graphBuild status",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/repro/bin_asan/pm 0 (pristine 7.0.18, 32-bit): 'metis_graph_part_dual.c:219:11: runtime error: applying non-zero offset ... to null pointer', then 'AddressSanitizer: SEGV' in _SCOTCH_METIS_OutputVol; pm 2/3: 'stack-buffer-overflow ... SCOTCH_graphBuild library_graph.c:262'; 64-bit (pm_firstpass64.c, int64 idx_t) same. Patched (0001+0002) 32/64: 'mode 0 ... ret=1 objval=20', 'mode 1 ... objval=20', 'mode 2 ... objval=10', 'mode 3 ... objval=10'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Public METIS API argument; a Fortran caller passing the documented-by-code 'ne' null array crashes (stack over-read), a C caller asking METIS_OBJTYPE_VOL without vsize and base 1 crashes; same as the review.",
+  "location_7_0_18": "src/libscotchmetis/metis_graph_part_dual.c:206, 217-219",
+  "evidence": "'SCOTCH_graphBuild (&graftmp, baseval, vertnbr, verttab, vendtab, vwgt, NULL, edgenbr, edgetab, edlotab);' (status dropped, vwgt == ne not filtered); ':219 ... vsize - baseval, *nparts, ...' with vsize NULL",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate on all three points. Its 'Fix:' line works as written, but 'normalise vsize equal to ne to NULL' alone would still return a communication volume for the default objective whenever vsize is given (inconsistent with G25's CLI-19 fix of the graph routines), hence the second commit.",
+  "first_pass_critique": "Status, method and evidence correct. Its preferred diff introduces two new pointers but keeps a duplicated 9-line cleanup block for the graphBuild failure (the file's twin `_SCOTCH_METIS_PartGraph2()` nests the map inside `if (SCOTCH_graphBuild (...) == 0)` instead), keeps the raw `options[METIS_OPTION_OBJTYPE]` read (misses the -1 default handled by G25's `_SCOTCH_METIS_optionGet()`), adds no test, and leaves the vsize-implies-volume selection that G25 removed from the graph routines. Its option 2 (shared helper) is the alt diff CLI-05-b.",
+  "extra_instances": [
+   {
+    "location": "src/libscotchmetis/metis_graph_part.c:423-463 (_SCOTCH_METIS_PartGraph_Volume) and :598 (V5 wrappers use `options == xadj` as the Fortran null)",
+    "quote": "vsiztax  = vsize - baseval;  /* vsize == xadj from a Fortran caller is used as a size array */",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Normalise the null arrays once at the top, check graphBuild by nesting the mapping (chosen)",
+    "summary": "Local `velotab`/`vsiztab` computed once with the file's `!= ne` convention; `SCOTCH_graphBuild()` guards the strat/map block as in `_SCOTCH_METIS_PartGraph2()`; NULL vsiztab passed as NULL to `_SCOTCH_METIS_OutputVol()`; OBJTYPE read through `_SCOTCH_METIS_optionGet()`; C and Fortran tests gain the null-array call and the VOL-without-vsize call.",
+    "diff_file": "",
+    "tested": "pm modes 0..3, patched test_libmetis_dual (C, both bases; Fortran) in 32/64-bit ASan trees; the new test crashes on the pristine library.",
+    "tradeoffs": "No ABI change; one more local per array. Does not touch the V5 graph wrappers (G25's file, different null reference).",
+    "preferred": true,
+    "maintainer_fit": "Same shape as his own `_SCOTCH_METIS_PartGraph2()` (metis_graph_part.c:313-337: `o = 1; if (SCOTCH_graphBuild (...) == 0) { ... }`) and G25's optionGet helper; he adds the case to the existing test like 261f1c7 'Add tests for libparmetis'."
+   },
+   {
+    "label": "Shared `_SCOTCH_METIS_arrayGet()` helper in metis_options.c",
+    "summary": "Add a helper next to `_SCOTCH_METIS_optionGet()` returning NULL when the array equals the Fortran null reference, use it for vwgt/vsize; same graphBuild/OutputVol hunks.",
+    "diff_file": "",
+    "tested": "untested: compile-level only (same hunks as the chosen option plus a trivial helper); not built because it changes a shared header owned by G25's series.",
+    "tradeoffs": "One more exported internal symbol for a 1-line ternary; only pays off if the V5 graph wrappers adopt it too (they use xadj as the null reference).",
+    "preferred": false,
+    "maintainer_fit": "He added `_SCOTCH_METIS_optionGet()` for a value that needed -1 handling; a pointer compare does not warrant a routine."
+   },
+   {
+    "label": "First pass: inline guards at the three sites",
+    "summary": "The first pass's diff: vwgtptr/vsizptr locals, explicit cleanup block on graphBuild failure, raw options[OBJTYPE] read.",
+    "diff_file": "",
+    "tested": "untested here (the first pass reported ASan clean on it); it was written against 7.0.17 and no longer applies on G25's optionGet lines.",
+    "tradeoffs": "Duplicates the 6-call cleanup sequence a third time in the routine; misses the -1 default for OBJTYPE.",
+    "preferred": false,
+    "maintainer_fit": "He avoids duplicated cleanup (goto/nesting idiom, see dgraphInduce2 in 7.0.17)."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/patches/0001-Bugfix-apply-the-Fortran-null-array-convention-to-al.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/patches/0002-Select-the-partitioning-objective-of-METIS_PartMeshD.patch"
+  ],
+  "cleanup_done": "The `else o = METIS_ERROR;` branch and the second strat init/exit pair are gone (nesting); nothing else became unused. 0002 removes the unconditional vsize-implies-volume branch.",
+  "test_added": "src/check/test_libmetis_dual.c: checkPart() factored, calls with vwgt=vsize=&ne (Fortran null), with OBJTYPE=VOL and vsize=NULL, with vsize and VOL; checkObjval() verifies objval against the dual graph of the same ncommon for cut and volume. src/check/test_libmetis_dual_f.f90.in: second call passing ne (as array element netab(1), the only form gfortran accepts next to the array call) for vwgt and vsize, with the same checks.",
+  "docs_updated": "doc/src/scotch/s_l.tex (METIS_PartMeshDual: NUMBERING and OBJTYPE supported, vsize used for the communication volume) in 0002",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (file untouched by 7.0.18). Rebased onto bare v7.0.18: the 7.0.17 0001/0002 used G25's _SCOTCH_METIS_optionGet(); they now read options inline (0002 treats OBJTYPE = -1 as the default), and the Fortran test hunk no longer relies on G17's BLD-20 checks (it adds its own element-range check). If G25 0004 lands first, the two inline reads can be switched to _SCOTCH_METIS_optionGet()."
+ },
+ {
+  "id": "CLI-09",
+  "our_title": "ParMETIS_V3_NodeND status tied to the sizes tree, not to the ordering it computed",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "mpicc /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/repro/CLI-09/pn_firstpass.c against pristine 7.0.18 asan, ASAN_OPTIONS=detect_leaks=0 mpirun --oversubscribe -np 3: 'rank 0/3 sizes=buf: ret=-4 (METIS_OK=1) order range [0,244]' (all ranks); -np 4 null: 'ret=-4'. Patched (0005): ret=1 on all ranks, same order ranges.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Public ParMETIS API: a correct call on 3, 5, 6... processes returns an error code that MUMPS/PETSc-style callers treat as fatal; same as the review.",
+  "location_7_0_18": "src/libscotchmetis/parmetis_dgraph_order.c:122, 150-151, 206-210",
+  "evidence": "'SCOTCH_dgraphOrderCompute (&grafdat, &ordedat, &stradat); SCOTCH_dgraphOrderPerm (&grafdat, &ordedat, order);' unchecked; 'o = METIS_OK;' only at :209",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate. ParMETIS 4.0 (libparmetis/ometis.c) returns METIS_OK unless the input check fails, fills `sizes` (2*npes entries: npes subdomain sizes then separators) and has no power-of-two restriction (it rounds the level count down); Scotch's doc keeps its -1 convention for non-powers of two, which the patch preserves.",
+  "first_pass_critique": "Status/evidence right. Its sketch sets o = METIS_OK only after Perm but leaves the separator-tree block running regardless of the ordering status (it would walk an incomplete ordering); it proposes no test although check_libparmetis_v3 runs only with 4 processes (EXECP4) and so never saw the non-power-of-two failure.",
+  "extra_instances": [
+   {
+    "location": "src/libscotchmetis/parmetis_dgraph_order.c:106,108,242,244 (stale comments: options 'not used' is true, sizes 'not used' is false)",
+    "quote": "SCOTCH_Num * const sizes, /* Of size twice the number of processors ; not used */",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotchmetis/parmetis_dgraph_order.c:174 (trailing whitespace line)",
+    "quote": "               ",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Status from Compute/Perm; sizes best effort, tree walked only on success (chosen)",
+    "summary": "`o = METIS_OK` iff both ordering calls return 0; the separator-tree block runs only then and when the process count is a power of two; the inner `o = METIS_OK` is removed; sizes keep their -1 preset otherwise. check_libparmetis_v3 gains a 3-process run (Makefile + CMake) and checkSizes().",
+    "diff_file": "",
+    "tested": "pn at np=1..4 with/without sizes; test_libparmetis_v3 at np=3 and 4 in both trees.",
+    "tradeoffs": "Behaviour change: non-power-of-two runs now return METIS_OK (documented behaviour); callers that used the error to detect 'no sizes' must test sizes[0] == -1 instead (as the doc says).",
+    "preferred": true,
+    "maintainer_fit": "Matches his p_l.tex description of the routine; the test addition follows 261f1c7 (Add tests for libparmetis) and the EXECP3 lines of check_prog_dgord."
+   },
+   {
+    "label": "Same status, but zero the sizes array when the tree is not as expected",
+    "summary": "Always memSet sizes to 0 when the ordering succeeded and the process count is a power of two, even if the tree walk is skipped (rootnum < 0).",
+    "diff_file": "",
+    "tested": "untested: not built.",
+    "tradeoffs": "Reports zeros (a plausible but wrong tree) instead of the documented -1 sentinel when the tree is malformed.",
+    "preferred": false,
+    "maintainer_fit": "Contradicts the doc's -1 convention."
+   },
+   {
+    "label": "Keep METIS_ERROR when no sizes can be returned, only fix the unchecked calls",
+    "summary": "Skip the tree block if Compute/Perm fail; otherwise unchanged.",
+    "diff_file": "",
+    "tested": "untested: not built.",
+    "tradeoffs": "Keeps the documented-but-false 'error' for 3 processes; minimal diff.",
+    "preferred": false,
+    "maintainer_fit": "Leaves the review's main complaint in place."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/patches/0005-Bugfix-return-the-ordering-status-from-ParMETIS_V3_N.patch"
+  ],
+  "cleanup_done": "Inner `o = METIS_OK` removed; stale 'not used' comments on `sizes` fixed; trailing whitespace at :174 removed.",
+  "test_added": "src/check/test_libparmetis.c: checkSizes() (sum of the 2p-1 sizes == vertglbnbr when p is a power of two, all -1 otherwise); src/check/Makefile + CMakeLists.txt: test_libparmetis_v3 also run with 3 processes (EXECP3 / MPIEXEC 3).",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (untouched). Patch applies unchanged."
+ },
+ {
+  "id": "CLI-10",
+  "our_title": "esmumps2 ignores ordering and factorization failures, returns 0 with unwritten nv/pe",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "non-sanitized trees /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/plain_p (pristine 7.0.18) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/plain (series), injector /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/repro/tools/failmalloc.so: 'FAILMALLOC_AT=8 LD_PRELOAD=failmalloc.so bin_plain_p/es_fail 8': 'ERROR: orderGraphListStrat: out of memory' / 'esmumps returned 0; nv written 0/64'. Series: 'ERROR: esmumps2: cannot compute ordering' / 'esmumps returned 1'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Raised from medium: MUMPS consumes pe/nv as the elimination tree; a silent 0 after OOM means a wrong factorization structure, not a diagnostic. Only reachable on allocation failure.",
+  "location_7_0_18": "src/esmumps/esmumps.c:140, 143, 171, 235",
+  "evidence": "'graphBuildGraph2 (...);' 'orderGraph (&ordedat, &grafdat);' 'symbolFaxGraph (&symbdat, &grafdat, &ordedat);' all unchecked; 'return (0);'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate on the mechanism. Its 'MUMPS-style negative code' is not what MUMPS checks: MUMPS 5.7.3 src/ana_orderings_wrappers_m.F:445 and :575 test `IF (NCMPA .NE. 0)` and set INFO(1) = -88; the existing +1 convention is therefore the right one to keep.",
+  "first_pass_critique": "Correct status, reproduction and choice of +1. Its diff duplicates the cleanup sequence three times (he uses fail labels, e.g. dgraphInduce2 in 7.0.17) and leaves the ESMUMPS_ORDER_DUMP `return (1)` leaking the graph, ordering and vendtab.",
+  "extra_instances": [
+   {
+    "location": "src/esmumps/esmumps.c:153-156 (ESMUMPS_ORDER_DUMP: fopen failure returns 1 without freeing vendtab/graph/ordering)",
+    "quote": "errorPrint (\"esmumps2: cannot open ordering dump file\"); return (1);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/esmumps/esmumps.c:171 comment typo 'factorizaion'",
+    "quote": "/* Compute block symbolic factorizaion */",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Check the three steps, fail labels, keep returning 1 (chosen)",
+    "summary": "`if (graphBuildGraph2 (...) != 0) { errorPrint; fail1: graphExit; memFree (vendtab); return (1); }`, `fail2:` after orderGraph (orderExit then goto fail1), symbolFax failure does symbolExit then goto fail2; ORDER_DUMP fopen failure goes to fail2; 'It returns' block added to the routine comment.",
+    "diff_file": "",
+    "tested": "es_fail sweep before/after; check_libesmumps and make escheck in both trees; test_esmumps (plain, errorexit-linked) under injection exits 1.",
+    "tradeoffs": "No ABI change (0/1 as before); jumps into blocks, as the maintainer does.",
+    "preferred": true,
+    "maintainer_fit": "Label idiom and numbering from scotch_maint7.0 2.1.3 and his dgraphInduce2 rewrite (fail1 inside the first failing block); same error value as the routine's existing OOM path."
+   },
+   {
+    "label": "Negative error code (-1), test keeps `ncmpa < 0`",
+    "summary": "Same checks and labels but `return (-1)` everywhere, as the review suggests.",
+    "diff_file": "",
+    "tested": "untested: not built.",
+    "tradeoffs": "Changes the value Fortran callers have seen since 2001 for the vendtab OOM; MUMPS tests `.NE. 0` so nothing is gained; the C test_libesmumps tests `!= 0` already.",
+    "preferred": false,
+    "maintainer_fit": "He would not change an ABI-visible value without a reason; MUMPS source shows there is none."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/patches/0006-Bugfix-report-failures-of-the-ordering-and-symbolic-.patch"
+  ],
+  "cleanup_done": "No field or symbol made unused; the comment block now documents the return values.",
+  "test_added": "none in src/check: no OOM test exists there (test_libesmumps.c already tests `esmumps (...) != 0`); repro/CLI-10 covers it.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (src/esmumps untouched except CMake 7a5d07b3)."
+ },
+ {
+  "id": "CLI-15",
+  "our_title": "Dual-graph builders: MeshToDual leaves freed xadj in caller; Mesh2Dual mismatched free",
+  "status": "still-present",
+  "method": "partly-run",
+  "ran": "non-sanitized trees /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/plain_p (pristine 7.0.18) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/plain (series), injector /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/repro/tools/failmalloc.so: 'FAILMALLOC_FUNC=SCOTCH_METIS_MeshToDual FAILMALLOC_NTH=2 bin_plain_p/m2d_fail': 'ERROR: SCOTCH_METIS_MeshToDual: out of memory' / 'free(): double free detected in tcache 2'; mpirun -np 2 pm2d_fail (Mesh2Dual): 'returned -3 ... xadj=0x1 adjncy=0x1' (outputs untouched). Series: 'xadj=(nil) adjncy=(nil)' / 'caller: error detected through xadj == NULL' on both.",
+  "read_only": "malloc/memFree mismatch at parmetis_dgraph_dual.c:150/170 and the SCOTCH_DEBUG_ALL early return (need a COMMON_MEMORY_TRACE build / failing MPI_Allreduce)",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Raised from the review's low: on OOM the C test program and any Fortran caller (no return value) double-free and read a freed array; the ParMETIS parts stay low.",
+  "location_7_0_18": "src/libscotchmetis/metis_graph_dual.c:112-118; src/libscotchmetis/parmetis_dgraph_dual.c:150-173",
+  "evidence": "'if (*xadj != NULL) free (*xadj);' with *xadj left dangling; parmetis_dgraph_dual.c:150 'malloc (' vs :170 'memFree (vertloctab);'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Mostly accurate; wrong on one detail: METIS_MeshToDual does call SCOTCH_graphExit() in its OOM branch (:117). Its fix line is right; it misses that the distributed twin never sets its output pointers on error although its METIS v3 Fortran stub has no return value either.",
+  "first_pass_critique": "Correct status and the graphExit correction; method 'source-read' although an LD_PRELOAD injector settles it in minutes; its sketch keeps the malloc on a line with `sizeof(SCOTCH_Num)` (missing space) and does not NULL the outputs of the distributed twin nor free the mesh on a failed meshBuildElem.",
+  "extra_instances": [
+   {
+    "location": "src/libscotchmetis/parmetis_dgraph_dual.c:178-179 (outputs set only on success, never NULL on error; Fortran v3 stub parmetis_dgraph_dual_f.c:92-107 has no return value)",
+    "quote": "*vertlocptr = vertloctab; *edgelocptr = edgeloctab;",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotchmetis/metis_graph_dual.c:98-102 (SCOTCH_meshBuildElem failure returns without SCOTCH_meshExit; in SCOTCH_DEBUG_LIBRARY1 builds its checks (6)/(7) fail after allocation, library_mesh.c:440-453)",
+    "quote": "SCOTCH_errorPrint (\"SCOTCH_METIS_MeshToDual: cannot create mesh\"); return (METIS_ERROR);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/mesh_graph.c:261-266 (meshGraphDual frees verttax on OOM but leaves it in a GRAPHFREETABS graph: the graphExit that METIS_PartMeshDual performs double-frees)",
+    "quote": "if (grafptr->verttax != NULL) memFree (grafptr->verttax); return (1);",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "NULL outputs on entry in both routines, free() for malloc(), common exit for the debug path (chosen)",
+    "summary": "Sequential: `*xadj = *adjncy = NULL` on entry, meshExit/graphExit on every failure, `*xadj = NULL` after the free. Distributed: outputs NULL on entry, free() instead of memFree(), communication error sets chekglbval and goes through the existing abort labels, status METIS_ERROR_MEMORY only when the local allocation failed.",
+    "diff_file": "",
+    "tested": "m2d_fail / pm2d_fail before and after; check_libmetis_dual_* and check_libparmetis_v3 in both trees.",
+    "tradeoffs": "None visible to callers that already test the return value; Fortran callers now get NULL on all failures.",
+    "preferred": true,
+    "maintainer_fit": "Mirrors the sequential routine's own `/* Assume something will go wrong */` idiom and the file's `/* Use plain malloc() because of user-managed array */` comment; abort labels already exist in the distributed routine."
+   },
+   {
+    "label": "Allocate into locals and publish the outputs only on success",
+    "summary": "MeshToDual keeps `xadjtab`/`adjntab` locals and assigns `*xadj`/`*adjncy` after the copies; nothing to reset after a free.",
+    "diff_file": "",
+    "tested": "untested: equivalent control flow, not built.",
+    "tradeoffs": "Two more locals; still needs the NULL-on-entry for the Fortran interface; does not cover the distributed twin by itself.",
+    "preferred": false,
+    "maintainer_fit": "More lines for the same effect; he uses the output pointer directly elsewhere in libscotchmetis."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/patches/0003-Bugfix-clean-up-properly-on-error-in-METIS_MeshToDua.patch"
+  ],
+  "cleanup_done": "The `SCOTCH_graphInit()` call before the mesh build was moved after it (no graph to exit on a mesh failure); the hard `return (METIS_ERROR)` in the debug branch is gone; nothing left unused.",
+  "test_added": "none: src/check has no failing-allocation tests (precedent: no OOM test anywhere in src/check); the reproducers under repro/CLI-15 cover it.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "CLI-22",
+  "our_title": "test_esmumps only fails on negative ncmpa while esmumps returns +1; %d for INT",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "7.0.18 src/esmumps/test_esmumps.c and the series' version, both linked against the series' plain libesmumps and -lscotcherr, FAILMALLOC_AT=10 on data/bump.grf: 7.0.18 test 'ERROR: esmumps2: cannot compute ordering', exit=0 (error missed); series test 'ERROR: test_esmumps: error in ESMUMPSF (1)', exit=1.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Test driver only, and masked by the errorexit library it is linked with; the sign convention is not a library bug (MUMPS tests .NE. 0).",
+  "location_7_0_18": "src/esmumps/test_esmumps.c:146-147",
+  "evidence": "if (ncmpa < 0) {",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate on the inconsistency and the %d; wrong on the remedy: the MUMPS convention is 'non-zero is an error' (MUMPS 5.7.3 ana_orderings_wrappers_m.F:445), so the test must test `!= 0`, not the library return -1. It also misses that the driver is linked with -lscotcherrexit, which hides the defect.",
+  "first_pass_critique": "Follows the review into the negative-code convention ('ncmpa != 0 is not right either: ncmpa is a compression count on success'): wrong, esmumps2() always returns 0 on success, there is no compression count; the AMD meaning of NCMPA does not apply to the Scotch wrapper, and MUMPS itself requires NCMPA == 0 from it.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Test `ncmpa != 0` and print with INTSTRING (chosen, in the CLI-10 commit)",
+    "summary": "One condition and one format change in test_esmumps.c, comment stating that ESMUMPSF returns 0 on success as MUMPS expects.",
+    "diff_file": "",
+    "tested": "see ran; also compiled in both trees by `make esmumps` (test_esmumps is built by the esmumps `scotch` target).",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "Keeps the library ABI; matches test_libesmumps.c's `!= 0` test."
+   },
+   {
+    "label": "Negative library code, test unchanged except INTSTRING",
+    "summary": "See CLI-10 option b.",
+    "diff_file": "",
+    "tested": "untested: not built.",
+    "tradeoffs": "ABI-visible change for no gain.",
+    "preferred": false,
+    "maintainer_fit": "See CLI-10."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/patches/0006-Bugfix-report-failures-of-the-ordering-and-symbolic-.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "(the file is the test)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "BLD-17",
+  "our_title": "make -j esmumps ptesmumps builds libesmumps twice concurrently in one directory",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "src/Makefile:122-129 and src/esmumps/Makefile:61,68 in 7.0.18 (identical to 7.0.17)",
+  "why_not_run": "race reproduction needs repeated full parallel builds; with 8 agents on 4 cores the 6-run sampling of 7.0.17 was not repeated. The patch applies unchanged and the series builds with 'make -j3 scotch ptscotch esmumps ptesmumps' (0 warnings, 32/64).",
+  "severity": "medium",
+  "severity_note": "CI and any parallel user build; corruption of libesmumps.a/.so is timing dependent (not observed in 12 runs, duplicate concurrent compilation and linking is).",
+  "location_7_0_18": "src/Makefile:122-129; src/esmumps/Makefile:61, 68",
+  "evidence": "'ptesmumps : scotch ptscotch' / '(cd esmumps ; $(MAKE) ptscotch && $(MAKE) ptinstall)'; esmumps/Makefile:61 'ptscotch : scotch'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate, including the fix line.",
+  "first_pass_critique": "Correct reproduction (dof.c twice in 5/8 runs) and preferred option; it left esmumps/Makefile untouched, where `ptinstall : scotch` was the odd one out (every other directory has `ptinstall : ptscotch`).",
+  "extra_instances": [
+   {
+    "location": "src/Makefile:99-108 (`ptscotch` does not depend on `scotch`, so `make -j scotch ptscotch` runs `make scotch` and `make ptscotch` concurrently in libscotchmetis; same shape, G30's BLD-11)",
+    "quote": "ptscotch : libptscotch / (cd libscotchmetis ; $(MAKE) ptscotch && $(MAKE) ptinstall)",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "`ptesmumps` depends on `esmumps` and only runs `ptinstall`; `ptinstall` depends on `ptscotch` (chosen)",
+    "summary": "Two-line change in src/Makefile, one in src/esmumps/Makefile (+ copyright year).",
+    "diff_file": "",
+    "tested": "see ran.",
+    "tradeoffs": "`make ptesmumps` now also installs libesmumps (same archive, harmless).",
+    "preferred": true,
+    "maintainer_fit": "src/Makefile already orders targets by prerequisites (`escheck : esmumps`); `ptinstall : ptscotch` is the pattern of scotch/Makefile:76 and libscotchmetis/Makefile:85."
+   },
+   {
+    "label": "Make esmumps/Makefile's `ptscotch` build the library itself without `scotch`",
+    "summary": "`ptscotch` builds libesmumps only (no test programs), `ptinstall : ptscotch`; src/Makefile keeps running `ptscotch && ptinstall` but after `esmumps`.",
+    "diff_file": "",
+    "tested": "untested: not built.",
+    "tradeoffs": "Two recipes to maintain for one library; still needs the top-level dependency to be safe.",
+    "preferred": false,
+    "maintainer_fit": "More Makefile text for the same serialization."
+   },
+   {
+    "label": "Serialize in CI only",
+    "summary": "ci/build_makefile.sh builds ptesmumps in a second make.",
+    "diff_file": "",
+    "tested": "untested (ci/ is G30's).",
+    "tradeoffs": "Users running `make -j esmumps ptesmumps` still race.",
+    "preferred": false,
+    "maintainer_fit": "Hides the defect."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/patches/0008-Bugfix-build-libesmumps-once-when-making-esmumps-and.patch"
+  ],
+  "cleanup_done": "none needed (the `ptscotch` target of src/esmumps/Makefile is kept: it is the documented standalone goal and `ptinstall` now depends on it).",
+  "test_added": "none: no Makefile tests exist; repro/BLD-17 logs are the evidence.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 7a5d07b3 (link ptesmumps with ptscotch) is CMake-only and does not touch the make race."
+ },
+ {
+  "id": "BLD-19",
+  "our_title": "esmumpsv() never tested: test guarded by a macro no build system defines",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "grep ESMUMPS_HAS_ESMUMPSV over 7.0.18: only src/check/test_libesmumps.c:181,196. check_libesmumps on the series' trees (guard removed) runs the esmumpsv branch: see checks.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Test gap only; agrees with the review.",
+  "location_7_0_18": "src/check/test_libesmumps.c:181, 196",
+  "evidence": "#ifdef ESMUMPS_HAS_ESMUMPSV ... #endif /* ESMUMPS_HAS_ESMUMPSV */",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate.",
+  "first_pass_critique": "Correct (status, grep, the bump_imbal_32 observation and the preference for removing the guard).",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Remove the guard (chosen)",
+    "summary": "Delete the #ifdef/#endif, keep the `velotab != NULL` condition with a comment.",
+    "diff_file": "",
+    "tested": "check_libesmumps + escheck, both trees.",
+    "tradeoffs": "None: the symbol has been public since 6.1.",
+    "preferred": true,
+    "maintainer_fit": "Nothing in src/check is conditional on build-system macros except SCOTCH_METIS_VERSION; the macro was a leftover."
+   },
+   {
+    "label": "Define the macro in the check Makefile and CMake",
+    "summary": "Explicit compile rule for test_libesmumps with -DESMUMPS_HAS_ESMUMPSV, target_compile_definitions in CMake.",
+    "diff_file": "",
+    "tested": "untested: not built.",
+    "tradeoffs": "Adds a special-case compile rule to two build systems for a guard that protects nothing.",
+    "preferred": false,
+    "maintainer_fit": "He removed similar dead conditionals rather than feeding them."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/patches/0007-Always-test-esmumpsv-in-the-esMUMPS-test-program.patch"
+  ],
+  "cleanup_done": "The macro no longer exists anywhere in the tree.",
+  "test_added": "(the file is the test; the weighted branch now always compiles and runs on bump_imbal_32.grf)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G26-1",
+  "our_title": "Graph builders free vertex array on OOM but keep it: double free on graphExit",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "non-sanitized trees /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/plain_p (pristine 7.0.18) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/plain (series), injector /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/repro/tools/failmalloc.so: 'FAILMALLOC_FUNC=_SCOTCHmemAllocGroup FAILMALLOC_NTH=2 bin_plain_p/gload_fail s bump.grf': 'ERROR: graphLoad: out of memory' / 'double free or corruption (top)'; 'gload_fail c bump.chac': 'free(): invalid pointer'; 'FAILMALLOC_FUNC=_SCOTCHmeshGraphDual ... pm_plain 1': 'free(): double free detected in tcache 2'. Series: 'load returned 1; now calling SCOTCH_graphExit()' / 'done' (both), 'ret=-3 objval=-3'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/graph_io.c:166-171; src/libscotch/graph_io_chac.c:146-147; src/libscotch/mesh_graph.c:120, 265",
+  "evidence": "graph_io.c:168-171 'if (grafptr->verttax != NULL) memFree (grafptr->verttax); errorPrint (\"graphLoad: out of memory\"); graphFree (grafptr);'",
+  "upstream_change": "9c51d9df85 / 45a4de8591 touched graph_io.c elsewhere (not this path); 5796220d (Style fix) touched graph_io_chac.c:149 'return (1);'",
+  "upstream_fix_review": {
+   "commit": "9c51d9df85, 45a4de8591",
+   "verdict": "unrelated",
+   "details": "Neither commit touches the out-of-memory path at graph_io.c:166-171; 9c51d9df adds '(degrval < 0)' to the arc-count check (graph_io.c:225-226, relies on signed overflow: see PS3-G26-1) and 45a4de85 replaces sprintf by snprintf (proptab, 4, ...) at :140, which is exact for propval <= 111 (3 digits + NUL). Seen from the dual-graph and esMUMPS side: METIS_MeshToDual/PartMeshDual build graphs in memory (meshGraphDual), not through graphLoad, so neither change reaches them; test_esmumps and check_libesmumps load data/bump.grf through graphLoad and are unaffected for valid files (checks pass). The dgraph twin (dgraph_io_load.c) only got the snprintf part; its per-vertex degree is checked differently.",
+   "compared_with_ours": "our 0004 is still needed for graphLoad, graphGeomLoadChac, meshGraphDual and meshGraphNodal"
+  },
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Reset the freed pointer to NULL (chosen)",
+    "summary": "Four sites: `memFree (verttax); grafptr->verttax = NULL;` and, in graphLoad, drop the now double `graphFree()` call (nothing else is allocated at that point).",
+    "diff_file": "",
+    "tested": "see ran; full check subsets in both trees.",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "Exactly what he did in graphGeomLoadHabo()/meshGeomLoadHabo() (combined series 04aeb13/275398c keep that form)."
+   },
+   {
+    "label": "Set the free flags only after the arrays are allocated",
+    "summary": "Initialize flagval to GRAPHNONE and set GRAPHFREETABS|... after both allocations succeed (mesh_graph.c only).",
+    "diff_file": "",
+    "tested": "untested: not built.",
+    "tradeoffs": "Touches the field assignment order of two routines and does not fit the loaders (graphLoad frees through graphFree on later errors).",
+    "preferred": false,
+    "maintainer_fit": "Less uniform than the habo precedent."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G26-metis-dual-esmumps/patches/0004-Bugfix-reset-freed-vertex-array-in-graph-builders-on.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 0004 applied with a spurious conflict in graph_io_chac.c (upstream Style fix next to it), resolved to our hunk."
+ },
+ {
+  "id": "PS2-G26-2",
+  "our_title": "Strategy parser: flex buffer allocation failure calls exit(2) from inside the library",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "src/libscotch/parser_ll.l in 7.0.18 (no YY_FATAL_ERROR override; file untouched by 7.0.18)",
+  "why_not_run": "same code as 7.0.17 where it was observed (FAILMALLOC_AT=12..15 in es_fail); not re-swept",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/parser_ll.l (generated parser_ll.c: yy_fatal_error)",
+  "evidence": "no YY_FATAL_ERROR definition in parser_ll.l; flex's default yy_fatal_error calls exit (YY_EXIT_FAILURE)",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Override YY_FATAL_ERROR in parser_ll.l to errorPrint + longjmp/return",
+    "summary": "Define YY_FATAL_ERROR(msg) in the lexer prologue so that the parser returns an error instead of exiting; needs a design decision on how to unwind from inside yylex.",
+    "diff_file": "",
+    "tested": "untested: not written (design decision for the maintainer: flex offers no non-exiting path from yy_scan_bytes without a custom YY_FATAL_ERROR).",
+    "tradeoffs": "Behaviour change only under OOM; libraries should not exit.",
+    "preferred": true,
+    "maintainer_fit": "Consistent with his errorPrint-and-return convention; left as a note."
+   },
+   {
+    "label": "Leave as is",
+    "summary": "Accept exit on OOM inside the strategy lexer.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "Library calls exit(2) on OOM.",
+    "preferred": false,
+    "maintainer_fit": "Not his convention."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Not patched (G04 area)."
+ }
+]

@@ -1,0 +1,116 @@
+From ddeda4d11467e90b7986cfd06dbd02502e95184a Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:13:42 +0000
+Subject: [PATCH 1/5] Bugfix: clean up properly on sub-architecture loading and
+ building errors [report R. Perry]
+
+Since terminal numbers are always checked, `archSubArchBuild()` frees
+its terminal array when a number is invalid or duplicate, although the
+array has already been recorded in the sub-architecture body, so that
+`archSubArchFree()`, called by `archLoad()` or `SCOTCH_archExit()`,
+freed it a second time. The other error paths of the routine did not
+free this array, and the two internal error paths kept all coarse tree
+blocks but the first one.
+
+`archSubArchBuild()` now sets the sub-architecture fields only on
+success, and frees all of its data on every error path. Also,
+`archSubArchLoad()` initializes the original architecture before
+loading it, so that, when the loading of a nested "sub" or "dist"
+architecture, or of a tree-leaf one, fails, its freeing routine is
+not called on an uninitialized body.
+
+Refs: COR-04, PS-COR-3
+---
+ src/libscotch/arch_sub.c | 35 ++++++++++++++++++++++-------------
+ 1 file changed, 22 insertions(+), 13 deletions(-)
+
+diff --git a/src/libscotch/arch_sub.c b/src/libscotch/arch_sub.c
+index f0983ff1..fa975b14 100644
+--- a/src/libscotch/arch_sub.c
++++ b/src/libscotch/arch_sub.c
+@@ -42,7 +42,7 @@
+ /**   DATES      : # Version 6.0  : from : 13 mar 2015     **/
+ /**                                 to   : 15 may 2018     **/
+ /**                # Version 7.0  : from : 18 feb 2018     **/
+-/**                                 to   : 27 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -113,6 +113,7 @@ fail:
+     errorPrint ("archSubArchLoad: out of memory (2)");
+     goto fail;
+   }
++  archInit (orgarchptr);                          /* Original architecture can be freed even if not loaded */
+ 
+   if (archLoad (orgarchptr, stream) != 0) {
+     memFree (orgarchptr);
+@@ -379,6 +380,7 @@ const Anum * const          vnumtab)              /*+ Ordered list of remaining
+   Anum                    domnnbr;                /* Number of domains                     */
+   Anum                    vnumnum;
+   const char *            messptr;                /* Pointer to error message              */
++  int                     o;
+ 
+   subarchptr->archptr = orgarchptr;               /* Make sure original architecture is freed in case of error */
+ 
+@@ -421,11 +423,6 @@ const Anum * const          vnumtab)              /*+ Ordered list of remaining
+ 
+   treetab ++;                                     /* TRICK: Hide first slot */
+ 
+-  subarchptr->termnbr = vnumnbr;
+-  subarchptr->termtab = termtab;
+-  subarchptr->domnnbr = domnnbr;
+-  subarchptr->domntab = domntab;
+-
+   for (orgtermnum = 0; orgtermnum < orgtermnbr; orgtermnum ++) { /* Initialize values for all vertices of original architecture */
+     treetab[orgtermnum].domnsiz =
+     treetab[orgtermnum].domnwgt = 0;
+@@ -469,26 +466,38 @@ fail1:
+ 
+   if (rootptr == NULL) {
+     errorPrint ("archSubArchBuild: cannot create sub-architecture (1)");
+-fail2:
+-    memFree (treetab - 1);
++    memFree (treetab - 1);                        /* Coarser tree blocks have already been freed */
++    memFree (termtab);
+     return  (2);
+   }
++
++  o = 0;                                          /* Assume everything will be all right */
+   if (rootptr->domnsiz != vnumnbr) {
+     errorPrint ("archSubArchBuild: internal error (2)");
+-    goto fail2;
++    o = 2;
+   }
+-
+-  if (archSubArchBuild3 (domntab, termtab, rootptr, 1, 0) != domnnbr) {
++  else if (archSubArchBuild3 (domntab, termtab, rootptr, 1, 0) != domnnbr) {
+     errorPrint ("archSubArchBuild: cannot create sub-architecture (2)");
+-    goto fail2;
++    o = 2;
+   }
+-  domntab[0].dfatidx = -1;                        /* Set index of root father as -1 */
+ 
+   for (treetab --; treetab != NULL; treetab = treetmp) { /* Free all tree blocks    */
+     treetmp = treetab[0].sonstab[0];              /* Get pointer to next tree block */
+     memFree (treetab);
+   }
+ 
++  if (o != 0) {
++    memFree (termtab);
++    return  (o);
++  }
++
++  domntab[0].dfatidx = -1;                        /* Set index of root father as -1 */
++
++  subarchptr->termnbr = vnumnbr;                  /* Set sub-architecture fields only on success */
++  subarchptr->termtab = termtab;
++  subarchptr->domnnbr = domnnbr;
++  subarchptr->domntab = domntab;
++
+   return (0);
+ }
+ 
+-- 
+2.43.0
+

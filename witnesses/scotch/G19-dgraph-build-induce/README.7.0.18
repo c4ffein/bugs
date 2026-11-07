@@ -1,0 +1,9 @@
+7.0.18 round: changes to the 7.0.17 kit copied from PYS/upstream/repro/G19-dgraph-build-induce
+- Every driver calls MPI_Init_thread (MPI_THREAD_MULTIPLE) instead of MPI_Init (threaded Scotch).
+- common/scan.sh: timeout -k 5 ${FI_TIMEOUT:-60} (mpirun ignored TERM once its children were zombies);
+  "HANG" now means exit 124 after FI_TIMEOUT seconds (runs here used FI_TIMEOUT=20 or 25).
+- common/build.sh builds every driver of the kit.
+- Library trees: pristine 7.0.18 release UBSan + -ftrivial-auto-var-init=pattern build (shared by the four groups):
+  /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi
+  patched: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/buildfi (same flags, this group's series); ASan trees: INFRA/asan (pristine), /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/build, build64.
+- Results of this round: *_7018.txt files in this directory and its subdirectories (fi_*.txt = fault injection).

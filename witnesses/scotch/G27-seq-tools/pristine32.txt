@@ -1,0 +1,94 @@
+### CLI-11
+==5648==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50400000000c at pc 0x7f104e1a6d1d bp 0x7fff201d26d0 sp 0x7fff201d26c0
+    #0 0x7f104e1a6d1c in _SCOTCHgraphInduceList /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/graph_induce.c:138
+    #1 0x7f104e0d8da4 in _SCOTCHarchDecoArchBuild /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/arch_deco_build.c:196
+1,7d0
+< deco
+< 1
+< 2	3
+bgraph_bipart_ml.c:195:35: runtime error: applying non-zero offset 18446744073709551608 to null pointer
+    #0 0x7f0c5dd5a077 in bgraphBipartMlUncoarsen /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bgraph_bipart_ml.c:195
+    #1 0x7f0c5dd5c5cd in bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bgraph_bipart_ml.c:329
+3,10c3,10
+< 5	11
+< 4	5	10
+< 8	3	5
+==5704==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x504000000184 at pc 0x7f55571a6bcd bp 0x7ffd143b8300 sp 0x7ffd143b82f0
+    #0 0x7f55571a6bcc in _SCOTCHgraphInduceList /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/graph_induce.c:137
+    #1 0x7f55570d8da4 in _SCOTCHarchDecoArchBuild /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/arch_deco_build.c:196
+rc=141
+bgraph_bipart_ml.c:195:35: runtime error: applying non-zero offset 18446744073709551608 to null pointer
+    #0 0x7f6a5c15a077 in bgraphBipartMlUncoarsen /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bgraph_bipart_ml.c:195
+    #1 0x7f6a5c15c5cd in bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bgraph_bipart_ml.c:329
+    #2 0x7f6a5c15c846 in _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bgraph_bipart_ml.c:359
+    #3 0x7f6a5c15dec7 in _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bgraph_bipart_st.c:383
+    #4 0x7f6a5c15cb59 in _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bgraph_bipart_st.c:301
+    #5 0x7f6a5c15cb59 in _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bgraph_bipart_st.c:301
+    #6 0x7f6a5c0d983b in _SCOTCHarchDecoArchBuild /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/arch_deco_build.c:226
+    #7 0x7f6a5c2d0853 in SCOTCH_archBuild0 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/library_arch_build.c:146
+    #8 0x5647ba5de527 in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/scotch/amk_grf.c:228
+    #9 0x7f6a5b02a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #10 0x7f6a5b02a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #11 0x5647ba5dc584 in _start (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/bin/amk_grf+0x4584) (BuildId: afa58eee8903f35349f7b9856de9008641998cee)
+
+4,6c4,6
+< 1	2	2
+< 1	1	1
+< 3	1	1
+==5812==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5040000001ac at pc 0x7fc90eda6bcd bp 0x7fff1c04dd60 sp 0x7fff1c04dd50
+    #0 0x7fc90eda6bcc in _SCOTCHgraphInduceList /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/graph_induce.c:137
+    #1 0x7fc90ecd8da4 in _SCOTCHarchDecoArchBuild /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/arch_deco_build.c:196
+archBuild0 dup list: 0
+deco
+==5844==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5040000001ac at pc 0x7f0db11a6bcd bp 0x7fff101dbf80 sp 0x7fff101dbf70
+    #0 0x7f0db11a6bcc in _SCOTCHgraphInduceList /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/graph_induce.c:137
+    #1 0x7f0db12e0648 in SCOTCH_graphInduceList /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/library_graph_induce.c:90
+### CLI-12
+-Oi differs
+-Ov differs
+-Ot differs
+-Op identical
+### CLI-13
+A	Terminals	nbr=8
+A	Distance	min=-1	max=1	avg=1	dlt=0
+A	Terminals	nbr=1
+A	Distance	min=-1	max=0	avg=0	dlt=0
+A	Terminals	nbr=16
+A	Distance	min=-1	max=6	avg=2.66667	dlt=2.08889
+### CLI-14
+rc=0
+rc=0
+rc=0
+rc=0
+### CLI-16
+gout_o.c:921:37: runtime error: applying non-zero offset 18446744073709551592 to null pointer
+gout_o.c:978:30: runtime error: applying non-zero offset to non-null pointer 0xffffffffffffffe8 produced null pointer
+rc=141
+gout: ERROR: outDrawTulMesh: geometry not provided
+rc=1
+gout_o.c:281:37: runtime error: applying non-zero offset 18446744073709551592 to null pointer
+gout: ERROR: outDrawInvMesh: geometry not provided
+gout_o.c:1068:37: runtime error: applying non-zero offset 18446744073709551592 to null pointer
+gout: ERROR: outDrawVtkMesh: geometry not provided
+gout_o.c:570:37: runtime error: applying non-zero offset 18446744073709551592 to null pointer
+gout: ERROR: outDrawPosMesh: geometry not provided
+### CLI-17
+gout_c.c:709:11: runtime error: load of null pointer of type 'char'
+==5976==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000 (pc 0x55f5bc1da25b bp 0x7ffcec9fd2d0 sp 0x7ffcec9fd150 T0)
+rc=141
+### CLI-18
+1x1 header=-4 written=0 gtst_rc=1
+1x2 header=-2 written=2 gtst_rc=1
+2x1 header=-2 written=2 gtst_rc=1
+2x2 header=8 written=12 gtst_rc=1
+CLI-18 sweep done
+### PS2-G15-6
+gotst: ERROR: orderLoad: bad input (3)
+rc=1
+### PS2-G27-2
+==6166==ERROR: LeakSanitizer: detected memory leaks
+    #1 0x7f60a8f7cd08 in _SCOTCHmemAllocGroup /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/common_memory.c:508
+-Oi rc=141
+==6172==ERROR: LeakSanitizer: detected memory leaks
+    #1 0x7f14d937cd08 in _SCOTCHmemAllocGroup /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/common_memory.c:508
+-Ov rc=1

@@ -1,0 +1,14 @@
+######## pristinefi
+DGR-19:
+nth=1 exit=124 :: HANG; 1 (1): ERROR: dgraphLoadCent: out of memory (6);1 r1: stray message pending before second load: src=0 tag=1;
+PS2-G20-2 / PS-DGR-2 halofi:
+nth=3 exit=124 :: HANG; 1 (1): ERROR: dgraphSave: out of memory;1 mpirun: Forwarding signal 18 to job;1 r1: load rc=0 save rc=1;
+nth=4 exit=124 :: HANG; 1 (1): ERROR: dgraphHaloSync2: out of memory;1 (1): ERROR: dgraphSave: cannot halo labels;1 r1: load rc=0 save rc=1;
+DGR-20 dmual np1 reallfail: exit=0 BuildAdm rc=0;(0): ERROR: dmeshDgraphDualHashEdgeResize: out of memory;(0): ERROR: dmeshDgraphDual: cannot build dual graph;
+######## buildfi
+DGR-19:
+nth=1 exit=1 :: 1 (1): ERROR: dgraphLoadCent: out of memory (6);1 r0: rc=1 check=-1 rc2=0;1 r1: rc=1 check=-1 rc2=0;
+PS2-G20-2 / PS-DGR-2 halofi:
+nth=3 exit=137 :: HANG; 1 (1): ERROR: dgraphSave: out of memory;1 r1: load rc=0 save rc=1;
+nth=4 exit=124 :: HANG; 1 (1): ERROR: dgraphHaloSync2: out of memory;1 (1): ERROR: dgraphSave: cannot halo labels;1 r1: load rc=0 save rc=1;
+DGR-20 dmual np1 reallfail: exit=0 BuildAdm rc=0;(0): ERROR: dmeshDgraphDualHashEdgeResize: out of memory;(0): ERROR: dmeshDgraphDual: cannot build dual graph;

@@ -1,0 +1,47 @@
+### CLI-20
+    -b<val>    : Load imbalance tolerance (default: 0.05)
+gmap: ERROR: main: invalid strategy selection option 'Z' after '-C'
+### PS2-G28-1
+gmap: ERROR: main: invalid cluster load ''
+dgmap(0): ERROR: main: invalid cluster load ''
+### BLD-23
+    -i<nbr> : Create a potentially imbalanced distribution with <nbr> vertices per process, remainder assigned to the last
+gscat: ERROR: main: invalid number of vertices in graph parts ''
+rc=1
+rc=0
+### PS3-G28-1 (gscat as in the man page synopsis)
+gscat: ERROR: main: invalid number of parts '/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/v7.0.18/src/check/data/m4x4.grf'
+### CLI-21
+dgmap -h rc=1 without calling "finalize"
+dgmap -V rc=1 without calling "finalize"
+dgord -h rc=1 without calling "finalize"
+dgord -V rc=1 without calling "finalize"
+dgscat -h rc=1 without calling "finalize"
+dgscat -V rc=1 without calling "finalize"
+dggath -h rc=1 without calling "finalize"
+dggath -V rc=1 without calling "finalize"
+dgtst -h rc=1 without calling "finalize"
+dgtst -V rc=1 without calling "finalize"
+dgtst(1): ERROR: dgraphLoadDist: bad input (1)
+mpirun detected that one or more processes exited with non-zero status, thus causing
+rc=1
+### BLD-04
+...AtoM/test_scotch_graph_order: ERROR: checkOrder: invalid permutation pair
+rc=0
+...g2cy/test_scotch_graph_order: ERROR: checkOrder: invalid permutation value
+=================================================================
+==17217==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5310000287c8 at pc 0x55a7bf9ff80e bp 0x7ffd5d8b1150 sp 0x7ffd5d8b1140
+READ of size 8 at 0x5310000287c8 thread T0
+rc=1
+### BLD-15
+...qoGXa/test_scotch_mesh_graph: ERROR: graphCheck: invalid edge array
+...qoGXa/test_scotch_mesh_graph: ERROR: main: invalid graph converted from mesh
+rc=0
+### BLD-16
+rc=0
+rc=0
+rc=0
+...mi5rr7/test_scotch_graph_map: ERROR: checkMap: invalid mapping (2)
+rc=1
+### BLD-18 (CHECKSCOTCH list entries for atst/mcv; read with awk, no make in the source tree)
+0

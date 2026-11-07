@@ -1,0 +1,44 @@
+From 7460dbc3f4790708de287ce4a90840bc8feffc34 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:15:09 +0000
+Subject: [PATCH 4/6] Bugfix: always compile the invalid folding parameter case
+ of `bdgraphBipartMlCoarsen()` [report R. Perry]
+
+The `default` case of the switch on the folding parameter was only
+compiled in debug mode, so that `foldval` was reported as possibly
+uninitialized by the compiler at -O2 in non-debug builds. Make the
+case unconditional, as in `vdgraphSeparateMlCoarsen()`.
+
+Refs: DMO-18
+---
+ src/libscotch/bdgraph_bipart_ml.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/src/libscotch/bdgraph_bipart_ml.c b/src/libscotch/bdgraph_bipart_ml.c
+index 1c4195b6..0385ccc4 100644
+--- a/src/libscotch/bdgraph_bipart_ml.c
++++ b/src/libscotch/bdgraph_bipart_ml.c
+@@ -44,7 +44,7 @@
+ /**              : # Version 6.0  : from : 11 sep 2011     **/
+ /**                                 to   : 31 aug 2019     **/
+ /**              : # Version 7.0  : from : 27 aug 2019     **/
+-/**                                 to   : 31 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -100,11 +100,9 @@ const BdgraphBipartMlParam * const    paraptr)    /*+ Method parameters
+     case 2 :
+       foldval = DGRAPHCOARSENFOLDDUP;
+       break;
+-#ifdef SCOTCH_DEBUG_BDGRAPH2
+     default :
+       errorPrint ("bdgraphBipartMlCoarsen: invalid parameter");
+       return (1);
+-#endif /* SCOTCH_DEBUG_BDGRAPH2 */
+   }
+   if ((finegrafptr->s.vertglbnbr / finegrafptr->s.procglbnbr) > paraptr->foldmax) /* If no need to fold */
+     foldval = DGRAPHCOARSENNONE;
+-- 
+2.43.0
+

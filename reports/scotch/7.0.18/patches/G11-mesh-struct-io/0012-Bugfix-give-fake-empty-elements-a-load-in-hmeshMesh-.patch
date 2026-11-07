@@ -1,0 +1,171 @@
+From 1dabacbd479ff6e058f3f3c90a56d169cd6989f2 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:55:06 +0000
+Subject: [PATCH 238/248] Bugfix: give fake empty elements a load in
+ `hmeshMesh()` of weighted nodes-first meshes [report PyScotch]
+
+When a nodes-first halo mesh is turned into a non-halo mesh, the halo
+nodes become fake empty elements numbered from vnohnnd, in front of
+the real elements. The new mesh kept the element load array of the
+halo mesh, which only covers the real element range. Reading the loads
+of the fake elements therefore went out of bounds (meshCheck(),
+meshOrder and friends), and the element load sum did not account for
+them. This completes the previous fix, which only handled the
+unweighted case.
+
+When the halo mesh has element loads, a new element load array is
+now allocated in the same group as the new vendtab (so that
+meshExit() frees it with MESHFREEVEND). Fake elements get unit loads
+and velosum is always increased by their number.
+
+Tested: test_mesh_base now builds a nodes-first halo mesh with a
+separate element load array and with unweighted elements, calls
+hmeshMesh() and checks the result with meshCheck() (veisnbr, velosum
+and fake element load included). Before the change the weighted case
+fails with an ASan global-buffer-overflow in meshCheck(); after it the
+test passes under ASan/UBSan without warning or leak.
+---
+ src/check/test_mesh_base.c | 70 ++++++++++++++++++++++++++++++++++++++
+ src/libscotch/hmesh_mesh.c | 32 +++++++++++++----
+ 2 files changed, 96 insertions(+), 6 deletions(-)
+
+diff --git a/src/check/test_mesh_base.c b/src/check/test_mesh_base.c
+index a89213a..8311ff2 100644
+--- a/src/check/test_mesh_base.c
++++ b/src/check/test_mesh_base.c
+@@ -76,6 +76,70 @@ static SCOTCH_Num           velotab[2]  = { 2, 3 };
+ static SCOTCH_Num           vnlotab[4]  = { 1, 2, 3, 4 };
+ static SCOTCH_Num           edgetab[12] = { 3, 4, 5,  4, 5, 6,  1,  1, 2,  1, 2,  2 };
+ 
++/* Nodes-first mesh: nodes 0 to 3, the last one being a
++   halo node, elements 4 and 5, base 0. Element loads are
++   kept in an array which only covers the elements.       */
++
++static Gnum                 hverttab[7] = { 0, 1, 3, 4, 6, 9, 12 };
++static Gnum                 hedgetab[12] = { 4, 4, 5, 5, 4, 5, 0, 1, 3, 1, 2, 3 };
++static Gnum                 hvehdtab[2] = { 8, 11 };
++static Gnum                 hvelotab[2] = { 2, 3 };
++
++/* This routine builds the non-halo mesh of a
++** nodes-first halo mesh, with or without element
++** loads, and checks it.
++** It returns:
++** - 0  : on success.
++** - 1  : on error.
++*/
++
++static
++int
++hmeshMeshTest (
++const int                   weightflag)
++{
++  Hmesh               hmshdat;
++  Mesh                meshdat;
++  int                 o;
++
++  memSet (&hmshdat, 0, sizeof (Hmesh));
++  hmshdat.m.flagval = MESHNONE;
++  hmshdat.m.baseval = 0;
++  hmshdat.m.velmnbr = 2;
++  hmshdat.m.velmbas = 4;
++  hmshdat.m.velmnnd = 6;
++  hmshdat.m.vnodnbr = 4;
++  hmshdat.m.vnodbas = 0;
++  hmshdat.m.vnodnnd = 4;
++  hmshdat.m.verttax = hverttab;
++  hmshdat.m.vendtax = hverttab + 1;
++  hmshdat.m.velotax = (weightflag != 0) ? (hvelotab - 4) : NULL;
++  hmshdat.m.velosum = (weightflag != 0) ? 5 : 2;
++  hmshdat.m.vnlosum = 4;
++  hmshdat.m.edgenbr = 12;
++  hmshdat.m.edgetax = hedgetab;
++  hmshdat.m.degrmax = 3;
++  hmshdat.vehdtax   = hvehdtab - 4;
++  hmshdat.vnohnbr   = 3;                          /* Node 3 is a halo node */
++  hmshdat.vnohnnd   = 3;
++  hmshdat.vnhlsum   = 3;
++  hmshdat.enohnbr   = 8;
++
++  if (hmeshCheck (&hmshdat) != 0)
++    return (1);
++  if (hmeshMesh (&hmshdat, &meshdat) != 0)
++    return (1);
++  o = meshCheck (&meshdat);                       /* Halo node has become an isolated element */
++  if ((o == 0) &&
++      ((meshdat.velmnbr != 3) || (meshdat.veisnbr != 1) ||
++       (meshdat.velosum != ((weightflag != 0) ? 6 : 3)) ||
++       ((weightflag != 0) && (meshdat.velotax[3] != 1))))
++    o = 1;
++  meshExit (&meshdat);
++
++  return (o);
++}
++
+ /*********************/
+ /*                   */
+ /* The main routine. */
+@@ -164,6 +228,12 @@ char *              argv[])
+     }
+   }
+ 
++  if ((hmeshMeshTest (0) != 0) ||                 /* Remove halo from nodes-first halo mesh */
++      (hmeshMeshTest (1) != 0)) {
++    SCOTCH_errorPrint ("main: invalid halo mesh (4)");
++    exit (EXIT_FAILURE);
++  }
++
+   SCOTCH_meshExit (&meshdat);                     /* Mesh arrays are not freed, as they are user-provided */
+ 
+   exit (EXIT_SUCCESS);
+diff --git a/src/libscotch/hmesh_mesh.c b/src/libscotch/hmesh_mesh.c
+index 8f666b3..8b6fac8 100644
+--- a/src/libscotch/hmesh_mesh.c
++++ b/src/libscotch/hmesh_mesh.c
+@@ -122,18 +122,38 @@ Mesh * restrict const         meshptr)            /*+ Mesh to build      +*/
+     meshptr->velmnnd = hmshptr->m.velmnnd;
+   }
+   else {                                          /* If nodes numbered before elements */
+-    if ((meshptr->vendtax = memAlloc ((hmshptr->m.velmnbr + hmshptr->m.vnodnbr) * sizeof (Gnum))) == NULL) { /* Turn halo nodes into empty elements */
++    Gnum                fakenbr;                  /* Number of halo nodes turned into empty elements */
++    Gnum *              velotab;                  /* Based element load array of new mesh            */
++
++    fakenbr = hmshptr->m.vnodnbr - hmshptr->vnohnbr;
++    if (hmshptr->m.velotax == NULL) {             /* If elements are not weighted */
++      velotab = NULL;
++      meshptr->vendtax = memAlloc ((hmshptr->m.velmnbr + hmshptr->m.vnodnbr) * sizeof (Gnum)); /* Turn halo nodes into empty elements */
++    }
++    else if (memAllocGroup ((void **) (void *)    /* Fake elements need their own loads, which the original array does not hold */
++                            &meshptr->vendtax, (size_t) ((hmshptr->m.velmnbr + hmshptr->m.vnodnbr) * sizeof (Gnum)),
++                            &velotab,          (size_t) ((hmshptr->m.velmnbr + fakenbr)            * sizeof (Gnum)), NULL) == NULL)
++      meshptr->vendtax = NULL;
++    if (meshptr->vendtax == NULL) {
+       errorPrint ("hmeshMesh: out of memory (2)");
+       return     (1);
+     }
+     memCpy (meshptr->vendtax, hmshptr->m.vendtax + hmshptr->m.baseval, hmshptr->vnohnbr * sizeof (Gnum)); /* Copy non-halo node part */
+-    memCpy (meshptr->vendtax + hmshptr->vnohnbr, hmshptr->m.verttax + hmshptr->vnohnnd, (hmshptr->m.vnodnbr - hmshptr->vnohnbr) * sizeof (Gnum)); /* Create empty fake element part */
++    memCpy (meshptr->vendtax + hmshptr->vnohnbr, hmshptr->m.verttax + hmshptr->vnohnnd, fakenbr * sizeof (Gnum)); /* Create empty fake element part */
+     memCpy (meshptr->vendtax + hmshptr->m.vnodnbr, hmshptr->vehdtax + hmshptr->m.velmbas, hmshptr->m.velmnbr * sizeof (Gnum));
+ 
+-    meshptr->velmnbr = hmshptr->m.velmnbr + hmshptr->m.vnodnbr - hmshptr->vnohnbr; /* Turn halo node vertices into element vertices */
+-    meshptr->veisnbr = meshptr->veisnbr + hmshptr->m.vnodnbr - hmshptr->vnohnbr; /* Fake element vertices are isolated            */
+-    if (meshptr->velotax == NULL)                 /* If elements are not weighted, fake element vertices have unit loads */
+-      meshptr->velosum = meshptr->velosum + hmshptr->m.vnodnbr - hmshptr->vnohnbr;
++    if (velotab != NULL) {                        /* If elements are weighted, fake elements have unit loads */
++      Gnum                fakenum;
++
++      for (fakenum = 0; fakenum < fakenbr; fakenum ++)
++        velotab[fakenum] = 1;
++      memCpy (velotab + fakenbr, hmshptr->m.velotax + hmshptr->m.velmbas, hmshptr->m.velmnbr * sizeof (Gnum));
++      meshptr->velotax = velotab - hmshptr->vnohnnd; /* Fake elements come first, starting at vnohnnd */
++    }
++
++    meshptr->velmnbr = hmshptr->m.velmnbr + fakenbr; /* Turn halo node vertices into element vertices */
++    meshptr->veisnbr = meshptr->veisnbr + fakenbr; /* Fake element vertices are isolated            */
++    meshptr->velosum = hmshptr->m.velosum + fakenbr; /* Fake element vertices have unit loads       */
+     meshptr->velmbas = hmshptr->vnohnnd;
+     meshptr->velmnnd = hmshptr->m.velmnnd;
+   }
+-- 
+2.47.3
+

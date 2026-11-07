@@ -1,0 +1,49 @@
+From 0916386357b03da48a95c68f0189abb1b2dfd02b Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 21:18:22 +0000
+Subject: [PATCH 236/248] Bugfix: recompute node hash position after table
+ resize in `vmeshSeparateFm()` [report PyScotch]
+
+When the element hash table is full while the initial gains of the
+frontier nodes are being set, vmeshSeparateFmResize() re-hashes all
+tables and doubles the hash mask, so that the node being processed,
+which had just been inserted, moves to another slot. The local index
+hnodnum was not recomputed, whereas it is used right after to set the
+part and the element counter of that node. This corrupted another slot
+(or an empty one), resulting in "internal error (4)" in debug mode or in
+a crash.
+
+The other two resize call sites already recompute all their indices.
+
+Tested with an instrumented build in which the initial table size can
+be reduced: m2 200x200 mesh, mord crashed (segmentation fault) before
+the fix and gives a valid ordering after, also under ASan/UBSan with
+SCOTCH_DEBUG_VMESH2/VMESH3. With the standard SCOTCH_DEBUG_VMESH2 build
+(initial size divided by 8), mord on a 400x400 mesh failed with
+"vmeshSeparateFm: internal error (4)" before the fix and succeeds after.
+test_scotch_mesh_order passes.
+
+Debug and normal builds can give different (valid, comparable quality)
+orderings because forcing resizes changes the gain table link order.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ src/libscotch/vmesh_separate_fm.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/libscotch/vmesh_separate_fm.c b/src/libscotch/vmesh_separate_fm.c
+index d9b900c..519b398 100644
+--- a/src/libscotch/vmesh_separate_fm.c
++++ b/src/libscotch/vmesh_separate_fm.c
+@@ -468,6 +468,8 @@ const VmeshSeparateFmParam * restrict const paraptr) /*+ Method parameters    +*
+             hashsiz <<= 1;
+             hashmsk   = (hashmsk << 1) | 1;
+ 
++            for (hnodnum = (vnodnum * VMESHSEPAFMHASHPRIME) & hashmsk; /* Re-compute position of current node, which has moved */
++                 hnodtab[hnodnum].vnodnum != vnodnum; hnodnum = (hnodnum + 1) & hashmsk) ;
+             for (helmnum = (velmnum * VMESHSEPAFMHASHPRIME) & hashmsk; /* Re-compute position in table */
+                  helmtab[helmnum].velmnum != ~0; helmnum = (helmnum + 1) & hashmsk) ;
+           }
+-- 
+2.47.3
+

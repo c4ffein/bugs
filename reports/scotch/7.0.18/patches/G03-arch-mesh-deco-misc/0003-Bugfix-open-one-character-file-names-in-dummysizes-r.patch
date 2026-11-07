@@ -1,0 +1,48 @@
+From 6e1cd1979adb4f78f3d7b4a8aa0d4f57fb78f0cc Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:55:25 +0000
+Subject: [PATCH 3/4] Bugfix: open one-character file names in dummysizes
+ [report PyScotch]
+
+Since names default to "-", a file name is a standard stream if its
+first character is '-' and its second one is the terminating null
+character. The test for the opposite had been turned into a
+conjunction, so that one-character file names, e.g. "h", were taken
+for the standard input or output, and the files were not opened.
+
+Refs: PS3-G03-2
+---
+ src/libscotch/dummysizes.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/libscotch/dummysizes.c b/src/libscotch/dummysizes.c
+index 0a7df8e1..6520b621 100644
+--- a/src/libscotch/dummysizes.c
++++ b/src/libscotch/dummysizes.c
+@@ -1,4 +1,4 @@
+-/* Copyright 2004,2007-2010,2012,2014,2018,2019,2021,2023-2025 IPB, Universite de Bordeaux, INRIA & CNRS
++/* Copyright 2004,2007-2010,2012,2014,2018,2019,2021,2023-2026 IPB, Universite de Bordeaux, INRIA & CNRS
+ **
+ ** This file is part of the Scotch software package for static mapping,
+ ** graph partitioning and sparse matrix ordering.
+@@ -56,7 +56,7 @@
+ /**                # Version 6.1  : from : 09 feb 2021     **/
+ /**                                 to   : 22 jun 2021     **/
+ /**                # Version 7.0  : from : 25 aug 2019     **/
+-/**                                 to   : 13 aug 2025     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -228,7 +228,7 @@ char *                      argv[])
+   }
+ 
+   for (i = 0; i < C_FILENBR; i ++) {              /* For all file names     */
+-    if ((C_fileTab[i].nameptr[0] != '-') &&       /* If not standard stream */
++    if ((C_fileTab[i].nameptr[0] != '-') ||       /* If not standard stream */
+         (C_fileTab[i].nameptr[1] != '\0')) {
+       if ((C_fileTab[i].fileptr = fopen (C_fileTab[i].nameptr, ((C_fileTab[i].flagval & FILEMODE) == FILEMODER) ? "r" : "w")) == NULL) { /* Open the file */
+           fprintf (stderr, "dummysizes: ERROR: main: cannot open file (%d)\n", i);
+-- 
+2.43.0
+

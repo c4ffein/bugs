@@ -1,0 +1,12 @@
+asan np2 4 0 2: exit=1       1 ERROR: AddressSanitizer: memcpy-param-overlap: memory ranges [0x508000005338,0x50800000534;
+asan np2 8 0 2: exit=2       1 (0): ERROR: dgraphCheck: arc data do not match;      1 (1): ERROR: dgraphCheck: arc data do not match;      1 rank 0: rev=1 rc=0 check=1 bad-adjacency=0;
+asan np3 40 0 0: exit=2       1 (0): ERROR: dgraphCheck: arc data do not match;      1 (1): ERROR: dgraphCheck: arc data do not match;      1 (2): ERROR: dgraphCheck: arc data do not match;
+asan np4 41 1 0: exit=2       1 (0): ERROR: dgraphCheck: arc data do not match;      1 (1): ERROR: (2): ERROR: dgraphCheck: arc data do not match;      1 (3): ERROR: dgraphCheck: arc data do not match;
+build np2 4 0 2: exit=0       1 rank 0: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 1: rev=1 rc=0 check=0 bad-adjacency=0;
+build np2 8 0 2: exit=0       1 rank 0: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 1: rev=1 rc=0 check=0 bad-adjacency=0;
+build np3 40 0 0: exit=0       1 rank 0: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 1: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 2: rev=1 rc=0 check=0 bad-adjacency=0;
+build np4 41 1 0: exit=0       1 rank 0: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 1: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 2: rev=1 rc=0 check=0 bad-adjacency=0;
+build64 np2 4 0 2: exit=0       1 rank 0: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 1: rev=1 rc=0 check=0 bad-adjacency=0;
+build64 np2 8 0 2: exit=0       1 rank 0: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 1: rev=1 rc=0 check=0 bad-adjacency=0;
+build64 np3 40 0 0: exit=0       1 rank 0: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 1: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 2: rev=1 rc=0 check=0 bad-adjacency=0;
+build64 np4 41 1 0: exit=0       1 rank 0: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 1: rev=1 rc=0 check=0 bad-adjacency=0;      1 rank 2: rev=1 rc=0 check=0 bad-adjacency=0;

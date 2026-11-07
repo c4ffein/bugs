@@ -1,0 +1,16 @@
+# Moved from hegel-c docs/findings.toml [[submission]] (source hegel-c-submissions).
+# `fixes` names bugs by id.
+id = "scotch-hgraphordercp-report"
+project = "scotch"
+title = "hgraphOrderCp() on disconnected subgraphs leaves the permutation partly unfilled"
+kind = "report"
+fixes = ["scotch-hgraphordercp-disconnected"]
+state = "merged"
+since = "2026-04-15"
+commit = "064292127f79"
+notes = "A report, not a patch: fixed by the maintainer."
+
+[[versions]]
+v = 1
+sent = "2026-04"
+to = "F. Pellegrini"

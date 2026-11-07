@@ -1,0 +1,44 @@
+From c20360ea9344eb389fbd8e0c7fb15d8692690404 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:11:41 +0000
+Subject: [PATCH 6/9] Bugfix: count edges, not arcs, in communication delta of
+ `SCOTCH_dgraphMapView()` [report R. Perry]
+
+Since 27f4193c, the communication delta is computed with the
+formula of the sequential routine, but the communication load,
+dilation and expansion sums returned by `SCOTCH_dgraphMapStat()`
+count every edge once, while `edgeglbnbr` counts arcs. Hence, the
+printed value was twice that of `SCOTCH_graphMapView()` for the
+same mapping, e.g. 2.000000 instead of 1.000000 for any unweighted
+graph. Use the number of edges, as for the dilation line above.
+
+Refs: API-18
+---
+ src/libscotch/library_dgraph_map_view.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/libscotch/library_dgraph_map_view.c b/src/libscotch/library_dgraph_map_view.c
+index 5122fce6..d72f6a58 100644
+--- a/src/libscotch/library_dgraph_map_view.c
++++ b/src/libscotch/library_dgraph_map_view.c
+@@ -45,7 +45,7 @@
+ /**                # Version 6.0  : from : 29 nov 2012     **/
+ /**                                 to   : 25 apr 2018     **/
+ /**                # Version 7.0  : from : 27 aug 2019     **/
+-/**                                 to   : 28 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -145,7 +145,7 @@ FILE * const                  stream)
+   fprintf (stream, "M\tCommDelta=%f\n",
+            (((double) cmlosum  * (double) cmdisum) == 0.0L)
+            ? (double) 0.0L
+-           : ((double) cmexsum * (double) grafptr->edgeglbnbr) / ((double) cmlosum * (double) cmdisum));
++           : ((double) cmexsum * (double) (grafptr->edgeglbnbr / 2)) / ((double) cmlosum * (double) cmdisum));
+ 
+   for (cdstnum = 0; cdstnum <= cdstmax; cdstnum ++) /* Print distance histogram */
+     fprintf (stream, "M\tCmlosum[" ANUMSTRING "]=%f\n",
+-- 
+2.43.0
+

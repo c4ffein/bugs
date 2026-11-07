@@ -1,0 +1,412 @@
+[
+ {
+  "id": "COR-14",
+  "our_title": "meshXD distance no longer folded like a torus (no regression)",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/repro (7.0.17 kits; new/*.tgt, new/torusapi.c (mesh/torus builders), COR-20/run18.sh; transcript RESULTS18.txt). Pristine = INFRA/asan(64); patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build(64) (ASan+UBSan); bin/atst and bin/gmap. atst on pristine 7.0.18: meshXD 2 8 8 'max=14 avg=5.33333' == mesh2D 8 8; meshXD 3 4 4 4 'max=9' == mesh3D 4 4 4; torusXD twins 'max=8' == torus2D.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Fixed since 7.0.17 (feecf0d).",
+  "location_7_0_18": "src/libscotch/arch_mesh.c:930-950 (archMeshXDomDist)",
+  "evidence": "arch_mesh.c:940: '    disttmp = ((ABS (dom0ptr->c[dimnnum][0] + dom0ptr->c[dimnnum][1] -'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; the fix landed.",
+  "first_pass_critique": "First pass marked it 'fixed' correctly. It did not note that the twin archTorusXDomDist (arch_torus.c:169-176) KEEPS the folding on purpose (a torus has wrap-around links) -- verified: torusXD distances match torus2D/3D, so the twin is correct and must NOT be changed. The 7.0.17 rounding '(ABS(..)+1)/2' differs from the review's suggested 'distval += disttmp; >> 1' but gives the same tested results.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/arch_torus.c:174 archTorusXDomDist (folds by design)",
+    "quote": "    distval += (disttmp > archptr->c[dimnnum]) ? (2 * archptr->c[dimnnum] - disttmp) : disttmp;",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed (no regression)."
+ },
+ {
+  "id": "COR-16",
+  "our_title": "Deco loader propagates Build2 errors now; count/tree checks still missing",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/repro (7.0.17 kits; new/*.tgt, new/torusapi.c (mesh/torus builders), COR-20/run18.sh; transcript RESULTS18.txt). Pristine = INFRA/asan(64); patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build(64) (ASan+UBSan); bin/atst and bin/gmap. Pristine 7.0.18 32-bit: bad1.tgt (type-1, size 9 without sons) -> atst 'heap-buffer-overflow ... arch_deco.c:512 in _SCOTCHarchDecoDomSize', gmap -> 'arch_deco.c:538 in _SCOTCHarchDecoDomDist'; dup0.tgt (duplicate terminal) -> loads, 'Terminals nbr=1'; wbig.tgt -> 'signed integer overflow: 2000000000 + 2000000000'; wneg, num0, zero0 -> 'bad input (3)/(3)/(4)' (fixed). Patched (0002): bad1 -> 'archDecoArchLoad: bad input (7)', dup0 -> 'archDecoArchBuild2: bad terminal count', wbig -> 'bad input (3)', all ret=1 with no report; ok0/ok1/w0 and the 7 compiled corpus files (acpl outputs of ccc3, fft2_3, m4x4, hy3, m2 3x4...) load identically to pristine; 64-bit identical. Fuzzer (COR-16/fuzz.py, 300 mutations, seed 1, atst+gmap): pristine 7.0.18 -> 24 distinct signatures incl. 4 heap-buffer-overflow and 1 heap-use-after-free (fuzz18/asan.txt); patched -> 11, 0 memory-safety, all signed overflows: arch_deco.c:205/211 (Build2 distance averaging with distances near INT_MAX, not covered), atst.c:174 and kgraph_map_rb.c:637-638 (downstream sums) (fuzz18/build.txt, hits_patched18.txt).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Malformed deco target files: heap reads out of bounds in release builds.",
+  "location_7_0_18": "src/libscotch/arch_deco.c:164-169 (count check debug-only), 326-366 (type-1 loader: no tree validation)",
+  "evidence": "arch_deco.c:164-166: '#ifdef SCOTCH_DEBUG_ARCH1' / '  if (archptr->domverttab[0].size != termdomnbr) { /* If incorrect accumulation */' / '    errorPrint (\"archDecoArchBuild2: bad terminal count\");'",
+  "upstream_change": "09cf49decc propagates the result of archDecoArchBuild2(); a7692fbb30 adds sign checks to labels, weights, sizes and distances",
+  "upstream_fix_review": {
+   "commit": "a7692fbb30",
+   "verdict": "incomplete",
+   "details": "Right: renames, non-negative terminal labels/weights, type-1 labels/sizes/weights >= -1 and non-negative distances (arch_deco.c:289-296, 339-343, 356-357): 'deco 0 ... -1 ...' (wneg) rejected, the negative type-1 distance that crashed graphMapView2 in 7.0.17 is now 'bad input (6)'. Missing: the terminal count check of archDecoArchBuild2() is still under SCOTCH_DEBUG_ARCH1 (arch_deco.c:164-169), so 'deco 0 2 3 0 1 2 1 1 2 5' (duplicate terminal number) loads with 1 terminal; a terminal that is an ancestor of others (PS-COR-1) -> 'heap-buffer-overflow ... arch_deco.c:206 in _SCOTCHarchDecoArchBuild2'; termdommax is unbounded ('deco 0 1 70000' -> 'signed integer overflow: 69999 * 70000'); the overall terminal weight is unbounded (wbig -> 'signed integer overflow: 2000000000 + 2000000000' at arch_deco.c:161); type-1 domain arrays are not checked to form a tree (bad1.tgt -> 'heap-buffer-overflow ... arch_deco.c:512 in _SCOTCHarchDecoDomSize', gmap -> arch_deco.c:538 archDecoDomDist). Accepting size and weight -1 for type-1 slots is laxer than needed: archDecoArchSave() writes 0 for unused slots, only the label can be ARCHDOMNOTTERM. Style: the comments of arch_deco.c:192-197 are misaligned (stylecheck).",
+   "compared_with_ours": "Our 7.0.17 0003 had all the missing checks (unconditional count check, leaf check, termdommax bound, weight sum, type-1 tree validation) and propagated the Build2 result, which 09cf49de now does. Rebased 0002 keeps his structure, variable names and labels (fail1/fail2) and adds only the missing checks."
+  },
+  "review_accuracy": "accurate; if anything understated -- the type-1 path also yields a stack-buffer-overflow in graphMapView2 via a negative distance (the histogram commdist[] clamps only the high side).",
+  "first_pass_critique": "First pass option A is the right shape and I followed it, with corrections: (1) it used a magic 'termdommax <= 46340' literal; I use the overflow idiom '(termdommax - 1) > (ANUMMAX / termdommax)' which also scales to 64-bit; (2) it did not validate the type-1 DISTANCE array, missing the negative-distance stack-buffer-overflow in graphMapView2 -- I reject domdistval < 0; (3) it made the 'invalid null distance' check unconditional but left the terminal-weight accumulation unchecked (overflow). Its leaf check and type-1 tree check are correct and kept.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/arch_deco.c:313 (Build2 result now propagated by 09cf49de)",
+    "quote": "    o = archDecoArchBuild2 (archptr, termdomnbr, termdommax, termverttab, termdisttab);",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/arch_deco2_build.c:552-557 (deco2 twin count check still debug-only; G01 extra instance)",
+    "quote": "#ifdef SCOTCH_DEBUG_ARCH1\n  if ((vnumnbr < 0) || (vnumnbr > vertnbr)) {",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Unconditional count check, leaf check, termdommax and weight bounds, type-1 tree validation (rebased 0002)",
+    "summary": "On top of a7692fbb/09cf49de.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0002-Bugfix-validate-decomposition-defined-architectures-.patch",
+    "tested": "see 'ran'; check_scotch_arch_deco, check_arch_deco, check_prog_acpl/amk/atst/gmap 32/64-bit",
+    "tradeoffs": "rejects inconsistent files that loaded before",
+    "preferred": true,
+    "maintainer_fit": "his labels and names kept"
+   },
+   {
+    "label": "B. Minimal: only the count check",
+    "summary": "Lift the SCOTCH_DEBUG_ARCH1 guard of the count check.",
+    "diff_file": "",
+    "tested": "not written",
+    "tradeoffs": "leaves PS-COR-1 and type-1 overflows",
+    "preferred": false,
+    "maintainer_fit": "incomplete"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0002-Bugfix-validate-decomposition-defined-architectures-.patch"
+  ],
+  "cleanup_done": "one SCOTCH_DEBUG_ARCH1 block removed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed."
+ },
+ {
+  "id": "COR-20",
+  "our_title": "dummysizes defaults fixed; line test and debug block still broken",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/repro (7.0.17 kits; new/*.tgt, new/torusapi.c (mesh/torus builders), COR-20/run18.sh; transcript RESULTS18.txt). Pristine = INFRA/asan(64); patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build(64) (ASan+UBSan); bin/atst and bin/gmap. repro/COR-20/run18.sh on INFRA/asan/src/libscotch/dummysizes: two-char names ok; 'dummysizes < /dev/null' rc=0 (fixed); 2046-char line -> 'dummysizes: ERROR: line too long' rc=1; gcc -DSCOTCH_DEBUG_MAIN1 -c dummysizes.c -> 3 errors. Patched (0004): 2046-char line accepted, 2047 rejected; -DSCOTCH_DEBUG_MAIN1 compiles (0 errors); library builds (scotch.h regenerated).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Build-time tool.",
+  "location_7_0_18": "src/libscotch/dummysizes.c:367-368, 408-414",
+  "evidence": "dummysizes.c:368: '        (chartab[CHARMAX - 1] != '\\n')) {         /* And last character is not a newline, that is, some is missing */'; 410: '    if ((C_fileTab[i].name[0] != '-') ||          /* If not standard stream */'",
+  "upstream_change": "858ea2bc20 'Bugfix: default argument file names to \"-\" in dummysizes'",
+  "upstream_fix_review": {
+   "commit": "858ea2bc20",
+   "verdict": "wrong",
+   "details": "Right: names default to \"-\", so 'dummysizes < /dev/null' and the one-argument form no longer dereference NULL; newline added to error messages. Wrong: the standard-stream test was changed from '||' to '&&' (dummysizes.c:231-232), so any one-character file name is taken for a standard stream: 'dummysizes h o < /dev/null' reads stdin, writes stdout and creates no file 'o' (verified; 'lib.h out2.h' works). Missing: the line length test still reads chartab[CHARMAX - 1] (dummysizes.c:368), so a 2046-character line is reported 'line too long'; the SCOTCH_DEBUG_MAIN1 block (dummysizes.c:408-414) still uses .name/.pntr and does not compile (3 errors). Header date not bumped.",
+   "compared_with_ours": "Our 7.0.17 0005 set the default names and fixed the line test and the debug block, and kept '||'. His version adds the newlines to messages (better). Rebased: 0003 restores '||' (new defect PS3-G03-2), 0004 keeps our remainder."
+  },
+  "review_accuracy": "accurate; all three sub-issues confirmed.",
+  "first_pass_critique": "First pass option A (default names to '-') is right and tested; it did NOT actually apply the other two fixes the review calls for (the CHARMAX-2 line test and the debug-block field names). I include all three in one commit, as the review recommends.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Remainder of 7.0.17 0005 (0004) plus '||' restored (0003)",
+    "summary": "Test chartab[CHARMAX - 2]; nameptr/fileptr in the debug block.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0004-Bugfix-fix-line-length-test-and-debug-code-of-dummys.patch",
+    "tested": "see 'ran'",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "same lines as before"
+   },
+   {
+    "label": "B. Require both file names",
+    "summary": "Exit with usage if fewer than two names are given.",
+    "diff_file": "",
+    "tested": "7.0.17 only",
+    "tradeoffs": "Behaviour/usage change.",
+    "preferred": false,
+    "maintainer_fit": "The documented usage marks both names optional, so defaulting them is the in-style fix."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0004-Bugfix-fix-line-length-test-and-debug-code-of-dummys.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0003-Bugfix-open-one-character-file-names-in-dummysizes-r.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed."
+ },
+ {
+  "id": "COR-21",
+  "our_title": "Mesh/torus size checks added but overflow themselves; cmpltw sums unchecked",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/repro (7.0.17 kits; new/*.tgt, new/torusapi.c (mesh/torus builders), COR-20/run18.sh; transcript RESULTS18.txt). Pristine = INFRA/asan(64); patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build(64) (ASan+UBSan); bin/atst and bin/gmap. Pristine 32-bit atst: m2 (65536^2) -> 'arch_mesh.c:127:41: runtime error: signed integer overflow' then 'invalid architecture size'; new/m2b 'mesh2D 100000 50000' -> UBSan then accepted and 'AddressSanitizer: out of memory: allocator is trying to allocate 0x690edd000 bytes'; mesh3D 1000 1000 3000 -> UBSan, accepted; torus2D 100000 50000 -> same; cw/cws -> 'signed integer overflow: 2000000000 + 2000000000'; d0big/d1big -> 'signed integer overflow: 69999 * 70000'. torusapi: 't2 0 5' ret=0 size=0, 'tx 0 4' ret=0, 'mx 2 0 4' ret=0 size=0, 'm2 100000 50000' UBSan at library_arch.c:399. Patched (0001+0002): all rejected ('invalid architecture size' / 'invalid torus size' / 'invalid parameters' / 'bad input (2)/(3)') with no UBSan line; 'mesh2D 46340 46340' still loads; 64-bit 'mesh2D 4000000000 3000000000' rejected (pristine64: UBSan 'cannot be represented in type long int').",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Raised from low: the 3df345a8 check accepts wrapped sizes, which then drive huge allocations.",
+  "location_7_0_18": "src/libscotch/arch_mesh.c:127, 408-409, 667; src/libscotch/library_arch.c:399, 444-445, 494, 643, 681-682, 723; src/libscotch/arch_cmpltw.c:188, 259; src/libscotch/arch_deco.c:266-271",
+  "evidence": "arch_mesh.c:127: '  if (archsiz = archptr->c[0], (archsiz * archptr->c[1]) < archsiz) {'; arch_cmpltw.c:259: '    velosum += veloval;'",
+  "upstream_change": "3df345a8de 'Check mesh/torus architecture size overflow'",
+  "upstream_fix_review": {
+   "commit": "3df345a8de",
+   "verdict": "incomplete",
+   "details": "Right: archMeshXArchLoad() now rejects dimnnbr < 1 (arch_mesh.c:651), which fixes the meshXD half of COR-07 ('meshXD 0', 'meshXD -1', 'torusXD 0' -> 'archMeshXArchLoad: bad input (1)', verified); SCOTCH_archMesh2/3/X() now reject non-positive sizes and dimension counts; every loader/builder has a size check. Wrong: the check '(archsiz * c) < archsiz' (arch_mesh.c:127,408-409,667; library_arch.c:399,444-445,494,643,681-682,723) computes the overflowing signed product (UBSan) and misses wraps to a larger value: 'mesh2D 100000 50000' -> 'arch_mesh.c:127:41: runtime error: signed integer overflow' then accepted, and atst tries to allocate 0x690edd000 bytes; SCOTCH_archMesh2/Torus2 (100000, 50000) accepted with UBSan at library_arch.c:399/674. Missing: SCOTCH_archTorus2/3/X() do not reject non-positive sizes (torusapi 't2 0 5' -> ret=0 size=0) and SCOTCH_archTorusX() accepts dimnnbr <= 0 ('tx 0 4' -> ret=0), SCOTCH_archMeshX() never checks c[0] ('mx 2 0 4' -> ret=0 size=0); the cmpltw/cmpltws weight sums (arch_cmpltw.c:188, 259) are still unchecked ('cmpltw 2 2000000000 2000000000' -> 'signed integer overflow: 2000000000 + 2000000000').",
+   "compared_with_ours": "Our 7.0.17 0002 used the ANUMMAX division idiom in the three loaders and covered cmpltw sums; it did not touch the API builders (his commit adds those, which is better). Rebased 0001 keeps his loader/builder checks, replaces the product comparisons by the division idiom, and adds the missing torus/meshX parameter checks and the cmpltw sums."
+  },
+  "review_accuracy": "accurate; the review lists arch_mesh.c and arch_cmpltw.c. The same pattern also exists in arch_deco.c (termdommax products and the terminal-weight accumulation), which the review did not list.",
+  "first_pass_critique": "First pass option A is essentially right and I adopted its idiom. Two issues: (1) it added the cmpltw overflow check ONLY in archCmpltwArchLoad2 and labelled both of its two hunks 'archCmpltwArchLoad2', but the twin accumulation in archCmpltwArchBuild2 (reached by SCOTCH_archCmpltw API) needs it too, with its own prefix -- I guard both; (2) it did not notice the arch_deco.c instances (termdommax product and terminal-weight sum).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/library_arch.c SCOTCH_archTorus2/3/X (no c < 1 / dimnnbr < 1 check), SCOTCH_archMeshX (c[0] unchecked)",
+    "quote": "  for (dimnnum = 1, archsiz = tgtarchdatptr->c[0]; dimnnum < tgtarchdatptr->dimnnbr; dimnnum ++) {",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/arch_cmpltw.c:188 archCmpltwArchBuild2",
+    "quote": "    velosum += veloval;",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/arch_deco.c:266-271 termdommax, 161 weight accumulation",
+    "quote": "      (termdommax < termdomnbr)            ||",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/arch_deco.c:205, 211 (archDecoArchBuild2 averages of up to four distances overflow when type-0 distances are near ANUMMAX; fuzzer hit; fix: bound distances by (ANUMMAX - 2) / 4 in the loader)",
+    "quote": "            (archDecoArchDistE (archptr, 2 * domnend,     2 * domnnum)     +",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/arch_tleaf.c:141, library_arch.c:581 (tleaf, same idiom; G02 0003)",
+    "quote": "    if ((archsiz * archptr->sizetab[levlnum]) < archsiz) {",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Division idiom in all mesh/torus checks, missing torus/meshX parameter checks, cmpltw sums (0001); deco bounds in 0002",
+    "summary": "'c0 > ANUMMAX / c1' before multiplying; 'veloval > ANUMMAX - velosum'.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0001-Bugfix-check-target-architecture-sizes-without-overf.patch",
+    "tested": "see 'ran'; check_scotch_arch*, check_prog_amk/amk_grf/acpl/atst/gmap 32/64",
+    "tradeoffs": "SCOTCH_archTorus*() now reject sizes < 1 like the mesh builders",
+    "preferred": true,
+    "maintainer_fit": "keeps his messages and structure"
+   },
+   {
+    "label": "B. Widen the DomSize arithmetic and clamp",
+    "summary": "Compute products in int64_t and clamp to ANUMMAX in archMesh*DomSize, leaving the loaders permissive.",
+    "diff_file": "",
+    "tested": "7.0.17 only",
+    "tradeoffs": "Hides the problem instead of rejecting; introduces int64_t into Anum paths.",
+    "preferred": false,
+    "maintainer_fit": "He rejects bad input at the loader rather than silently clamping downstream."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0001-Bugfix-check-target-architecture-sizes-without-overf.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0002-Bugfix-validate-decomposition-defined-architectures-.patch"
+  ],
+  "cleanup_done": "the 'archsiz' locals made unused in SCOTCH_archMesh2/3 and SCOTCH_archTorus2/3 and archMesh2/3ArchLoad are removed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed. The cmpltw Build2 hunk sits next to G02's memFree(vecwtab) fix: the two series apply in either order with 'git am -3' (verified G01 -> G02 -> G03)."
+ },
+ {
+  "id": "COR-28",
+  "our_title": "fiboHeapDecreaseMacro now uses its parameters (fixed upstream)",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/repro (7.0.17 kits; new/*.tgt, new/torusapi.c (mesh/torus builders), COR-20/run18.sh; transcript RESULTS18.txt). Pristine = INFRA/asan(64); patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build(64) (ASan+UBSan); bin/atst and bin/gmap. fibo.h:149-167 at v7.0.18 compared with our 7.0.17 0004 applied to v7.0.17 fibo.h: macro bodies identical modulo spacing; check_fibo passes on the 32-bit and 64-bit G03 trees (fibo.h unchanged by our series).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/fibo.h:149-167",
+  "evidence": "fibo.h:153: '                                          ((t)->cmpfptr ((n), pareptr) < 0)) {        \\'",
+  "upstream_change": "611f39c389 'Bugfix: use proper parameter names in macro'",
+  "upstream_fix_review": {
+   "commit": "611f39c389",
+   "verdict": "correct",
+   "details": "fiboHeapDecreaseMacro now uses (t) and (n) everywhere (fibo.h:149-167); body identical to our 7.0.17 0004 modulo alignment; check_fibo passes on 32/64-bit.",
+   "compared_with_ours": "Identical; our 0004 dropped."
+  },
+  "review_accuracy": "accurate (latent).",
+  "first_pass_critique": "First pass option A (pure rename) is right. Its sketch diff mangled the line-continuation backslash alignment; my commit keeps all backslashes aligned at their original column (90).",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Use the macro parameters",
+    "summary": "Replace treeptr->(t) and nodeptr->(n) in the body, including both fiboHeapMoveToRoot calls.",
+    "diff_file": "",
+    "tested": "upstream identical",
+    "tradeoffs": "Zero behaviour change; removes a trap for future callers.",
+    "preferred": true,
+    "maintainer_fit": "Consistent with the neighbouring macros (fiboHeapMoveToRoot, fiboHeapDelMacro) which all use their own parameters."
+   },
+   {
+    "label": "B. Replace the macro with a static inline function",
+    "summary": "Turn fiboHeapDecrease into a static inline function to get parameter hygiene for free.",
+    "diff_file": "",
+    "tested": "untested sketch (diff only switches the #define; a real change moves the body into a function).",
+    "tradeoffs": "Larger change; the maintainer deliberately keeps these hot-path operations as macros.",
+    "preferred": false,
+    "maintainer_fit": "He keeps fibo operations as macros (fiboHeapUnlink/LinkAfter/Del); a one-token rename is closer to his habit."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (611f39c3, identical to our 0004, which is dropped)."
+ },
+ {
+  "id": "PS-COR-1",
+  "our_title": "Type-0 deco terminal that is an ancestor still overflows the distance table",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/repro (7.0.17 kits; new/*.tgt, new/torusapi.c (mesh/torus builders), COR-20/run18.sh; transcript RESULTS18.txt). Pristine = INFRA/asan(64); patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build(64) (ASan+UBSan); bin/atst and bin/gmap. atst PS-COR-1/anc.tgt on pristine 7.0.18 -> 'AddressSanitizer: heap-buffer-overflow ... arch_deco.c:206 in _SCOTCHarchDecoArchBuild2'; patched (0002) -> 'archDecoArchBuild2: terminal domain is not a leaf', ret=1, 32/64-bit.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/arch_deco.c:183-215 (distance loop)",
+  "evidence": "arch_deco.c:192-197: '      if (archDecoArchSize (archptr, domnend) > 1) {    /* If domain domnend has subdomains */' ... 'archDecoArchDistE (archptr, 2 * domnend,     2 * domnnum)'",
+  "upstream_change": "a7692fbb30 rewrote the loop (renames only)",
+  "upstream_fix_review": {
+   "commit": "a7692fbb30",
+   "verdict": "incomplete",
+   "details": "Right: renames, non-negative terminal labels/weights, type-1 labels/sizes/weights >= -1 and non-negative distances (arch_deco.c:289-296, 339-343, 356-357): 'deco 0 ... -1 ...' (wneg) rejected, the negative type-1 distance that crashed graphMapView2 in 7.0.17 is now 'bad input (6)'. Missing: the terminal count check of archDecoArchBuild2() is still under SCOTCH_DEBUG_ARCH1 (arch_deco.c:164-169), so 'deco 0 2 3 0 1 2 1 1 2 5' (duplicate terminal number) loads with 1 terminal; a terminal that is an ancestor of others (PS-COR-1) -> 'heap-buffer-overflow ... arch_deco.c:206 in _SCOTCHarchDecoArchBuild2'; termdommax is unbounded ('deco 0 1 70000' -> 'signed integer overflow: 69999 * 70000'); the overall terminal weight is unbounded (wbig -> 'signed integer overflow: 2000000000 + 2000000000' at arch_deco.c:161); type-1 domain arrays are not checked to form a tree (bad1.tgt -> 'heap-buffer-overflow ... arch_deco.c:512 in _SCOTCHarchDecoDomSize', gmap -> arch_deco.c:538 archDecoDomDist). Accepting size and weight -1 for type-1 slots is laxer than needed: archDecoArchSave() writes 0 for unused slots, only the label can be ARCHDOMNOTTERM. Style: the comments of arch_deco.c:192-197 are misaligned (stylecheck).",
+   "compared_with_ours": "Our 7.0.17 0003 had all the missing checks (unconditional count check, leaf check, termdommax bound, weight sum, type-1 tree validation) and propagated the Build2 result, which 09cf49de now does. Rebased 0002 keeps his structure, variable names and labels (fail1/fail2) and adds only the missing checks."
+  },
+  "review_accuracy": "n/a (new defect found by the first pass, confirmed here).",
+  "first_pass_critique": "First pass correctly found it and preferred the leaf check (option A). Its alternative 'bound the distance loop' hides the inconsistent tree rather than rejecting it; I agree with the leaf check and implement it.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Leaf check after accumulation",
+    "summary": "After summing sizes to the root, require every declared terminal domain to have size 1; else error and free.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0002-Bugfix-validate-decomposition-defined-architectures-.patch",
+    "tested": "see 'ran'",
+    "tradeoffs": "Rejects previously-accepted nonsensical files.",
+    "preferred": true,
+    "maintainer_fit": "A leaf has size 1 by construction; checking it belongs with the other Build2 consistency checks the same commit makes unconditional."
+   },
+   {
+    "label": "B. Bound the distance loop",
+    "summary": "Skip domains whose son index 2*j+1 exceeds termdommax in the distance loop.",
+    "diff_file": "",
+    "tested": "untested: avoids the OOB but silently builds a distance matrix from an inconsistent tree, yielding wrong distances.",
+    "tradeoffs": "Masks the defect instead of rejecting the file.",
+    "preferred": false,
+    "maintainer_fit": "He rejects inconsistent input rather than computing on it."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0002-Bugfix-validate-decomposition-defined-architectures-.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G03-1",
+  "our_title": "Overall type-0 deco terminal weight still overflows Anum",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/repro (7.0.17 kits; new/*.tgt, new/torusapi.c (mesh/torus builders), COR-20/run18.sh; transcript RESULTS18.txt). Pristine = INFRA/asan(64); patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build(64) (ASan+UBSan); bin/atst and bin/gmap. gmap m4x4.grf COR-16/wbig.tgt on pristine 7.0.18 -> 'runtime error: signed integer overflow: 2000000000 + 2000000000'; patched (0002) -> 'archDecoArchLoad: bad input (3)'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/arch_deco.c:161, 283-301",
+  "evidence": "arch_deco.c:161: '      archptr->domverttab[dfatnum].wght += archptr->domverttab[domnnum].wght;'",
+  "upstream_change": "a7692fbb30 rejects negative weights only",
+  "upstream_fix_review": {
+   "commit": "a7692fbb30",
+   "verdict": "incomplete",
+   "details": "Right: renames, non-negative terminal labels/weights, type-1 labels/sizes/weights >= -1 and non-negative distances (arch_deco.c:289-296, 339-343, 356-357): 'deco 0 ... -1 ...' (wneg) rejected, the negative type-1 distance that crashed graphMapView2 in 7.0.17 is now 'bad input (6)'. Missing: the terminal count check of archDecoArchBuild2() is still under SCOTCH_DEBUG_ARCH1 (arch_deco.c:164-169), so 'deco 0 2 3 0 1 2 1 1 2 5' (duplicate terminal number) loads with 1 terminal; a terminal that is an ancestor of others (PS-COR-1) -> 'heap-buffer-overflow ... arch_deco.c:206 in _SCOTCHarchDecoArchBuild2'; termdommax is unbounded ('deco 0 1 70000' -> 'signed integer overflow: 69999 * 70000'); the overall terminal weight is unbounded (wbig -> 'signed integer overflow: 2000000000 + 2000000000' at arch_deco.c:161); type-1 domain arrays are not checked to form a tree (bad1.tgt -> 'heap-buffer-overflow ... arch_deco.c:512 in _SCOTCHarchDecoDomSize', gmap -> arch_deco.c:538 archDecoDomDist). Accepting size and weight -1 for type-1 slots is laxer than needed: archDecoArchSave() writes 0 for unused slots, only the label can be ARCHDOMNOTTERM. Style: the comments of arch_deco.c:192-197 are misaligned (stylecheck).",
+   "compared_with_ours": "Our 7.0.17 0003 had all the missing checks (unconditional count check, leaf check, termdommax bound, weight sum, type-1 tree validation) and propagated the Build2 result, which 09cf49de now does. Rebased 0002 keeps his structure, variable names and labels (fail1/fail2) and adds only the missing checks."
+  },
+  "review_accuracy": "not in the review (our finding)",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Check the overall weight at load time",
+    "summary": "Accumulate the terminal weights read from the file and reject when the running sum would exceed ANUMMAX, like archCmpltwArchLoad2 does for cmpltw.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0002-Bugfix-validate-decomposition-defined-architectures-.patch",
+    "tested": "see 'ran'",
+    "tradeoffs": "Rejects .tgt files whose total weight does not fit in an Anum (never usefully representable).",
+    "preferred": true,
+    "maintainer_fit": "Same weight-sum guard as cmpltw; this is the deco twin of COR-21's arch_cmpltw.c instance.",
+    "maintainer_fit_note": ""
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/patches/0002-Bugfix-validate-decomposition-defined-architectures-.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G03-2",
+  "our_title": "graphMapView2 histogram index not clamped low (now unreachable from deco files)",
+  "status": "still-present",
+  "method": "partly-run",
+  "ran": "Kits: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/repro (7.0.17 kits; new/*.tgt, new/torusapi.c (mesh/torus builders), COR-20/run18.sh; transcript RESULTS18.txt). Pristine = INFRA/asan(64); patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build(64) (ASan+UBSan); bin/atst and bin/gmap. The 7.0.17 trigger (type-1 deco with a negative distance) is now rejected by a7692fbb ('archDecoArchLoad: bad input (6)').",
+  "read_only": "library_graph_map_view.c:473 still clamps only the high side; no remaining architecture class known to return a negative distance after the patches, so only read.",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_graph_map_view.c:473",
+  "evidence": "'commdist[(distval > 255) ? 255 : distval] += edloval;'",
+  "upstream_change": "a7692fbb30 removes the known trigger",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (our finding)",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Clamp the histogram index low as well (out of this group's scope)",
+    "summary": "Use 'commdist[(distval < 0) ? 0 : (distval > 255) ? 255 : distval]' and/or widen the cost accumulators; belongs to the sequential-mapping group, not the architecture loaders.",
+    "diff_file": "",
+    "tested": "untested: not in arch_mesh/arch_deco/arch_cmpltw; the deco loader fix removes the only path this group controls.",
+    "tradeoffs": "Touches mapping code owned by another area; the general cost-overflow with legitimately large distances affects every architecture class.",
+    "preferred": false,
+    "maintainer_fit": "A defensive clamp is reasonable but is a mapping-layer decision; flagged for the owning group.",
+    "maintainer_fit_note": ""
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (info; trigger gone). Mapping-view group's file."
+ }
+]

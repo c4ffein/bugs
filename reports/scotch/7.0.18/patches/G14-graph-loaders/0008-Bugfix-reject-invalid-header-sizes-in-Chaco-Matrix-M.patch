@@ -1,0 +1,71 @@
+From ebf677b2caa2107451548b592899b96b37503c02 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 09:18:48 +0000
+Subject: [PATCH 8/9] Bugfix: reject invalid header sizes in Chaco, Matrix
+ Market and Harwell-Boeing loaders [report PyScotch]
+
+The Chaco, Matrix Market and Harwell-Boeing graph loaders used the
+vertex and edge counts of the file header as array sizes without any
+check: negative values became huge allocation requests, and the doubled
+edge or line counts could overflow a Gnum. Reject negative counts and
+counts which do not fit, as `graphLoad()` already does for its own
+header.
+
+Refs: PS2-G14-1
+---
+ src/libscotch/graph_io_chac.c | 5 +++++
+ src/libscotch/graph_io_habo.c | 5 +++++
+ src/libscotch/graph_io_mmkt.c | 5 +++++
+ 3 files changed, 15 insertions(+)
+
+diff --git a/src/libscotch/graph_io_chac.c b/src/libscotch/graph_io_chac.c
+index dc4260da..f5445c32 100644
+--- a/src/libscotch/graph_io_chac.c
++++ b/src/libscotch/graph_io_chac.c
+@@ -117,6 +117,11 @@ const char * const          dataptr)              /* No use           */
+     return (1);
+   }
+   getc (filesrcptr);                              /* Purge newline; cannot be merged with fscanf above */
++  if ((chavertnbr < 0) || (chavertnbr >= GNUMMAX) || /* Vertex and arc counts must be non-negative and fit in a Gnum */
++      (chaedgenbr < 0) || (chaedgenbr > (GNUMMAX / 2))) {
++    errorPrint ("graphGeomLoadChac: invalid graph size");
++    return (1);
++  }
+ 
+   chaflagstr[0] =                                 /* Pre-set flag array */
+   chaflagstr[1] =
+diff --git a/src/libscotch/graph_io_habo.c b/src/libscotch/graph_io_habo.c
+index 9d92aa0b..7465d665 100644
+--- a/src/libscotch/graph_io_habo.c
++++ b/src/libscotch/graph_io_habo.c
+@@ -183,6 +183,11 @@ const char * const          dataptr)              /* Tag value        */
+     errorPrint ("graphGeomLoadHabo: rectangular matrices not supported");
+     return (1);
+   }
++  if ((habcolnbr < 0) || (habcolnbr >= GNUMMAX) || /* Sizes must be non-negative and twice the number of non-zeros must fit in a Gnum */
++      (habnzrnbr < 0) || (habnzrnbr > (GNUMMAX / 2))) {
++    errorPrint ("graphGeomLoadHabo: invalid matrix size");
++    return (1);
++  }
+ 
+   if (((grafptr->verttax = (Gnum *) memAlloc ((habcolnbr + 1) * sizeof (Gnum))) == NULL) ||
+       (memAllocGroup ((void **) (void *)
+diff --git a/src/libscotch/graph_io_mmkt.c b/src/libscotch/graph_io_mmkt.c
+index 753f0ff4..38750b6b 100644
+--- a/src/libscotch/graph_io_mmkt.c
++++ b/src/libscotch/graph_io_mmkt.c
+@@ -145,6 +145,11 @@ const char * const          dataptr)              /* Fake base value  */
+     errorPrint ("graphGeomLoadMmkt: not a square matrix");
+     return (1);
+   }
++  if ((mrownbr < 0) || (mrownbr >= GNUMMAX) ||    /* Sizes must be non-negative and twice the number of lines must fit in a Gnum */
++      (linenbr < 0) || (linenbr > (GNUMMAX / 2))) {
++    errorPrint ("graphGeomLoadMmkt: invalid matrix size");
++    return (1);
++  }
+ 
+   memSet (grafptr, 0, sizeof (Graph));
+ 
+-- 
+2.43.0
+

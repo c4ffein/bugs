@@ -1,0 +1,6 @@
+7.0.18 round additions to the G07 kit
+- COR-15-twins/tabload.c: SCOTCH_graphTabLoad() on m4x4.grf (copy from git show v7.0.18) with ovfpart/ovfcount/ovflabel.map
+  (32-bit) and ovfpart64.map (64-bit): fscanf twin of intLoad (PS3-G07-1); ovf.chaco: Chaco header twin (gcv -ic).
+- COR-15/timing/intbench.c: CPU time of intLoad() over all integers of a 72 MB graph (gmk_m2 1500 1500), -O3 trees of
+  7.0.17 and 7.0.18 ($T/o3_17, $T/o3_18 under scratchpad/t_g04g05g07g24); results intbench18.txt, timing18.txt.
+- run08/ (in WORK): COR-08 / PS2-G07-1 runs on fork-mode builds buildnp0 (pristine) and buildnp (patched).

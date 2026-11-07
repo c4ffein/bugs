@@ -1,0 +1,82 @@
+From b1ce065cdf8c612ee949d28c47c67bc8e38d24b1 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 21:01:48 +0000
+Subject: [PATCH 235/248] Bugfix: do not let the debug consistency check race
+ with the allocation check in `bgraphBipartDf()`
+
+The post-allocation test of `abrtval` and the debug-only consistency check
+of external gains (SCOTCH_DEBUG_BGRAPH2) shared the same flag. A fast
+thread, past the allocation barrier, could set it while a slow thread was
+still testing it for the allocation phase; the slow thread then freed its
+data and returned, leaving the other threads blocked in the reduction
+and reading freed memory. Use a separate flag for the consistency check,
+tested only at the next barrier.
+
+Tested: debug build (-DSCOTCH_DEBUG_BGRAPH2) with a test-only hack
+(thread 1 always reports the inconsistency, thread 0 sleeps 300ms after
+the allocation barrier), mapgrid 20 4 8 'r{sep=g{pass=2}b{bnd=d{pass=40},
+org=d{pass=40},width=3}}': before, ASan heap-use-after-free in
+bgraphBipartDfReduceVeex; after, clean rc=1. Normal ASan/UBSan build:
+check_prog_gpart and check_prog_gmap pass; DF results identical for 1/4/8
+threads; no new warning.
+---
+ src/libscotch/bgraph_bipart_df.c | 9 ++++++---
+ src/libscotch/bgraph_bipart_df.h | 1 +
+ 2 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/src/libscotch/bgraph_bipart_df.c b/src/libscotch/bgraph_bipart_df.c
+index 12be23f..66ab234 100644
+--- a/src/libscotch/bgraph_bipart_df.c
++++ b/src/libscotch/bgraph_bipart_df.c
+@@ -255,7 +255,7 @@ BgraphBipartDfData * restrict const loopptr)
+       if (((veexval >= 0) && (veexval1 != 0)) ||
+           ((veexval <  0) && (veexval1 != veexval))) {
+         errorPrint ("bgraphBipartDfLoop: internal error");
+-        loopptr->abrtval = 1;
++        loopptr->chekval = 1;                     /* Not abrtval, which other threads may be testing right now */
+       }
+ #endif /* SCOTCH_DEBUG_BGRAPH2 */
+ 
+@@ -289,7 +289,8 @@ BgraphBipartDfData * restrict const loopptr)
+   threadBarrier (descptr);                        /* Wait until all array values have been computed */
+ #endif /* BGRAPHBIPARTDFNOTHREAD */
+ 
+-  if (loopptr->abrtval != 0) {                    /* If any process decided to quit */
++  if ((loopptr->abrtval != 0) ||                  /* If any process decided to quit */
++      (loopptr->chekval != 0)) {                  /* Or detected an inconsistency   */
+     memFree (ielstax + vertbas);                  /* Free local array               */
+     return;
+   }
+@@ -524,6 +525,7 @@ const BgraphBipartDfParam * const paraptr)        /*+ Method parameters +*/
+   loopdat.vanctab[0] = (float) - compload0;       /* Values to be injected to anchor vertices at every iteration                 */
+   loopdat.vanctab[1] = (float) (grafptr->s.velosum - compload0) - BGRAPHBIPARTDFEPSILON; /* Slightly tilt value to add to part 1 */
+   loopdat.abrtval = 0;                            /* Nobody wants to abort yet */
++  loopdat.chekval = 0;
+ 
+ #ifndef BGRAPHBIPARTDFNOTHREAD
+   contextThreadLaunch (grafptr->contptr, (ThreadFunc) bgraphBipartDfLoop, (void *) &loopdat);
+@@ -531,7 +533,8 @@ const BgraphBipartDfParam * const paraptr)        /*+ Method parameters +*/
+   bgraphBipartDfLoop (NULL, &loopdat);
+ #endif /* BGRAPHBIPARTDFNOTHREAD */
+ 
+-  if (loopdat.abrtval != 0) {                     /* If some thread could not complete its work, thread data are not valid */
++  if ((loopdat.abrtval != 0) ||                   /* If some thread could not complete its work, thread data are not valid */
++      (loopdat.chekval != 0)) {
+     memFree (loopdat.thrdtab);                    /* Free group leader */
+     return (1);
+   }
+diff --git a/src/libscotch/bgraph_bipart_df.h b/src/libscotch/bgraph_bipart_df.h
+index 3ad51e3..924c424 100644
+--- a/src/libscotch/bgraph_bipart_df.h
++++ b/src/libscotch/bgraph_bipart_df.h
+@@ -107,6 +107,7 @@ typedef struct BgraphBipartDfData_ {
+   INT                       passnbr;              /*+ Number of passes              +*/
+   float                     vanctab[2];           /*+ Anchor load arrays            +*/
+   int                       abrtval;              /*+ Abort value, set on error     +*/
++  int                       chekval;              /*+ Inconsistency found (debug)   +*/
+ } BgraphBipartDfData;
+ 
+ /*
+-- 
+2.47.3
+

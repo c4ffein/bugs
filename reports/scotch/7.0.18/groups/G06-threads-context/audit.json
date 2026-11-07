@@ -1,0 +1,523 @@
+[
+ {
+  "id": "COR-09",
+  "our_title": "Thread creation failure with launched slaves still hangs; master never joins start-up barrier",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "repro/COR-09 (spawn 4, LD_PRELOAD shim failing the N-th pthread_create), pristine 7.0.18 ASan: FAIL_AT=1 -> 'threadContextInit: cannot create thread (1)', 'spawn (4) returned 1', 'exit done', rc=0, no leak (fixed); FAIL_AT=2 and 3 -> error printed then hang (timeout 15 s, rc=124). gdb on FAIL_AT=2: slave 'threadWaitBarrier1 common_thread.c:331' in pthread_cond_wait, master '__pthread_cond_destroy ... threadContextExit3 common_thread.c:193 <- threadContextInit :146'. ThreadSanitizer tree (pristine 7.0.18, -O1 -fsanitize=thread, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan), FAIL_AT=3: 6 reports: data race write common_thread.c:145 (contptr->thrdnbr = thrdnum, no lock) vs read :322 under lock in threadWaitBarrier1; pthread_mutex_destroy/pthread_cond_destroy (:193-194) while T1 waits in pthread_cond_wait (:331); 'destroy of a locked mutex'; and 'free ... contextThreadInit2 common_context.c:202' racing with T1's read at :338 (use after free of the ThreadContext). Patched (0002): FAIL_AT=1,2,3 -> 'spawn (4) returned 1', 'exit done', rc=0 on 32/64-bit ASan trees, spawn 8 with FAIL_AT=2,5,8 rc=0; TSan patched tree (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsanp): 0 reports for FAIL_AT=0,1,2,3, check_common_thread and check_scotch_context at 4 threads 0 reports. check_common_thread, check_common_random, check_scotch_context, check_scotch_graph_map at 1/2/4 threads x SCOTCH_DETERMINISTIC=0/1 on the 32- and 64-bit trees: 48/48 rc=0 (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/check.log); both trees 0 warnings.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Same as the review: reachable from every library call (contextCommit creates the thread pool) when thread creation fails (EAGAIN under ulimit/cgroup pressure); a hang is worse than the failed call it replaces, but the trigger is a resource exhaustion.",
+  "location_7_0_18": "src/libscotch/common_thread.c:144-148 (failure path), :171-195 (threadContextExit3), :311-342 (threadWaitBarrier1), :402 (threadWait)",
+  "evidence": "common_thread.c:145-148 'contptr->thrdnbr = thrdnum; /* Terminate all threads that have been launched to date */ threadContextExit3 (contptr); memFree (desctab); return  (1);' -- thrdnbr = thrdnum counts the master, which never enters the start-up barrier on this path, so the thrdnum - 1 slaves in threadWaitBarrier1 (:322 'if (barrnbr == contptr->thrdnbr)', :333 same test after wake-up) never reach the count; Exit3 :186-190 'do { ... barrnbr = contptr->barrnbr; ... } while (barrnbr != thrdnbr);' is satisfied by the slaves' barrier arrivals (barrnbr == thrdnum - 1), not by their termination acknowledgements, then :193-194 destroy cond/mutex under waiters.",
+  "upstream_change": "86559b85 Bugfix: abort cleanly when cannot start thread system [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "86559b853e",
+   "verdict": "wrong",
+   "details": "Right: desctab is now freed (:147) and the lock features are destroyed even when no slave was launched (Exit3 :193-194), which fixes the leak for FAIL_AT=1; threadWaitBarrier1 reads thrdnbr under the lock, which a reduced count needs. Wrong: the reduced count (:145, thrdnbr = thrdnum) includes the master, but the master never takes part in the start-up barrier on the failure path, so the barrier can never complete (slave positions are 1..thrdnum-1); the in-loop 're-check' at :333 can therefore never fire. Exit3's spin (:186-190) counts barrier arrivals as terminations, exits early and destroys the cond/mutex with waiters: glibc blocks forever in pthread_cond_destroy (same hang as 7.0.17, new place); with other libcs/TSan the slaves are left parked on destroyed primitives inside a ThreadContext that contextThreadInit2 frees (common_context.c:202): use after free (TSan report). Also :145 writes thrdnbr without the lock while slaves read it under the lock (data race; 'volatile' added to common_thread.h does not make it race-free). Even with a slave-only count (thrdnum - 1) Exit3 would stay racy: barrnbr can equal the slave count from barrier arrivals stored before the reduction, before the last slave resets it. Typo 'shutdow' copied from Exit2.",
+   "compared_with_ours": "Our 7.0.17 0002 did what is still missing: lock, reduce thrdnbr, master joins threadContextBarrier, then exits (the barrier resets barrnbr to 0, so the exit spin counts only terminations). His version is better on structure (dedicated Exit3 that always destroys the lock features, so no special case for thrdnum == 1; barrier reading thrdnbr under lock). The rebased 0002 keeps all of his code and adds only the locked reduction and the master's barrier call (3 lines): best of both."
+  },
+  "review_accuracy": "accurate (mechanism, both symptoms, location); carried over.",
+  "first_pass_critique": "Status, method and evidence correct; its diff (firstpass_work/COR/diffs/common_thread.c.diff) matches its sketch and is behaviourally the same as patches/0002. Gaps: it did not run ThreadSanitizer on the barrier change, did not check the other init paths (contextThreadInit2 frees thrdptr correctly; SCOTCH_contextThreadImport1 has no failure path), and did not build 64-bit. Its tradeoff note 'depends on the started threads being reachable by the barrier' is right: they can only be in threadContextBarrier() or before it, and the comparison against thrdnbr is made under the lock, so every interleaving completes.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Master joins the start-up barrier under his Exit3 scheme (recommended, committed)",
+    "summary": "Failure path: lock; thrdnbr = thrdnum; unlock; threadContextBarrier (contptr); threadContextExit3 (contptr); memFree (desctab).",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0002-Bugfix-make-master-thread-join-start-up-barrier-when.patch",
+    "tested": "repro/COR-09 FAIL_AT=1..3 (4 threads) and 2,5,8 (8 threads) on 32/64-bit ASan, TSan 0 reports; check_common_thread, check_common_random, check_scotch_context, check_scotch_graph_map at 1/2/4 threads x SCOTCH_DETERMINISTIC=0/1 on the 32- and 64-bit trees: 48/48 rc=0 (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/check.log); both trees 0 warnings",
+    "tradeoffs": "threadWaitBarrier1's in-loop re-check becomes dead (harmless, kept to stay minimal); one more barrier on an error path only.",
+    "preferred": true,
+    "maintainer_fit": "Three lines inside his own failure path, reusing threadContextBarrier exactly as the success path (:156) does."
+   },
+   {
+    "label": "B. Slave-only count (thrdnbr = thrdnum - 1), master stays out",
+    "summary": "Lower the count to the launched slaves so that they complete threadWaitBarrier1 alone.",
+    "diff_file": "",
+    "tested": "untested: rejected by analysis (Exit3's spin can read barrnbr == slave count from barrier arrivals made before the reduction, before the last slave resets it, and destroy the lock features under a woken waiter).",
+    "tradeoffs": "Racy; would also change the meaning of thrdnbr seen by Exit3.",
+    "preferred": false,
+    "maintainer_fit": "Closer to his apparent intent but not safe without another field."
+   },
+   {
+    "label": "C. 7.0.17 two-phase start (alt COR-09-b)",
+    "summary": "Start/abort flag before the start-up barrier.",
+    "diff_file": "",
+    "tested": "untested: no longer applies on 7.0.18 (common_thread.c rewritten by 86559b85).",
+    "tradeoffs": "Larger; superseded.",
+    "preferred": false,
+    "maintainer_fit": "He chose a different structure."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0002-Bugfix-make-master-thread-join-start-up-barrier-when.patch"
+  ],
+  "cleanup_done": "none needed (no symbol made unused)",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed. 86559b85 fixed the no-slave case (FAIL_AT=1: desctab and lock features now released) but every case where at least one slave was launched still hangs, now in pthread_cond_destroy() instead of the spin loop. No src/check test: needs an injected pthread_create failure (no fault-injection precedent in src/check). Kit: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09 (README18.txt)."
+ },
+ {
+  "id": "COR-10",
+  "our_title": "Null thread number fixed for spawn; SCOTCH_contextThreadImport1() still accepts 0 and hangs",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Pristine 7.0.18 ASan: repro/COR-10 './spawn 0' -> 'spawn (0) returned 0', rc=0 (fixed); 'SCOTCH_PTHREAD_NUMBER=0 gpart 4 bump.grf /dev/null' rc=0 (fixed); new repro/COR-10/imp0.c './imp0 0' -> 'import1 (0) returned 0' then hang in SCOTCH_contextThreadImport2 (timeout 10 s, rc=124); './imp0 1' rc=0. Patched (0001), 32/64-bit: './imp0 0' and './imp0 -1' -> 'ERROR: SCOTCH_contextThreadImport1: invalid number of threads', 'import1 (0) returned 1', 'exit done', rc=0; new test_scotch_context case (spawn 0) passes. check_common_thread, check_common_random, check_scotch_context, check_scotch_graph_map at 1/2/4 threads x SCOTCH_DETERMINISTIC=0/1 on the 32- and 64-bit trees: 48/48 rc=0 (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/check.log); both trees 0 warnings.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Public API argument and environment variable; heap write out of bounds then hang. Only an explicit 0 reaches the code (envGetInt (common.c:81-86) returns the default for an empty or non-numeric value), which keeps it below high.",
+  "location_7_0_18": "src/libscotch/library_context.c:201-220 (SCOTCH_contextThreadImport1, no check); common_thread.c:667-688 (threadContextImport1), :700-715 (Import2: master threadContextBarrier); common_thread.c:113-114 (fixed)",
+  "evidence": "common_thread.c:113 'if (thrdnbr <= 0) /* If unspecified number of threads */' (fixed); library_context.c:207-218 'if (contptr->thrdptr != NULL) {...} if ((contptr->thrdptr = memAlloc (sizeof (ThreadContext))) == NULL) {...} threadContextImport1 (contptr->thrdptr, thrdnbr);' -- no check of thrdnbr; common_thread.c:674 'contptr->thrdnbr = thrdnbr;' then :714 'threadContextBarrier (contptr);' waits for barrnbr == 0.",
+  "upstream_change": "e122a7c5 Bugfix: manage thread number of 0 [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "e122a7c55d",
+   "verdict": "incomplete",
+   "details": "Correct for threadContextInit() (common_thread.c:113: 0 now means 'as many as cores', as in test_common_thread.c), verified with spawn 0 and SCOTCH_PTHREAD_NUMBER=0. Incomplete: the import entry point listed in our extra_instances (SCOTCH_contextThreadImport1, library_context.c:201-220) still takes 0 or a negative number and the master hangs in Import2's barrier; no regression test added. No new bug.",
+   "compared_with_ours": "His commit is byte-identical to the common_thread.c hunk of our 0001 (blob 3fb7fb65, even the '13 oct 2026' date). Ours also rejected thrdnbr < 1 in Import1 and added a spawn-0 case to test_scotch_context.c; both are the rebased 0001."
+  },
+  "review_accuracy": "accurate; its 'Fix:' ('treat 0 as 1, or reject it, wherever the thread count is read') is right about 'wherever': the import entry point SCOTCH_contextThreadImport1() reads a thread count too and hangs on 0, which the review's location list does not include.",
+  "first_pass_critique": "Status/method/evidence right (it noted the ASan symptom differs from the review's hang). Its preferred option (clamp 0 to 1) is not what the tree does elsewhere: the maintainer's own test_common_thread.c:191-192 reads the same variable and does 'if (thrdnbr < 1) thrdnbr = threadSystemCoreNbr ();', i.e. 0 means 'automatic', not 'sequential'; patches/0001 follows that precedent. It missed SCOTCH_contextThreadImport1(ctx, 0) (same hang through the public API) and did not notice that envGetInt() rejects empty/garbage values, which matters for the reject-vs-repair choice.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/library_context.c:201-220 (SCOTCH_contextThreadImport1) -> common_thread.c:667-688",
+    "quote": "threadContextImport1 (contptr->thrdptr, thrdnbr);  -- thrdnbr <= 0 accepted; master hangs in Import2's barrier",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Reject thread numbers < 1 in SCOTCH_contextThreadImport1() + spawn-0 test (recommended, committed)",
+    "summary": "library_context.c: 'if (thrdnbr < 1) { errorPrint (... \": invalid number of threads\"); return (1); }'; test_scotch_context.c: spawn a context with 0 threads.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0001-Bugfix-reject-invalid-thread-numbers-in-SCOTCH_conte.patch",
+    "tested": "imp0 0/-1 and spawn 0 on both trees; check_common_thread, check_common_random, check_scotch_context, check_scotch_graph_map at 1/2/4 threads x SCOTCH_DETERMINISTIC=0/1 on the 32- and 64-bit trees: 48/48 rc=0 (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/check.log); both trees 0 warnings",
+    "tradeoffs": "An imported pool must at least contain the master, so rejecting is the only meaning; no behaviour change for valid calls.",
+    "preferred": true,
+    "maintainer_fit": "Parameter check at the API entry, as in his 'Add parameter check to SCOTCH_dgraphRedist()'."
+   },
+   {
+    "label": "B/C. Reject or clamp 0 in threadContextInit() (7.0.17 alts)",
+    "summary": "Superseded by e122a7c5.",
+    "diff_file": "",
+    "tested": "untested: no longer applies (common_thread.c changed).",
+    "tradeoffs": "Upstream chose 'automatic'.",
+    "preferred": false,
+    "maintainer_fit": "Superseded."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0001-Bugfix-reject-invalid-thread-numbers-in-SCOTCH_conte.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_scotch_context.c: 'tailored context (3)' case spawning 0 threads (bind-error labels renumbered); runs under check_scotch_context.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed. e122a7c5 is exactly the common_thread.c hunk of our 7.0.17 0001 (same post-image blob 3fb7fb65); the SCOTCH_contextThreadImport1() check and the regression test were not taken, and Import1(0) still hangs. Kit: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-10 (imp0.c added, README18.txt)."
+ },
+ {
+  "id": "COR-11",
+  "our_title": "Imported context now saves master affinity before exit restores it",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/COR-11/imp on pristine 7.0.18 ASan: 'before import: count=1 cpus: 1 / after import: count=1 cpus: 1 / after exit  : count=1 cpus: 1', rc=0 (7.0.17: 'after exit: count=6 cpus: 1 2 3 4 5 7', rc=1). Patched tree (with test 0004) idem 32/64-bit; check_scotch_context (which now compares the leader mask before Import1 and after contextExit) passes, TSan 0 reports. check_common_thread, check_common_random, check_scotch_context, check_scotch_graph_map at 1/2/4 threads x SCOTCH_DETERMINISTIC=0/1 on the 32- and 64-bit trees: 48/48 rc=0 (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/check.log); both trees 0 warnings.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "As the review: public API (SCOTCH_contextThreadImport1/2, the documented way to lend an application's thread pool), silent change of the application thread's CPU affinity; no crash.",
+  "location_7_0_18": "src/libscotch/common_thread.c:667-673 (threadContextImport1 now saves state)",
+  "evidence": "common_thread.c:672 'threadProcessStateSave (contptr);' first statement of threadContextImport1().",
+  "upstream_change": "6eb0aca3 Bugfix: set affinity mask when importing threads [report: R. Perry]",
+  "upstream_fix_review": {
+   "commit": "6eb0aca302",
+   "verdict": "correct",
+   "details": "Correct and complete: the only creator of a ThreadContext that did not save the master state now does (common_thread.c:672); the stub twin (no COMMON_PTHREAD, :826-832) never restores, so needs nothing. No new bug. Cosmetic: the new line has no comment (ours had '/* Save state of master thread */'). No regression test.",
+   "compared_with_ours": "Same code as ours. Ours also added the regression check in test_scotch_context.c (CPU_EQUAL of sched_getaffinity before Import1 and after contextExit, under COMMON_PTHREAD_AFFINITY_LINUX); kept as the test-only commit 0004."
+  },
+  "review_accuracy": "accurate; both halves of its 'Fix:' (save on import, or no-restore exit) are viable; the first matches how the maintainer structured Init/Exit.",
+  "first_pass_critique": "Fully right on status, mechanism and the two options; its diff matches the sketch and is what patches/0003 does. It did not add the natural regression check (affinity mask preserved across an imported context's life, in test_scotch_context.c) and did not run TSan.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Save state in threadContextImport1() (upstream 6eb0aca3) + our regression check (committed as test only)",
+    "summary": "Test-only commit: test_scotch_context.c records the leader affinity before Import1 and checks it after contextExit.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0004-Add-check-of-leader-thread-affinity-mask-to-context-.patch",
+    "tested": "check_scotch_context on both trees, 1/2/4 threads; TSan clean.",
+    "tradeoffs": "Catches the defect deterministically only under ASan/valgrind (garbage savedat).",
+    "preferred": true,
+    "maintainer_fit": "One more check in the existing test of the import feature."
+   },
+   {
+    "label": "B. No-restore flag (7.0.17 alt)",
+    "summary": "Superseded.",
+    "diff_file": "",
+    "tested": "untested: no longer applies (common_thread.h changed).",
+    "tradeoffs": "Superseded by upstream.",
+    "preferred": false,
+    "maintainer_fit": "Superseded."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0004-Add-check-of-leader-thread-affinity-mask-to-context-.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_scotch_context.c: leader affinity mask compared before SCOTCH_contextThreadImport1() and after SCOTCH_contextExit() (CPU_EQUAL).",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed. 6eb0aca3 adds threadProcessStateSave() to threadContextImport1(), the exact code change of our 7.0.17 0003; the regression test was not taken. Kit: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-11."
+ },
+ {
+  "id": "COR-24",
+  "our_title": "Explicit core numbers now mapped through the process mask (but -1 regressed, see PS3-G06-1)",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/COR-24/core, container now has 4 CPUs, 'taskset -c 2-3': pristine 7.0.18 coretab {2 3 2 3} -> threads on CPUs 2 3 2 3; {0 1 0 1} -> 2 3 2 3 (logical indices into the mask: fixed). {-1 -1 -1 -1} -> 0 0 0 0 and {-1 3 -1 2} -> 0 3 0 2: bound to CPU 0 outside the mask (PS3-G06-1; 7.0.17 left them unbound). Patched (0003): {-1 -1 -1 -1} -> 2-3 x4, {-1 3 -1 2} -> 2-3 3 2-3 2, {-5 1 -2 0} -> 2-3 3 2-3 2; positive cases unchanged. check_common_thread, check_common_random, check_scotch_context, check_scotch_graph_map at 1/2/4 threads x SCOTCH_DETERMINISTIC=0/1 on the 32- and 64-bit trees: 48/48 rc=0 (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/check.log); both trees 0 warnings.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "As the review: performance/placement only (threads silently run outside the cores the launcher assigned, e.g. per-MPI-rank binding); no wrong result. Reachable only through the optional coretab argument of SCOTCH_contextThreadSpawn().",
+  "location_7_0_18": "src/libscotch/common_thread.c:141 and :153 (call sites), :919-944 (threadProcessCoreNum)",
+  "evidence": "common_thread.c:141 'corenum = threadProcessCoreNum (contptr, (coretab != NULL) ? coretab[thrdnum] : thrdnum);' ; :926 'corenbr  = threadProcessCoreNbr (contptr);' ; :927 'thrdnum %= corenbr;'",
+  "upstream_change": "52dcf602 Bugfix: make core assignment always use affinity when available [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "52dcf6026c",
+   "verdict": "incomplete",
+   "details": "Right: both call sites (:141, :153) now go through the mask lookup, and threadProcessCoreNum() uses threadProcessCoreNbr() so the non-Linux build reduces the same way. Breaks: the documented coretab value -1 ('thread not bound', s_l.tex:8224-8226) reaches threadProcessCoreNum(); '-1 % corenbr' stays -1, the loop 'for (corenum = 0; thrdnum >= 0; ...)' (:930) is not entered and corenum = 0 is returned, so the thread is bound to CPU 0 even outside the process mask (run: taskset 2-3 -> CPU 0). Any negative entry does the same. The block comment (:912-916) still speaks of a 'thread number'. The routine's first-pass sketch in our 7.0.17 critique predicted exactly this bug.",
+   "compared_with_ours": "Our 0004 had the same call sites plus 'if (corelog < 0) return (-1);', a renamed parameter (corelog) and a rewritten block comment. The rebased 0003 adds only the guard and the comment, keeping his parameter name. Ours was better (no regression); his keeps the non-Linux reduction in one place, which ours did not."
+  },
+  "review_accuracy": "accurate; its 'Fix:' (map coretab entries through the same mask-based lookup) is what the documentation already promises and what patches/0004 does. Its secondary point (setaffinity result ignored) is true but the maintainer ignores it in threadProcessStateRestore() too; binding is best-effort (alt C provided).",
+  "first_pass_critique": "Preferred option A (treat entries as physical ids, validate against the mask) contradicts the documented semantics (s_l.tex:8179-8191: logical indices, modulus reduction) and INSTALL.txt:585-591; method says 'reproduced' but both options are marked 'Not tested'. Its option B sketch 'corenum = threadProcessCoreNum (contptr, coretab[thrdnum])' would introduce a bug: for the documented -1 ('not bound'), thrdnum %= corenbr keeps -1, the for-loop body never runs and corenum ends up 0, i.e. the thread is pinned to the first core instead of left unbound. patches/0004 makes threadProcessCoreNum() return -1 for negative input.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/common_thread.c:927-938 (threadProcessCoreNum, negative input)",
+    "quote": "thrdnum %= corenbr; ... for (corenum = 0; thrdnum >= 0; corenum ++)  -- -1 yields corenum 0 (PS3-G06-1)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Return -1 for negative core numbers in threadProcessCoreNum() (recommended, committed)",
+    "summary": "Guard before the modulus; block comment documents the -1 return.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0003-Bugfix-do-not-bind-threads-with-negative-core-number.patch",
+    "tested": "repro/COR-24 under taskset 2-3 on both trees; check_common_thread, check_common_random, check_scotch_context, check_scotch_graph_map at 1/2/4 threads x SCOTCH_DETERMINISTIC=0/1 on the 32- and 64-bit trees: 48/48 rc=0 (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/check.log); both trees 0 warnings",
+    "tradeoffs": "None; restores 7.0.17 behaviour for -1.",
+    "preferred": true,
+    "maintainer_fit": "Two lines in his routine; threadCreate() already treats corenum < 0 as 'do not bind' (:878)."
+   },
+   {
+    "label": "C. Warn when pthread_setaffinity_np() fails (7.0.17 alt, still applies)",
+    "summary": "errorPrintW on a non-zero return.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G06-threads-context/COR-24-c-warn-setaffinity-failure.diff",
+    "tested": "untested: applies on v7.0.18 (git apply --check); not built.",
+    "tradeoffs": "Diagnostic noise; optional.",
+    "preferred": false,
+    "maintainer_fit": "He ignores the same return in threadProcessStateRestore()."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0003-Bugfix-do-not-bind-threads-with-negative-core-number.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "Ran in this container with taskset (8 CPUs, no cgroup cpuset needed).",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed. 52dcf602 maps explicit core numbers through threadProcessCoreNum() (the call-site hunks of our 7.0.17 0004); the original claim is fixed, but the commit introduced a regression for the documented -1 entry (extra PS3-G06-1, patch 0003). No src/check test (observing binding needs a restricted mask). Kit: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-24 (README18.txt, adapted to 4 CPUs)."
+ },
+ {
+  "id": "API-02",
+  "our_title": "Option setter now dispatches on the option number; the fixed-seed option it sets is still never consumed",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "repro/API-02/opt on pristine 7.0.18 ASan: 'SetNum (DETERMINISTIC, 1) = 0', 'after SetNum deterministic=1 fixedseed=1', 'SetNum (7, 1) = 1', 'Parse (\"x\") = 1', 'after Parse d,r deterministic=1 fixedseed=0'. repro/PS2-G06-2/opt_f.f90: pristine 'undefined reference to scotchfcontextoptionparse_'; patched 32-bit 'parse d: ierr = 0 / deterministic = 1 fixedseed = 1 / parse x: ierr = 1', 64-bit idem. s_l.tex:7950 still 'OPTIONNUMFIXEDSEED'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Lower than the review's high: the dispatch bug and the ignored return value are fixed in 7.0.17; what remains is that the run-time 'fixed seed' option (and therefore the 'deterministic' option) does not fix the seed unless the library was compiled with COMMON_RANDOM_FIXED_SEED, which is the review's user-visible symptom ('deterministic runs are not deterministic') under another mechanism; plus a missing Fortran interface/doc.",
+  "location_7_0_18": "src/libscotch/library_context.c:306-323, :341-382; library_context_f.c (no CONTEXTOPTIONPARSE); doc/src/scotch/s_l.tex:7950; consumer side common_integer.c intRandInit, context.c contextOptionsInit",
+  "evidence": "library_context.c:306 'switch (optinum) {' ; :323 'return (o || contextValuesSetInt ((Context *) libcontptr, optinum, optitmp));' ; :370 'o |= SCOTCH_contextOptionSetNum (libcontptr, argsptr->vtypidx, argsptr->vtypval);' ; :381 'return (o);'. git grep CONTEXTOPTIONNUMRANDOMFIXEDSEED src/libscotch -> context.c:104-105, library_context.c:307,315,337-338, dummysizes.c only; common_integer.c:317-321 '#if ! ((defined COMMON_DEBUG) || (defined COMMON_RANDOM_FIXED_SEED)) contptr->seedval = (INT) time (NULL); #else contptr->seedval = 1;'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate on the switch and the ignored return value; its statement 'never forces a fixed random seed' remains true after the fix for a different reason (no consumer of the option), which the review did not identify.",
+  "first_pass_critique": "Status 'fixed' is too generous: it verified that GetNum(RANDOMFIXEDSEED) reads 1 after SetNum(DETERMINISTIC,1) on the ASan build, which is compiled with -DCOMMON_RANDOM_FIXED_SEED, so it could not see that the option value is never read by the generator; it did not check for the Fortran twin or the user-manual entry (both absent) and did not notice the 'd,r' order dependence.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/common_integer.c:313-324 (intRandInit) / context.c:96-107 (contextOptionsInit)",
+    "quote": "contptr->seedval = (INT) time (NULL); /* Set random seed if needed */  -- CONTEXTOPTIONNUMRANDOMFIXEDSEED is never read (extra PS2-G06-1, design decision, alt diff only)",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/library_context_f.c (no CONTEXTOPTIONPARSE wrapper), doc/src/scotch/s_l.tex (no SCOTCH_contextOptionParse subsection; :7910 names the option SCOTCH_OPTIONNUMFIXEDSEED instead of SCOTCH_OPTIONNUMRANDOMFIXEDSEED)",
+    "quote": "s_l.tex:7910 '\\item \\texttt{SCOTCH\\_\\lbt OPTIONNUMFIXEDSEED}: a value of'",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/library_context.c:334-339 (option table) with :311-316",
+    "quote": "{ 'd', CONTEXTOPTIONNUMDETERMINISTIC, 1 }, ... { 'r', CONTEXTOPTIONNUMRANDOMFIXEDSEED, 0 }  -- 'd,r' leaves deterministic=1, fixedseed=0 although the doc says deterministic implies a fixed seed (extra PS2-G06-4, low)",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Add the Fortran interface and the user-manual entry for SCOTCH_contextOptionParse() (recommended, done)",
+    "summary": "library_context_f.c: scotchfcontextoptionparse (contdat, string, ierr) using the null-terminated-copy idiom of SCOTCH_FORTRAN STRATGRAPHMAP; s_l.tex: new subsection between OptionGetNum and OptionSetNum documenting the d/u/f/r selectors and the return value; fix the OPTIONNUMFIXEDSEED typo.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0005-Add-Fortran-interface-and-documentation-for-SCOTCH_c.patch",
+    "tested": "repro/PS2-G06-2/opt_f.f90 on both trees (ierr 0 for 'd', options 1/1, ierr 1 for 'x'); nm shows SCOTCHFCONTEXTOPTIONPARSE/scotchfcontextoptionparse[_[_]] exported; both trees build with 0 warnings.",
+    "tradeoffs": "None (additive).",
+    "preferred": true,
+    "maintainer_fit": "Every public routine has a Fortran twin and a manual entry; same wrapper shape as library_graph_map_f.c:311-332."
+   },
+   {
+    "label": "B. Make the run-time fixed-seed option effective",
+    "summary": "See extra PS2-G06-1 (alt/PS2-G06-1-a-reseed-when-option-set.diff): reseed the context generator with the COMMON_RANDOM_FIXED_SEED seed when the option is set by API, by Parse, or by the environment; and make SCOTCH_DETERMINISTIC=1 from the environment imply the fixed seed as the API does.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G06-threads-context/PS2-G06-1-a-reseed-when-option-set.diff",
+    "tested": "build_nofs_alt (no COMMON_RANDOM_FIXED_SEED): -Cf, SCOTCH_RANDOM_FIXED_SEED=1 and SCOTCH_DETERMINISTIC=1 give identical results across runs (3 trials each, 0 differing lines; unconfigured runs still differ).",
+    "tradeoffs": "Design decision: it reseeds the (possibly global, shared) generator at every context initialization while the option is on, so successive library calls restart the same stream, unlike the compile-time flag, under which the stream continues across calls; see extra PS2-G06-1.",
+    "preferred": false,
+    "maintainer_fit": "Needs his decision on the semantics of a run-time seed option (once per process vs per context); not sent as a commit."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0005-Add-Fortran-interface-and-documentation-for-SCOTCH_c.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "doc/src/scotch/s_l.tex (new SCOTCH_contextOptionParse subsection; OPTIONNUMRANDOMFIXEDSEED name fixed)",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: partially-fixed -> 7.0.18 status: partially-fixed. No upstream change to library_context.c, library_context_f.c, context.c or the user manual's option section; Fortran wrapper and manual entry still missing. 0005 re-applied unchanged (date bumped)."
+ },
+ {
+  "id": "PS2-G08-2",
+  "our_title": "Context split creates a second random stream regardless of the deterministic option; ordering (and partition) depend on thread count",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18 ASan, SCOTCH_DETERMINISTIC=1, gord bump.grf, 5 fresh runs per thread count: thr=1 5x 8c8642db, thr=2 5x dd411b18, thr=4 5x 4cec60c2 (reproducible per thread count, differs across counts). gpart 4 m16x16_b100000_v.grf with the G08 series (race removed): thr=1 1d497d7d vs thr=2/4 e180dfcf; 'r{sep=h{pass=20}}' 44898414 vs 82e36d44 (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G08-bgraph-gg-gain/repro/SEP-13/det18/summary.txt). G15 0006 and G12 0009 (the committed fixes) apply on v7.0.18.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/common_context.c (contextThreadLaunchSplit, unchanged); callers kgraph_map_rb_part.c:316, wgraph_part_rb.c:377, hgraph_order_nd.c:305, hmesh_order_nd.c:261, dgraph_fold_dup.c:166",
+  "evidence": "common_context.c:290 'spltdat.conttab[1].randptr = &randdat; /* Set independent pseudo-random generator for sub-context 1 */' and :298-299 'intRandProc (&randdat, (int) intRandVal2 (contptr->randptr)); intRandSeed (&randdat, intRandVal2 (contptr->randptr));' ; hgraph_order_nd.c:305 'if (contextThreadLaunchSplit (grafptr->contptr, (ContextSplitFunc) hgraphOrderNd2, &spltdat) != 0)' ; vgraph_separate_gg.c:145 'contextIntRandVal (grafptr->contptr, grafptr->s.vertnbr)); /* Randomly select first root vertex */' ; s_l.tex:7900-7904 'a value of 1 induces a deterministic behavior across multiple runs, for any number of threads (yet, for the same number of MPI processes ...)' ; gmap.c:107 'd : deterministic behavior (even across multiple threads; implies f)'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "b. Guard the two ordering callers like G12's 0009 guards the two partitioning callers (recommended; extends 0009)",
+    "summary": "hgraph_order_nd.c and hmesh_order_nd.c: include context.h, read CONTEXTOPTIONNUMDETERMINISTIC, run the two sub-tasks in sequence when set ('if ((deteval != 0) || (contextThreadLaunchSplit (...) != 0))'), identical to 0009's hunks.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G06-threads-context/PS2-G08-2-b-order-callers-no-split.diff",
+    "tested": "build_alt_b: gord bump.grf identical at 1, 2 and 4 threads under SCOTCH_DETERMINISTIC=1 (0 differing lines); builds with 0 warnings; applies on v7.0.17 (and on top of 0009, different files).",
+    "tradeoffs": "Loses task-level concurrency of nested dissection under the deterministic option (each half still uses all threads for its own threaded work, as graphMatchInit() does); four near-identical guards in the tree.",
+    "preferred": true,
+    "maintainer_fit": "The maintainer's idiom for consuming the option is in the algorithm that needs it, with '#include \"context.h\"' (graph_match.c:57,205-212; dgraph_band_grow.c:403; dgraph_match_sync_ptop.c:222): no common_*.c file includes context.h, the common layer only provides the values mechanism and does not know what value 0 means. Caller-side guards also leave dgraphFoldDup()'s split alone, which consumes no random numbers and would be serialized for nothing by option a."
+   },
+   {
+    "label": "a. Refuse to split in contextThreadLaunchSplit() when the deterministic option is set (single point, all five callers)",
+    "summary": "common_context.c: include context.h, read the option, 'return (1)' ('could not split') so every caller takes its sequential fallback; routine comment updated.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G06-threads-context/PS2-G08-2-a-common-context-no-split.diff",
+    "tested": "build_alt_a: gord identical at 1, 2, 4 threads; gpart 2 == 4 threads (1-thread residual = SEP-13); 0 warnings; applies on v7.0.17.",
+    "tradeoffs": "One place instead of five, cannot be forgotten by a future caller; but it makes the common layer depend on libscotch's option numbering (layering) and serializes the PT-Scotch fold-dup split (dgraph_fold_dup.c:166) although it is random-free; makes 0009's guards redundant.",
+    "preferred": false,
+    "maintainer_fit": "Layering: common_context.c is the generic context code; the deterministic option is a libscotch concept (context.h, contextOptionsInit in context.c)."
+   }
+  ],
+  "patch_files": [
+   "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/patches/G15-order-io-seq-misc/0006-Bugfix-do-not-split-contexts-in-nested-dissection-or.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream change to common_context.c or any of the five split callers. Patch lives in G15 (0006, ordering callers) and G12 (0009, partitioning callers); both 7.0.17 patches apply unchanged on v7.0.18. G10's series applies after G15 0006 (checked)."
+ },
+ {
+  "id": "PS2-G06-1",
+  "our_title": "Run-time fixed-seed option (and thus the deterministic option) never read: seed stays time-based unless COMMON_RANDOM_FIXED_SEED is compiled in",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/nofs (pristine 7.0.18, -O1 -g, same flags minus sanitizers and minus -DCOMMON_RANDOM_FIXED_SEED), 1 thread, gpart 8 bump.grf, 3 runs 1.2 s apart: no option 3 distinct (5691/7426 differing lines); SCOTCH_RANDOM_FIXED_SEED=1 2 distinct (0/9595); SCOTCH_DETERMINISTIC=1 3 distinct (829/853); -Cf 3 distinct (4817/5646); -Cd 2 distinct (0/829): the seed is still time(NULL), equal results only within the same second. Alt PS2-G06-1-a still applies on v7.0.18.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/common_integer.c (intRandInit, seedval = time (NULL) unless COMMON_RANDOM_FIXED_SEED), context.c:96-107, library_context.c:306-323",
+  "evidence": "git grep -n CONTEXTOPTIONNUMRANDOMFIXEDSEED src/libscotch -> context.c:104,105 (read env, store), library_context.c:307,315,337,338 (store), context.h:61, dummysizes.c:288; nothing reads it back. common_integer.c:317-321 '#if ! ((defined COMMON_DEBUG) || (defined COMMON_RANDOM_FIXED_SEED)) contptr->seedval = (INT) time (NULL); #else contptr->seedval = 1;'. README.md:115 documents SCOTCH_RANDOM_FIXED_SEED=1 as 'a fixed pseudo-random seed'; s_l.tex:7913-7918 documents the option the same way.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Reseed the context generator when the option is set (API, Parse, environment); SCOTCH_DETERMINISTIC env implies the fixed seed",
+    "summary": "library_context.c: SetNum(RANDOMFIXEDSEED, 1) calls intRandSeed (randptr, 1) (the COMMON_RANDOM_FIXED_SEED seed); SetNum(DETERMINISTIC, 1) goes through SetNum(RANDOMFIXEDSEED, 1); context.c: contextOptionsInit sets rafival = 1 when deteval != 0 (as the API does) and reseeds when rafival != 0.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G06-threads-context/PS2-G06-1-a-reseed-when-option-set.diff",
+    "tested": "build_nofs_alt: 0 warnings; -Cf, SCOTCH_RANDOM_FIXED_SEED=1, SCOTCH_DETERMINISTIC=1 all reproducible across runs (3 trials); unconfigured runs still vary.",
+    "tradeoffs": "Behaviour change needing the maintainer's decision: (1) contextOptionsInit runs at every CONTEXTINIT, i.e. at every library call on a plain (non-container) object, so with the option on the shared global generator is reseeded before every call and successive calls on the same graph give identical results, whereas with the compile-time flag the stream continues across calls (SCOTCH_randomReset exists for users who want the restart); (2) reseeding the global generator from one context affects all contexts that use it.",
+    "preferred": true,
+    "maintainer_fit": "Smallest change that makes the documented knobs do what README.md:115 and s_l.tex:7913 say; whether the run-time option should mean 'seed once per process' (which needs intRandInit to know the option, i.e. moving the random initialization from contextInit() to contextCommit() and giving intRandInit a flag) is his call. Not sent as a commit for that reason."
+   },
+   {
+    "label": "b. Honour the option at first generator initialization only",
+    "summary": "Move intRandInit() of the global generator from contextInit() to the first contextCommit()/contextRandomClone() and pass it the option value (seed 1 if fixed, time(NULL) otherwise), so the semantics equal the compile-time flag.",
+    "diff_file": "",
+    "tested": "untested: no diff; needs an API change of intRandInit() (common layer) and a change of the init order in context.h CONTEXTINIT and SCOTCH_contextInit; the maintainer's design choice.",
+    "tradeoffs": "Exact equivalence with COMMON_RANDOM_FIXED_SEED; but the option value is only known after contextOptionsInit, and the option set later through SCOTCH_contextOptionSetNum would have no effect on an already-initialized generator unless it reseeds (option a).",
+    "preferred": false,
+    "maintainer_fit": "Cleaner semantics, larger change across common_integer.c / common_context.c / context.h."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream change to intRandInit / contextOptionsInit / the option setters."
+ },
+ {
+  "id": "PS2-G06-2",
+  "our_title": "SCOTCH_contextOptionParse() has no Fortran interface and no user-manual entry; manual misnames OPTIONNUMRANDOMFIXEDSEED",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/PS2-G06-2/opt_f.f90: pristine 7.0.18 link error 'undefined reference to scotchfcontextoptionparse_'; with 0005 on 32- and 64-bit trees 'parse d: ierr = 0', 'deterministic = 1 fixedseed = 1', 'parse x: ierr = 1'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_context_f.c (CONTEXTOPTIONGETNUM/SETNUM only), doc/src/scotch/s_l.tex:7950",
+  "evidence": "library.h:227 'int SCOTCH_contextOptionParse (SCOTCH_Context * const, const char *);' ; library_context_f.c has CONTEXTOPTIONGETNUM (:184) and CONTEXTOPTIONSETNUM (:199) only; s_l.tex:7910 '\\item \\texttt{SCOTCH\\_\\lbt OPTIONNUMFIXEDSEED}: a value of'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Add the wrapper and the manual entry (recommended, done)",
+    "summary": "patches/0005: library_context_f.c CONTEXTOPTIONPARSE (string copy idiom of STRATGRAPHMAP), s_l.tex subsection + name fix.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0005-Add-Fortran-interface-and-documentation-for-SCOTCH_c.patch",
+    "tested": "see ran",
+    "tradeoffs": "additive",
+    "preferred": true,
+    "maintainer_fit": "His rule that every API routine has a Fortran twin (259f38a, b189b87 fix Fortran twins in 7.0.17)."
+   },
+   {
+    "label": "b. Make SCOTCH_contextOptionParse() internal",
+    "summary": "Remove it from library.h and rename it for the programs' use only.",
+    "diff_file": "",
+    "tested": "untested: ABI change, not drafted",
+    "tradeoffs": "Breaks the public symbol exported since 7.0",
+    "preferred": false,
+    "maintainer_fit": "He does not remove public symbols within 7.0."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0005-Add-Fortran-interface-and-documentation-for-SCOTCH_c.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Unchanged in 7.0.18."
+ },
+ {
+  "id": "PS2-G06-3",
+  "our_title": "Automatic thread count with a non-NULL coretab reads beyond the table's documented thrdnbr entries",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "whole of threadContextInit()",
+  "why_not_run": "Requires a caller to pass thrdnbr <= 0 with a coretab, which the documentation defines as having thrdnbr entries (contract violation by the caller). With e122a7c5 the case thrdnbr == 0 joins thrdnbr < 0.",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/common_thread.c:113-114 with :141",
+  "evidence": "common_thread.c:113-114 'if (thrdnbr <= 0) thrdnbr = corenbr;' then :141 'threadProcessCoreNum (contptr, (coretab != NULL) ? coretab[thrdnum] : thrdnum);'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Ignore coretab when the thread number is automatic",
+    "summary": "In threadContextInit(): if thrdnbr <= 0, use the automatic placement (treat coretab as NULL).",
+    "diff_file": "",
+    "tested": "untested: not drafted (one-line local change, semantics to be confirmed by the maintainer)",
+    "tradeoffs": "Silently drops a user-provided table",
+    "preferred": true,
+    "maintainer_fit": "Defensive; consistent with -1/0 meaning 'let Scotch decide'."
+   },
+   {
+    "label": "b. Document that coretab requires an explicit thrdnbr",
+    "summary": "s_l.tex note.",
+    "diff_file": "",
+    "tested": "untested: doc only",
+    "tradeoffs": "none",
+    "preferred": false,
+    "maintainer_fit": "doc-only"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Unchanged: 52dcf602 kept 'coretab[thrdnum]' for thrdnum up to the automatic count."
+ },
+ {
+  "id": "PS2-G06-4",
+  "our_title": "Deterministic/fixed-seed implication is one-way and order-dependent: 'd,r' and SCOTCH_DETERMINISTIC=1 env leave deterministic=1 with a variable seed",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/API-02/opt on pristine 7.0.18: 'Parse (\"d,r\") = 0' then 'deterministic=1 fixedseed=0'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_context.c:311-316, :334-339; context.c:99-105",
+  "evidence": "context.c:103-105 'contextValuesSetInt (contptr, CONTEXTOPTIONNUMDETERMINISTIC, envGetInt (\"SCOTCH_DETERMINISTIC\", deteval)); contextValuesGetInt (contptr, CONTEXTOPTIONNUMRANDOMFIXEDSEED, &rafival); contextValuesSetInt (contptr, CONTEXTOPTIONNUMRANDOMFIXEDSEED, envGetInt (\"SCOTCH_RANDOM_FIXED_SEED\", rafival));' vs library_context.c:315 '/* If deterministic behavior wanted, use fixed random seed */' ; s_l.tex:7906-7907 'A deterministic behavior implies the use of a fixed random seed'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Apply the implication in contextOptionsInit() too (part of alt PS2-G06-1-a)",
+    "summary": "rafival = 1 when deteval != 0 after reading the environment.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G06-threads-context/PS2-G06-1-a-reseed-when-option-set.diff",
+    "tested": "build_nofs_alt, see PS2-G06-1",
+    "tradeoffs": "none beyond PS2-G06-1's",
+    "preferred": true,
+    "maintainer_fit": "Same rule in both entry points."
+   },
+   {
+    "label": "b. Reject SetNum(RANDOMFIXEDSEED, 0) while deterministic is 1 (or clear deterministic)",
+    "summary": "Keep the two values consistent on every set.",
+    "diff_file": "",
+    "tested": "untested: not drafted",
+    "tradeoffs": "Makes 'd,r' an error or silently clears 'd'; behaviour change of the -C option",
+    "preferred": false,
+    "maintainer_fit": "Design choice."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Unchanged in 7.0.18."
+ }
+]

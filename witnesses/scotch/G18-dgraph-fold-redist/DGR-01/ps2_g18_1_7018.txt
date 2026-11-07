@@ -1,0 +1,6 @@
+== pristinefi
+hdgraph_fold.c:353:11: runtime error: applying non-zero offset to non-null pointer 0xfffffffffffffffc produced null pointer;hdgraph_induce.c:304:28: runtime error: applying non-zero offset 18446744073709551612 to null pointer;rank 0: alloc #85 from _SCOTCHhdgraphInduceList; exit=1
+hdgraph_fold.c:353:11: runtime error: applying non-zero offset to non-null pointer 0xfffffffffffffffc produced null pointer;hdgraph_induce.c:304:28: runtime error: applying non-zero offset 18446744073709551612 to null pointer;rank 0: alloc #86 from _SCOTCHhdgraphInduceList; exit=1
+== buildfi
+hdgraph_fold.c:559:25: runtime error: load of null pointer of type 'const Gnum';hdgraph_fold.c:559:40: runtime error: applying non-zero offset to non-null pointer 0xfffffffffffffffc produced null pointer;hdgraph_induce.c:304:28: runtime error: applying non-zero offset 18446744073709551612 to null pointer;mpirun noticed that process rank 0 with PID 0 on node vm exited on signal 11 (Segmentation fault).;rank 0: alloc #85 from _SCOTCHhdgraphInduceList;rank 0: signal 11, backtrace:; exit=139
+(2): rank 1: order rc=1 seen=0;rank 0: alloc #86 from _SCOTCHmemAllocGroup;rank 0: order rc=1 seen=91;rank 2: order rc=1 seen=0;rank 3: order rc=1 seen=0; exit=1

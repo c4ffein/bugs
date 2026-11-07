@@ -1,0 +1,469 @@
+[
+ {
+  "id": "COR-02",
+  "our_title": "Failed load of hookless architecture class called a NULL free hook",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "Harness: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/repro (7.0.17 kits adapted: common/{archload,archtrip,subapi,subapi2}.c, <ID>/run.sh <libdir>, new/run.sh = 7.0.18-specific cases, alloc/sweep_plain.sh = malloc-failure sweep on non-sanitized builds /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plain (pristine) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plainp (patched)). Pristine = INFRA/asan/lib and INFRA/asan64/lib; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build/lib and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build64/lib. Transcript: repro/RESULTS18.txt. repro/COR-02/run.sh INFRA/asan/lib -> 'cmplt_bad: ret=1 sanitizer-hits=0' ('ERROR: archCmpltArchLoad: bad input' / 'ERROR: archLoad: cannot load architecture data'); v_meshx, v_cmpltw, v_cmpltws, v_deco0/1/2 also ret=1 with no report on pristine 7.0.18.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Rating for 7.0.16; fixed since 7.0.17 (d555f2c), not regressed in 7.0.18.",
+  "location_7_0_18": "src/libscotch/arch.c:213-218",
+  "evidence": "arch.c:215-216: 'if (clasptr->archFree != NULL)              /* If freeing function exists   */' / 'clasptr->archFree (&archptr->data);       /* Perform clean-up             */'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; both suggested fixes work (archFree() at arch.c:173-175 carries the same guard). The guard is complete for the hookless classes (cmplt, hcub, mesh2D/3D/XD, torus*, varcmplt, varhcub; dist until patch 0003). The classes with a hook are now called on a half-loaded body: tleaf/ltleaf/cmpltw/cmpltws/deco tolerate it (verified by running), sub and dist do not: those are COR-04 and COR-05.",
+  "first_pass_critique": "Right on status and method. Its note that 'COR-07/16' also fall in the residual category is wrong: the tleaf and deco loaders leave bodies that their free hooks accept (ran: v_tleaf1, v_tleaf2, v_ltleaf, v_deco0/1/2 all clean); only sub (COR-04) and dist (COR-05) are affected.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Upstream guard (taken by d555f2c)",
+    "summary": "Guard the class free hook call in archLoad() with 'archFree != NULL'.",
+    "diff_file": "",
+    "tested": "ran on pristine 7.0.17: see 'ran'",
+    "tradeoffs": "none; the body is memSet to 0 afterwards as before",
+    "preferred": true,
+    "maintainer_fit": "it is his own commit d555f2c"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed (archLoad() unchanged by 7.0.18). The protocol it implies (archLoad() frees through the class hook) is now followed by ecaf094 and d4b6f997, but the hook is reached on half-loaded bodies that ecaf094/d4b6f997 do not keep consistent: see COR-04, COR-05. New: the tleaf/ltleaf hooks, which tolerated this in 7.0.17, now double free after 18911e4f ('tleaf 2 4 1 x', owned by G02)."
+ },
+ {
+  "id": "COR-03",
+  "our_title": "Sub-architecture terminal checks now unconditional, but empty lists still accepted",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Harness: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/repro (7.0.17 kits adapted: common/{archload,archtrip,subapi,subapi2}.c, <ID>/run.sh <libdir>, new/run.sh = 7.0.18-specific cases, alloc/sweep_plain.sh = malloc-failure sweep on non-sanitized builds /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plain (pristine) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plainp (patched)). Pristine = INFRA/asan/lib and INFRA/asan64/lib; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build/lib and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build64/lib. Transcript: repro/RESULTS18.txt. Pristine 7.0.18 (repro/COR-03/run.sh, new/run.sh): 'sub 2 0 99 cmplt 4' -> 'ERROR: archSubArchBuild: invalid vertex number in vertex list' then 'AddressSanitizer: attempting double-free' (PS3-G01-1); 'sub 3 0 1 2 cmplt 2' -> 'invalid parameters', ret=1, clean; 'sub -1 cmplt 4' -> 'archSubArchLoad: bad input (1)', clean; 'sub 0 cmplt 4' -> 'AddressSanitizer: requested allocation size 0xffffffffffffffec ... #1 _SCOTCHmemAllocGroup #2 _SCOTCHarchSubArchBuild arch_sub.c:403'; SCOTCH_archSub (cmplt 4, 0 terminals) on pristine 64-bit tree -> same allocation-size abort. Patched (0001+0002): all rejected with ret=1/2 and no report ('archSubArchLoad: bad input (1)' for 'sub 0', 'archSubArchBuild: invalid parameters' for the API), 32- and 64-bit.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "The heap overflow of 7.0.17 is gone (checks unconditional); what remains is an empty-list allocation of negative size: an ASan abort, or a clean 'out of memory' in a normal build. The double free reached through the new checks is counted as PS3-G01-1.",
+  "location_7_0_18": "src/libscotch/arch_sub.c:91-95 (loader accepts termnbr == 0), 396-399 (Build accepts vnumnbr == 0), 402 'domnnbr = 2 * vnumnbr - 1'",
+  "evidence": "arch_sub.c:91-92: '  if ((intLoad (stream, &termnbr) != 1) ||' / '      (termnbr < 0)) {'; 396: '  if ((vnumnbr < 0) || (vnumnbr > orgtermnbr)) {'; 402: '  domnnbr = 2 * vnumnbr - 1;'",
+  "upstream_change": "ecaf094ef7 makes the count, range, duplicate and archDomTerm() checks of archSubArchBuild() unconditional",
+  "upstream_fix_review": {
+   "commit": "ecaf094ef7",
+   "verdict": "wrong",
+   "details": "Right: the checks are now unconditional (arch_sub.c:396, 442-446), the 0xbebebebe archExit() of 7.0.17 is gone, archSubArchFree() skips NULL fields (arch_sub.c:195-202), and the inner Arch is now owned by the body from the start of Build (arch_sub.c:383), i.e. the same ownership protocol as our 0001. Wrong: (1) the newly unconditional fail1 path (arch_sub.c:448-452) frees termtab, which was already recorded in the body at arch_sub.c:425, so archSubArchFree() (called by archLoad() or by SCOTCH_archExit() after a failed SCOTCH_archSub()) frees it again: 'sub 2 0 99 cmplt 4' and 'sub 2 0 0 cmplt 4' -> 'AddressSanitizer: attempting double-free ... #1 _SCOTCHarchSubArchFree arch_sub.c:202 #2 _SCOTCHarchLoad arch.c:216; freed by ... _SCOTCHarchSubArchBuild arch_sub.c:451' (new defect PS3-G01-1: in 7.0.17 release builds this path did not exist). Incomplete: (2) the inner Arch allocated at arch_sub.c:112 is still never archInit()ed, so when its own loading fails, archLoad() calls its class free hook on an uninitialized body: 'sub 2 0 1 sub 3 0' -> 'arch.c:173:15: runtime error: member access within misaligned address 0xbebebebebebebebe' via archSubArchFree arch_sub.c:196; 'sub 2 0 1 tleaf abc' -> SEGV in free; malloc-failure sweep on a plain build: sub_sub.tgt crashes for failed malloc #5-9, sub_tleaf.tgt and sub_cmpltw.tgt for #5; (3) the fail2 path (arch_sub.c:472-484) frees only the first tree block, so the 'internal error (2)' and 'cannot create sub-architecture (2)' paths still leak the coarser blocks, and in the SCOTCH_archSub() path the published termtab is leaked unless the caller calls SCOTCH_archExit(); (4) vnumnbr == 0 is still accepted by both the loader ('termnbr < 0', arch_sub.c:92) and Build (arch_sub.c:396), so 'sub 0 cmplt 4' reaches memAllocGroup() with size 2*0-1 < 0 ('AddressSanitizer: requested allocation size 0xffffffffffffffec' from arch_sub.c:403); (5) single-terminal sub-architectures other than vertex 0 (PS2-G01-1) are not addressed: they now fail with 'internal error (2)' instead of crashing. Cosmetic: comment typo 'sob-architecture' (arch_sub.c:122).",
+   "compared_with_ours": "Our 7.0.17 0001 used the same ownership protocol but (a) archInit()ed the inner Arch, (b) published the body fields only on success and (c) freed the whole tree chain once on every late failure: all three are what upstream still lacks, and (b) is exactly what prevents his new double free. His version is better in one respect: the archDomTerm() check is now unconditional (ours folded it into the message chain too). Rebased 0001 = his code + (a), (b), (c); rebased 0002 = the 'vnumnbr < 1' remainder of our 0002."
+  },
+  "review_accuracy": "accurate on mechanism, location and reproducer. Its 'Fix' line also asks to validate the archDomTerm() result unconditionally: for an in-range number this cannot fail in any class that has a matcher (archCmpltDomTerm, archHcubDomTerm, archMesh*DomTerm, archTleafDomTerm, archSubDomTerm, archDeco2DomTerm only reject numbers >= size), so it is an internal consistency check; patch 0002 keeps it as 'internal error (1)' in the same chain. The review missed that the debug check itself lets vnumnbr == 0 through (domnnbr = -1) and that a negative count reaches memAlloc in the loader.",
+  "first_pass_critique": "Status, method and preferred option are right, and its diff is close to patch 0002. Shortcomings: it did not cite the in-tree precedent that settles the question (archDeco2ArchBuild, arch_deco2_build.c:604-615, already performs the same two checks unconditionally with the same messages); it reports the archDomTerm() failure as a user-facing 'invalid terminal number' although it is unreachable; it left the loader's count unchecked, so 'sub -1 ...' still reports a misleading 'out of memory (1)' and 'sub 0 ...' goes through memAlloc(0) before being rejected in Build (patch 0002 rejects both at 'bad input (1)', like archCmpltArchLoad's 'termnbr < 1'). Its option B is correctly marked weaker (does not protect SCOTCH_archSub).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/arch_sub.c:448-452 (new unconditional fail1 path frees the published termtab)",
+    "quote": "fail1:\n      orgarchptr->clasptr->matchExit (&matcdat);  /* Free matching structure */\n      memFree (treetab - 1);\n      memFree (termtab);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/arch_sub.c:91-92 and 396 (zero count accepted)",
+    "quote": "      (termnbr < 0)) {",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/arch_deco2_build.c:552-557 (deco2 twin count check still under SCOTCH_DEBUG_ARCH1; per-vertex checks are unconditional; a zero count only yields a failing negative-size allocation)",
+    "quote": "#ifdef SCOTCH_DEBUG_ARCH1\n  if ((vnumnbr < 0) || (vnumnbr > vertnbr)) {",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Require at least one terminal in archSubArchLoad() and archSubArchBuild() (rebased 0002)",
+    "summary": "'termnbr < 1' in the loader and 'vnumnbr < 1' in Build; the rest of our 7.0.17 0002 (unconditional checks) was done upstream by ecaf094.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0002-Bugfix-reject-sub-architectures-without-terminals-re.patch",
+    "tested": "32/64-bit ASan trees: sub_zero, sub_neg, SCOTCH_archSub with 0 terminals rejected cleanly; check_scotch_arch/_build/_deco, check_arch_deco, check_prog_acpl/amk/amk_grf/atst/gmap/gpart pass",
+    "tradeoffs": "Behaviour change only for empty lists, which never worked.",
+    "preferred": true,
+    "maintainer_fit": "two-character changes in the checks he just wrote; archCmpltArchLoad's 'termnbr < 1' is the precedent"
+   },
+   {
+    "label": "B. Validate in archSubArchLoad() only",
+    "summary": "After loading the inner architecture, check the count against archDomSize() and detect out-of-range/duplicate numbers with a byte flag array; leave archSubArchBuild() debug-checked.",
+    "diff_file": "",
+    "tested": "7.0.17 only; superseded: upstream made the Build checks unconditional",
+    "tradeoffs": "Does not protect SCOTCH_archSub()/SCOTCH_archSub Fortran (the API crash remains); duplicates the knowledge of terminal numbering; one more allocation per load.",
+    "preferred": false,
+    "maintainer_fit": "would not take it: leaves the public API unprotected and diverges from archDeco2ArchBuild."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0002-Bugfix-reject-sub-architectures-without-terminals-re.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0001-Bugfix-clean-up-properly-on-sub-architecture-loading.patch"
+  ],
+  "cleanup_done": "none needed (upstream already removed the SCOTCH_DEBUG_ARCH1 blocks)",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed. ecaf094 did the main part of our 0002 (unconditional checks, negative counts); the zero count remains (0002), and the new unconditional failure path double frees (fixed in 0001, see PS3-G01-1). No negative test added (no precedent in src/check, as in 7.0.17)."
+ },
+ {
+  "id": "COR-04",
+  "our_title": "Failed sub-architecture load frees an uninitialized inner Arch, or termtab twice",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Harness: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/repro (7.0.17 kits adapted: common/{archload,archtrip,subapi,subapi2}.c, <ID>/run.sh <libdir>, new/run.sh = 7.0.18-specific cases, alloc/sweep_plain.sh = malloc-failure sweep on non-sanitized builds /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plain (pristine) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plainp (patched)). Pristine = INFRA/asan/lib and INFRA/asan64/lib; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build/lib and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build64/lib. Transcript: repro/RESULTS18.txt. Pristine 7.0.18: the six 7.0.17 cases sub_badtype/sub_badinner/sub_short/sub_var now ret=1 with no report, but sub_dup ('sub 2 0 0 cmplt 4') -> 'AddressSanitizer: attempting double-free ... _SCOTCHarchSubArchFree arch_sub.c:202 <- _SCOTCHarchLoad arch.c:216; freed by _SCOTCHarchSubArchBuild arch_sub.c:451'; 'sub 2 0 1 sub 3 0' -> 'arch.c:173:15: runtime error: member access within misaligned address 0xbebebebebebebebe' <- archSubArchFree arch_sub.c:196 <- archLoad <- archSubArchLoad arch_sub.c:117, then SEGV; 'sub 2 0 1 tleaf abc' -> SEGV in free (uninitialized inner tleaf body); subapi2 (SCOTCH_archSub {0,0} then SCOTCH_archExit) -> double free. Plain-build malloc-failure sweep (alloc/sweep_plain.sh, MALLOC_CHECK_=3): sub_sub.tgt crashes for failed malloc #5-9, sub_tleaf.tgt and sub_cmpltw.tgt for #5. Patched (0001): all ret=1/2 with no ASan/UBSan/LSan report, sweeps 'crashes at malloc #: none' for sub_ok/sub_sub/sub_one/sub_tleaf/sub_cmpltw/dist_sub/dist_subsub; 64-bit identical. Remaining after patch: v_subtleaf ('sub 2 0 1 tleaf 2 4 1 x') double free inside the tleaf loader itself (18911e4f regression, G02).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Malformed 'sub' target files (gmap/dgmap/gmtst/atst/acpl, SCOTCH_archLoad) and SCOTCH_archSub()+SCOTCH_archExit(): double free and free of garbage pointers; also under allocation failure.",
+  "location_7_0_18": "src/libscotch/arch_sub.c:112-120 (inner Arch not archInit()ed before archLoad()), 425 (termtab published before the checks), 448-452 (fail1 frees it), 470-484 (fail2: tree chain leak)",
+  "evidence": "arch_sub.c:112: '  if ((orgarchptr = memAlloc (sizeof (Arch))) == NULL) {' then 117: '  if (archLoad (orgarchptr, stream) != 0) {' (no archInit()); 425: '  subarchptr->termtab = termtab;'; 451: '      memFree (termtab);'; 201-202: '  if (archptr->termtab != NULL)' / '    memFree (archptr->termtab);                   /* Free group leader */'",
+  "upstream_change": "ecaf094ef7 'Make sub-architecture architecture loading and building more robust': makes the count/range/duplicate checks and the archDomTerm() check of archSubArchBuild() unconditional, rejects negative counts and terminal numbers in archSubArchLoad(), stops archExit()ing the inner Arch, makes archSubArchFree() NULL-tolerant, and sets subarchptr->archptr at the entry of archSubArchBuild() so that archSubArchFree() frees the inner Arch on failure.",
+  "upstream_fix_review": {
+   "commit": "ecaf094ef7",
+   "verdict": "wrong",
+   "details": "Right: the checks are now unconditional (arch_sub.c:396, 442-446), the 0xbebebebe archExit() of 7.0.17 is gone, archSubArchFree() skips NULL fields (arch_sub.c:195-202), and the inner Arch is now owned by the body from the start of Build (arch_sub.c:383), i.e. the same ownership protocol as our 0001. Wrong: (1) the newly unconditional fail1 path (arch_sub.c:448-452) frees termtab, which was already recorded in the body at arch_sub.c:425, so archSubArchFree() (called by archLoad() or by SCOTCH_archExit() after a failed SCOTCH_archSub()) frees it again: 'sub 2 0 99 cmplt 4' and 'sub 2 0 0 cmplt 4' -> 'AddressSanitizer: attempting double-free ... #1 _SCOTCHarchSubArchFree arch_sub.c:202 #2 _SCOTCHarchLoad arch.c:216; freed by ... _SCOTCHarchSubArchBuild arch_sub.c:451' (new defect PS3-G01-1: in 7.0.17 release builds this path did not exist). Incomplete: (2) the inner Arch allocated at arch_sub.c:112 is still never archInit()ed, so when its own loading fails, archLoad() calls its class free hook on an uninitialized body: 'sub 2 0 1 sub 3 0' -> 'arch.c:173:15: runtime error: member access within misaligned address 0xbebebebebebebebe' via archSubArchFree arch_sub.c:196; 'sub 2 0 1 tleaf abc' -> SEGV in free; malloc-failure sweep on a plain build: sub_sub.tgt crashes for failed malloc #5-9, sub_tleaf.tgt and sub_cmpltw.tgt for #5; (3) the fail2 path (arch_sub.c:472-484) frees only the first tree block, so the 'internal error (2)' and 'cannot create sub-architecture (2)' paths still leak the coarser blocks, and in the SCOTCH_archSub() path the published termtab is leaked unless the caller calls SCOTCH_archExit(); (4) vnumnbr == 0 is still accepted by both the loader ('termnbr < 0', arch_sub.c:92) and Build (arch_sub.c:396), so 'sub 0 cmplt 4' reaches memAllocGroup() with size 2*0-1 < 0 ('AddressSanitizer: requested allocation size 0xffffffffffffffec' from arch_sub.c:403); (5) single-terminal sub-architectures other than vertex 0 (PS2-G01-1) are not addressed: they now fail with 'internal error (2)' instead of crashing. Cosmetic: comment typo 'sob-architecture' (arch_sub.c:122).",
+   "compared_with_ours": "Our 7.0.17 0001 used the same ownership protocol but (a) archInit()ed the inner Arch, (b) published the body fields only on success and (c) freed the whole tree chain once on every late failure: all three are what upstream still lacks, and (b) is exactly what prevents his new double free. His version is better in one respect: the archDomTerm() check is now unconditional (ours folded it into the message chain too). Rebased 0001 = his code + (a), (b), (c); rebased 0002 = the 'vnumnbr < 1' remainder of our 0002."
+  },
+  "review_accuracy": "accurate; in my runs the 'double free' shows first as a heap-use-after-free READ in archFree (same root cause), and the 0xbebebebe class pointer reproduces exactly. Its 'Fix' line (publish on success, one owner per allocation, valid clasptr on every failure) is what patch 0001 does.",
+  "first_pass_critique": "Evidence and location right. Its preferred option A (loader frees the inner Arch itself and NULLs it; Free tolerates NULL) works -- I built and ran it as alt COR-04-B -- but it is not the protocol the maintainer fixed into archLoad() with d555f2c ('Perform clean-up' through the class free hook) and which the tleaf loader already relies on (archTleafArchLoad leaves sizetab for archTleafArchFree on 'bad input (2)'); its option B (the body owns the inner Arch from allocation, the hook frees it exactly once), which it marked 'not tested' and 'more coupling', is the one consistent with the tree and is smaller. Its objection that 'Build() would need two modes' under B is wrong: publishing only on success is required by both options and the SCOTCH_archSub() path is unchanged. Its diff also left the chain-of-tree-blocks leak and the two debug-only error paths (see PS-COR-3).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/arch_dist.c:101-106 (dist twin: inner Arch not archInit()ed)",
+    "quote": "  if ((dstarchptr = memAlloc (sizeof (Arch))) == NULL) {",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/arch_sub.c:472-484 (fail2 frees only the first tree block)",
+    "quote": "fail2:\n    memFree (treetab - 1);\n    return  (2);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/arch_tleaf.c:135 and 700 (tleaf/ltleaf loaders free sizetab that archTleafArchFree frees again; 18911e4f; G02)",
+    "quote": "see G02 PS3-G02-1",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Publish Build's fields only on success, archInit() the inner Arch, one tree-chain exit (rebased 0001)",
+    "summary": "On top of ecaf094: archInit (orgarchptr) after allocation; archSubArchBuild() keeps setting archptr at entry (his choice) but sets termnbr/termtab/domnnbr/domntab only on success; the fail2 label is replaced by an 'o' status and the existing tree-block loop, followed by memFree (termtab) on failure.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0001-Bugfix-clean-up-properly-on-sub-architecture-loading.patch",
+    "tested": "see 'ran': 32/64-bit ASan, plain malloc-failure sweeps, check_scotch_arch/_build/_deco, check_arch_deco, check_prog_acpl/amk/amk_grf/atst/gmap/gpart, git am on a fresh clone",
+    "tradeoffs": "none; +1 line in the loader, net +9 in Build",
+    "preferred": true,
+    "maintainer_fit": "keeps his structure and labels (fail1), his 'Make sure original architecture is freed in case of error' entry assignment, and archInit()'s documented purpose (arch.c:130-132)"
+   },
+   {
+    "label": "B. Keep termtab published early and let archSubArchFree() free it",
+    "summary": "Drop memFree (termtab) from fail1 and leave fail2 as is.",
+    "diff_file": "",
+    "tested": "untested: rejected by reading -- SCOTCH_archSub() callers that do not call SCOTCH_archExit() after a failure leak termtab, and the inner archInit()/tree-chain issues remain",
+    "tradeoffs": "smaller but leaves leaks and the uninitialized inner Arch",
+    "preferred": false,
+    "maintainer_fit": "inconsistent with his fail1 freeing termtab"
+   },
+   {
+    "label": "C. Zero the class body in archLoad() before calling the class loader",
+    "summary": "memSet (&archptr->data, 0, ...) in archLoad(), instead of archInit() in the two meta-architecture loaders.",
+    "diff_file": "",
+    "tested": "untested: alternative to the archInit() half only",
+    "tradeoffs": "one place for all callers, but changes archLoad() for every class and hides callers that skip archInit()",
+    "preferred": false,
+    "maintainer_fit": "possible; he documents archInit() as the caller's duty"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0001-Bugfix-clean-up-properly-on-sub-architecture-loading.patch"
+  ],
+  "cleanup_done": "removed the fail2 label (replaced by the existing tree-block loop and one failure exit)",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed. ecaf094 adopted our ownership protocol (body owns the inner Arch, NULL-tolerant free) but published termtab before the newly unconditional checks (double free, PS3-G01-1) and did not archInit() the inner Arch. COR-04's 'never archInit()s it' evidence of 7.0.17 still holds."
+ },
+ {
+  "id": "COR-05",
+  "our_title": "Malformed dist files crash in the new archDistArchFree; flags not inherited",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Harness: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/repro (7.0.17 kits adapted: common/{archload,archtrip,subapi,subapi2}.c, <ID>/run.sh <libdir>, new/run.sh = 7.0.18-specific cases, alloc/sweep_plain.sh = malloc-failure sweep on non-sanitized builds /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plain (pristine) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plainp (patched)). Pristine = INFRA/asan/lib and INFRA/asan64/lib; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build/lib and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build64/lib. Transcript: repro/RESULTS18.txt. Pristine 7.0.18 (repro/COR-05/run.sh, new/run.sh): dist_ok, dist_sub, dist_subsub, dist_var: load/save/reload ret=0, no report (7.0.17: NULL write); 'dist 2 cmplt abc' and 'dist abc' -> 'arch.c:173:15: runtime error: member access within null pointer of type struct Arch ... #1 _SCOTCHarchDistArchFree arch_dist.c:162 #2 _SCOTCHarchLoad arch.c:216' then 'AddressSanitizer: SEGV on unknown address 0x000000000000'; 'dist 2 dist 3 cmplt abc', 'dist 2 sub 3 0' -> 0xbebebebe misaligned access then SEGV; 'dist 0 cmplt 4' loads (ret=0); 'dist 2 varcmplt' -> 'name=dist size=1 var=0', and gmap m4x4.grf on it puts all 16 vertices in domain 1 (plain 'varcmplt': 8 domains of 2). Plain malloc-failure sweep: dist_ok crashes at #3, dist_sub at #3-10, dist_subsub at #3-20. Patched (0003, with 0001): every malformed case ret=1 with no report, dist_zero rejected ('archDistArchLoad: bad input (1)'), dist_var 'var=1' and gmap matches varcmplt, sweeps clean; 64-bit identical.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Any malformed 'dist' file (gmap/dgmap/gmtst/atst/acpl, SCOTCH_archLoad) -> NULL dereference; mitigated by 'dist' being undocumented in the user manual.",
+  "location_7_0_18": "src/libscotch/arch_dist.c:96 (crloval unchecked), 101-111 (inner Arch not archInit()ed; published only on success; flags not inherited), 161-164 (archDistArchFree without NULL check), 186 (Build copies ARCHFREE)",
+  "evidence": "arch_dist.c:161-163: '  if ((archArch (archptr)->flagval & ARCHFREE) != 0) { /* If sub-architecture needs to be freed too */' / '    archFree (archptr->archptr);' / '    memFree  (archptr->archptr);'; 111: '  archptr->archptr = dstarchptr;'; 186: '  archptr->flagval = orgarchptr->flagval;         /* Set architecture flag        */'",
+  "upstream_change": "d4b6f9976c 'Bugfix: complete arch_dist.c': allocates and loads the inner Arch, adds archDistArchFree() and the dist matching routines",
+  "upstream_fix_review": {
+   "commit": "d4b6f9976c",
+   "verdict": "incomplete",
+   "details": "Right: well-formed 'dist' files now load, save and reload (dist_ok, dist_sub, dist_subsub: ret=0, no report), the inner Arch is allocated, the new archDistArchFree() is registered and renamed in module.h, and matching routines make 'dist' usable inside 'sub' ('sub 2 0 1 dist 2 cmplt 4' loads and round-trips). This settles the 7.0.17 design question: he keeps 'dist' as a loadable class and owns the inner Arch (our option A). Incomplete: (1) archDistArchFree() (arch_dist.c:161-164) does not check archptr->archptr, which is set only on success (arch_dist.c:111), so every malformed 'dist' file crashes in the clean-up that archLoad() performs: 'dist abc' and 'dist 2 cmplt abc' -> 'arch.c:173:15: runtime error: member access within null pointer of type struct Arch ... #1 _SCOTCHarchDistArchFree arch_dist.c:162' then SEGV; a plain-build malloc-failure sweep crashes dist_ok.tgt at #3 and dist_sub/dist_subsub at every failure from #3 on; (2) the inner Arch (arch_dist.c:101) is not archInit()ed, so a nested 'dist'/'sub' whose loading fails frees garbage ('dist 2 dist 3 cmplt abc', 'dist 2 sub 3 0' -> 0xbebebebe); (3) a loaded 'dist' does not inherit ARCHVAR/ARCHPART from its inner architecture, which archDistArchBuild() does (arch_dist.c:186): 'dist 2 varcmplt' reports var=0 size=1 and gmap maps all 16 vertices of m4x4 onto one domain, while 'varcmplt' alone spreads them; (4) crloval < 1 is accepted ('dist 0 cmplt 4' loads; kgraphInit() rejects it only under SCOTCH_DEBUG_KGRAPH2, kgraph.c:98-103); (5) archDistArchBuild() still copies ARCHFREE from the original architecture, which it does not own: latent double free (no caller). Companion test: 0d878bdd adds 'gmap bump.grf data/sub_dist_mesh2d.tgt' ('sub 5 2 3 6 7 9 dist 2 mesh2d 4 4') to check_prog_gmap and CMake; it passes on the patched 32/64-bit trees.",
+   "compared_with_ours": "Our 7.0.17 0003 had the NULL-tolerant free, archInit(), flag inheritance, crloval >= 1 and the ARCHFREE mask; his has the matching routines (archDistMatchInit/Exit/Mate, ArchDistMatch in ArchMatchDummy), which ours did not and which are a real improvement. Rebased 0003 keeps his structure (inner Arch published after success, his 'bad input (1)/(2)' messages, his variable name dstarchptr) and adds only the five missing pieces. He also added a regression test (0d878bdd), which ours did not."
+  },
+  "review_accuracy": "accurate; both fix directions it offers are valid, and 'allocate and free the inner Arch' is the one taken.",
+  "first_pass_critique": "Status, evidence and option A are right and close to patch 0003. Three gaps: (1) its diff declares a new exported routine archDistArchFree without the SCOTCH_NAME_INTERN entry in module.h, so a SCOTCH_RENAME build would export an unprefixed symbol; (2) it does not make a loaded dist inherit the inner architecture's ARCHPART/ARCHVAR flags, although archDistArchBuild() copies flagval for that purpose: a loaded 'dist 2 varcmplt' would be handled as fixed-size by the mapper (patch 0003 ORs the inner flags into the outer, which is what Build does, and the archtrip run shows var=1); (3) it does not validate crloval (kgraphInit rejects crloval < 1 in debug mode, kgraph.c:98-101). Its 'ask the Scotch team' on A vs B is answered below.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/arch_dist.c:186 (Build inherits ARCHFREE; latent, no caller)",
+    "quote": "  archptr->flagval = orgarchptr->flagval;         /* Set architecture flag        */",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/arch_dist.c:96 (crloval <= 0 accepted)",
+    "quote": "  if (intLoad (stream, &archptr->crloval) != 1) {",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Complete his loader and free routine (rebased 0003)",
+    "summary": "NULL check in archDistArchFree() (same shape as his archSubArchFree()), archInit (dstarchptr), 'crloval < 1' rejected, inner flags but ARCHFREE inherited on success, ARCHFREE masked in archDistArchBuild().",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0003-Bugfix-complete-loading-and-freeing-of-dist-architec.patch",
+    "tested": "see 'ran'; check targets as COR-04; 64-bit",
+    "tradeoffs": "none beyond rejecting crloval < 1, which kgraphInit() rejects in debug mode",
+    "preferred": true,
+    "maintainer_fit": "keeps his d4b6f997 structure, names and messages; mirrors his own ecaf094 NULL checks in archSubArchFree()"
+   },
+   {
+    "label": "B. Reject 'dist' in target files",
+    "summary": "archDistArchLoad() prints 'archDistArchLoad: pseudo-architecture cannot be loaded from a file' and returns 1.",
+    "diff_file": "",
+    "tested": "7.0.17 only; moot: d4b6f997 decided to keep dist loadable",
+    "tradeoffs": "Two lines, zero risk; leaves archDistArchSave() writing files that cannot be read back, and the crloval field read is dropped.",
+    "preferred": false,
+    "maintainer_fit": "he would take B only if he regards dist as internal-only -- then archDistArchSave() should go with it; nothing in the tree marks dist as hidden (unlike the 'deco' type-2 class, which is registered as hidden at arch.c:106)."
+   },
+   {
+    "label": "C. Remove the dist pseudo-architecture",
+    "summary": "Delete arch_dist.[ch], arch_dist_mpi.[ch], the class-table entry, the union members in arch.h, the module.h renames and the Makefile/CMake entries.",
+    "diff_file": "",
+    "tested": "untested: not written (14 files; a design decision only the maintainer can take)",
+    "tradeoffs": "Removes dead code (archDistArchBuild() has never been called in any tagged version from scotch_6.0 to v7.0.17; repartitioning uses Kgraph.r.crloval, kgraph.c:92-130, kgraph_map_rb.c:636) but also a public-looking file type and an MPI type routine.",
+    "preferred": false,
+    "maintainer_fit": "moot: d4b6f997 completed the class instead"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0003-Bugfix-complete-loading-and-freeing-of-dist-architec.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed. Well-formed dist files now work (verified); the design question of 7.0.17 (own vs reject) is answered by the maintainer: own (our option A). The remaining crash moved from the loader to the new free routine."
+ },
+ {
+  "id": "COR-27",
+  "our_title": "Complete-graph matcher pass alternation fixed upstream; regression test missing",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "Harness: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/repro (7.0.17 kits adapted: common/{archload,archtrip,subapi,subapi2}.c, <ID>/run.sh <libdir>, new/run.sh = 7.0.18-specific cases, alloc/sweep_plain.sh = malloc-failure sweep on non-sanitized builds /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plain (pristine) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plainp (patched)). Pristine = INFRA/asan/lib and INFRA/asan64/lib; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build/lib and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build64/lib. Transcript: repro/RESULTS18.txt. repro/COR-27/mate on pristine 7.0.18: n=5 -> 'level 0: fine=5 coarse=3 nextpass=1 single: 4' / 'level 1: fine=3 coarse=2 nextpass=0 single: 0'; n=9 -> singles 8, 0, 2; 'coverage sweep failures (n=2..64,100,1023): 0'. Test value on 7.0.18: test_scotch_arch with the added 'cmplt 9' passes on 7.0.18, and fails with the half fix (toggle only) -> 'archSubArchBuild: internal error (2)' / 'main: cannot create sub-architecture (4)', rc=1; with the full 7.0.17 matcher it passes (not discriminating that case).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Quality only (unbalanced coarsening of odd complete graphs, also cmpltw/cmpltws); fixed.",
+  "location_7_0_18": "src/libscotch/arch_cmplt.c:208-209, 236-237",
+  "evidence": "arch_cmplt.c:209: '  coarvertmax = (finevertnbr + passnum) / 2;      /* One less slot when finevertnbr is odd and passnum is 0 */'; 237: '    matcptr->passnum = passnum ^ 1;'",
+  "upstream_change": "cdee46d98b 'Bugfix: alternate matching passes in archCmpltMatchMate()': exactly the two-line fix",
+  "upstream_fix_review": {
+   "commit": "cdee46d98b",
+   "verdict": "correct",
+   "details": "Same two changes as our 0004: 'coarvertmax = (finevertnbr + passnum) / 2' (arch_cmplt.c:209) and 'matcptr->passnum = passnum ^ 1' (arch_cmplt.c:237). Ran repro/COR-27/mate on pristine 7.0.18: n=5 singles 4 then 0, nextpass alternates; coverage sweep n=2..64,100,1023: 0 failures. Covers cmpltw/cmpltws, which reuse this matcher (arch_cmpltw.h:105-107). No test was added.",
+   "compared_with_ours": "Code identical in effect (he uses '/ 2', we used '>> 1'; his comment is more precise). Ours also added 'cmplt 9' to test_scotch_arch.c, which fails with a half fix ('archSubArchBuild: internal error (2)' with the toggle but not the sizing, verified on 7.0.18) -- kept as test-only commit 0004."
+  },
+  "review_accuracy": "accurate on both parts; its fix line ('passnum ^ 1' and '(finevertnbr + passnum) >> 1') is exactly right.",
+  "first_pass_critique": "Correct and well tested; its diff equals patch 0004's code change. Two omissions: it did not note that cmpltw and cmpltws reuse this matcher (arch_cmpltw.h:105-107), so they are fixed by the same change; and its warning to 'update any golden-output tests' is moot -- no check target maps onto a sub-architecture of an odd complete graph (gmap/gmtst targets are tgt/h*, m*, k*; sub-architectures only appear in test_scotch_arch, which round-trips).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/arch_cmpltw.h:105-107 (cmpltw/cmpltws reuse the matcher)",
+    "quote": "#define archCmpltwMatchMate         archCmpltMatchMate",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Upstream fix + test (shrunk 0004: test only)",
+    "summary": "Add SCOTCH_archCmplt (..., 9) to test_scotch_arch.c (ARCHNBR 24 -> 26) so that odd complete graphs coarsen through both passes.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0004-Add-odd-sized-complete-graph-architecture-to-test_sc.patch",
+    "tested": "check_scotch_arch passes 32/64-bit; fails with a toggle-only half fix",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "one more case in an existing test, his habit"
+   },
+   {
+    "label": "B. Keep the current behaviour, delete the dead pass code",
+    "summary": "Remove passnum from ArchCmpltMatch and the two single-node branches, always leaving the last vertex single.",
+    "diff_file": "",
+    "tested": "7.0.17 only; moot",
+    "tradeoffs": "No behaviour change; gives up the intended alternation; struct field removal.",
+    "preferred": false,
+    "maintainer_fit": "he would not drop a feature he wrote the comment for."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0004-Add-odd-sized-complete-graph-architecture-to-test_sc.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_scotch_arch.c: 'cmplt 9' (ARCHNBR 24 -> 26)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (cdee46d9, same code as our 0004). Our commit shrinks to the regression test; subject changed since it is no longer a bug fix."
+ },
+ {
+  "id": "PS-COR-3",
+  "our_title": "archSubArchBuild late failures leak coarse tree blocks and, via the API, termtab",
+  "status": "partially-fixed",
+  "method": "partly-run",
+  "ran": "Harness: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/repro (7.0.17 kits adapted: common/{archload,archtrip,subapi,subapi2}.c, <ID>/run.sh <libdir>, new/run.sh = 7.0.18-specific cases, alloc/sweep_plain.sh = malloc-failure sweep on non-sanitized builds /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plain (pristine) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plainp (patched)). Pristine = INFRA/asan/lib and INFRA/asan64/lib; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build/lib and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build64/lib. Transcript: repro/RESULTS18.txt. Pristine 7.0.18: subapi (SCOTCH_archSub {0,0}, no archExit) -> 'ret=2 leak-reports=0' (fail1 now frees everything); subapi2 '3' (single terminal, reaches the fail2 'internal error (2)' path) then SCOTCH_archExit -> ret=2, no report (termtab freed by archSubArchFree); without SCOTCH_archExit the published termtab would leak. Patched: subapi/subapi2 all cases clean, LSan on.",
+  "read_only": "The tree-chain leak of the fail2 path (arch_sub.c:472-484) after a successful multi-level archSubArchBuild2() is reachable only through a broken matcher ('internal error (2)', 'cannot create sub-architecture (2)'), so it was only read; the single-terminal path that reaches 'internal error (2)' has no chain.",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Leak on internal-error paths only.",
+  "location_7_0_18": "src/libscotch/arch_sub.c:470-484",
+  "evidence": "arch_sub.c:472-474: 'fail2:' / '    memFree (treetab - 1);' / '    return  (2);' versus the success path 487-490: '  for (treetab --; treetab != NULL; treetab = treetmp) { /* Free all tree blocks    */'",
+  "upstream_change": "ecaf094ef7 'Make sub-architecture architecture loading and building more robust': makes the count/range/duplicate checks and the archDomTerm() check of archSubArchBuild() unconditional, rejects negative counts and terminal numbers in archSubArchLoad(), stops archExit()ing the inner Arch, makes archSubArchFree() NULL-tolerant, and sets subarchptr->archptr at the entry of archSubArchBuild() so that archSubArchFree() frees the inner Arch on failure.",
+  "upstream_fix_review": {
+   "commit": "ecaf094ef7",
+   "verdict": "wrong",
+   "details": "Right: the checks are now unconditional (arch_sub.c:396, 442-446), the 0xbebebebe archExit() of 7.0.17 is gone, archSubArchFree() skips NULL fields (arch_sub.c:195-202), and the inner Arch is now owned by the body from the start of Build (arch_sub.c:383), i.e. the same ownership protocol as our 0001. Wrong: (1) the newly unconditional fail1 path (arch_sub.c:448-452) frees termtab, which was already recorded in the body at arch_sub.c:425, so archSubArchFree() (called by archLoad() or by SCOTCH_archExit() after a failed SCOTCH_archSub()) frees it again: 'sub 2 0 99 cmplt 4' and 'sub 2 0 0 cmplt 4' -> 'AddressSanitizer: attempting double-free ... #1 _SCOTCHarchSubArchFree arch_sub.c:202 #2 _SCOTCHarchLoad arch.c:216; freed by ... _SCOTCHarchSubArchBuild arch_sub.c:451' (new defect PS3-G01-1: in 7.0.17 release builds this path did not exist). Incomplete: (2) the inner Arch allocated at arch_sub.c:112 is still never archInit()ed, so when its own loading fails, archLoad() calls its class free hook on an uninitialized body: 'sub 2 0 1 sub 3 0' -> 'arch.c:173:15: runtime error: member access within misaligned address 0xbebebebebebebebe' via archSubArchFree arch_sub.c:196; 'sub 2 0 1 tleaf abc' -> SEGV in free; malloc-failure sweep on a plain build: sub_sub.tgt crashes for failed malloc #5-9, sub_tleaf.tgt and sub_cmpltw.tgt for #5; (3) the fail2 path (arch_sub.c:472-484) frees only the first tree block, so the 'internal error (2)' and 'cannot create sub-architecture (2)' paths still leak the coarser blocks, and in the SCOTCH_archSub() path the published termtab is leaked unless the caller calls SCOTCH_archExit(); (4) vnumnbr == 0 is still accepted by both the loader ('termnbr < 0', arch_sub.c:92) and Build (arch_sub.c:396), so 'sub 0 cmplt 4' reaches memAllocGroup() with size 2*0-1 < 0 ('AddressSanitizer: requested allocation size 0xffffffffffffffec' from arch_sub.c:403); (5) single-terminal sub-architectures other than vertex 0 (PS2-G01-1) are not addressed: they now fail with 'internal error (2)' instead of crashing. Cosmetic: comment typo 'sob-architecture' (arch_sub.c:122).",
+   "compared_with_ours": "Our 7.0.17 0001 used the same ownership protocol but (a) archInit()ed the inner Arch, (b) published the body fields only on success and (c) freed the whole tree chain once on every late failure: all three are what upstream still lacks, and (b) is exactly what prevents his new double free. His version is better in one respect: the archDomTerm() check is now unconditional (ours folded it into the message chain too). Rebased 0001 = his code + (a), (b), (c); rebased 0002 = the 'vnumnbr < 1' remainder of our 0002."
+  },
+  "review_accuracy": "not in the review (first-pass finding)",
+  "first_pass_critique": "Right about the two returns, but incomplete: the '(2)' path also leaks every coarse tree block but the first, and the two SCOTCH_DEBUG_ARCH2 paths leak more; and it says the leak was 'not triggered by my inputs' while a two-line API call triggers it in release builds.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/arch_sub.c:476-483 ('internal error (2)' and '(2)' share fail2)",
+    "quote": "    errorPrint (\"archSubArchBuild: internal error (2)\");\n    goto fail2;",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. One tree-block loop and one failure exit for Build's tail (in patch 0001)",
+    "summary": "Compute the outcome into 'o', free the whole tree chain once, then free termtab and return on failure, or set the body fields and return 0.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0001-Bugfix-clean-up-properly-on-sub-architecture-loading.patch",
+    "tested": "as COR-04 (rebased 0001)",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "same commit as COR-04 (one logical defect: Build's error paths); 'o = 0 /* Assume everything will be all right */' is his idiom (arch.c:172)."
+   },
+   {
+    "label": "B. Add memFree (termtab) to the two returns",
+    "summary": "Minimal two-line change.",
+    "diff_file": "",
+    "tested": "7.0.17 only",
+    "tradeoffs": "Leaves the tree-chain leak on path (2) and the debug-only leaks.",
+    "preferred": false,
+    "maintainer_fit": "incomplete; he fixes the whole error path when he touches it (3c9b3ab, 0635547, 3436099)."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0001-Bugfix-clean-up-properly-on-sub-architecture-loading.patch"
+  ],
+  "cleanup_done": "fail2 label removed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed. ecaf094 frees termtab and the matching structure on the range/duplicate path (but double frees, PS3-G01-1) and routes the internal error (2) path to a free; the coarse-block chain is still not freed there."
+ },
+ {
+  "id": "PS2-G01-arch-sub-dist-1",
+  "our_title": "Single-terminal sub-architecture other than vertex 0: sub fails, deco2 writes out of bounds",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Harness: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/repro (7.0.17 kits adapted: common/{archload,archtrip,subapi,subapi2}.c, <ID>/run.sh <libdir>, new/run.sh = 7.0.18-specific cases, alloc/sweep_plain.sh = malloc-failure sweep on non-sanitized builds /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plain (pristine) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plainp (patched)). Pristine = INFRA/asan/lib and INFRA/asan64/lib; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build/lib and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build64/lib. Transcript: repro/RESULTS18.txt. Pristine 7.0.18 (repro/PS2-G01-1/run.sh, m4x4.grf path updated): 'sub 1 3 cmplt 4' and 'sub 1 6 hcub 3' -> 'ERROR: archSubArchBuild: internal error (2)', ret=1, no report (7.0.17: SEGV in archSubArchBuild3); 'sub 1 0 cmplt 4' works; build2one (SCOTCH_archBuild2 (m4x4, 1, {5})) -> 'AddressSanitizer: SEGV on unknown address 0x506400000078 ... WRITE ... #0 archDeco2BuildBuild3 arch_deco2_build.c:502'. Patched (0005): all cases ret=0 with size=1, round-trip, no report, 32/64-bit; test_scotch_arch with the new single-vertex case passes on the patched lib and fails on pristine 7.0.18 ('internal error (2)' / 'main: cannot create single-vertex sub-architecture').",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "SCOTCH_archBuild2() with one kept vertex other than 0: out-of-bounds heap write; the 'sub' half degraded to a clean but wrong failure in 7.0.18.",
+  "location_7_0_18": "src/libscotch/arch_sub.c:466, src/libscotch/arch_deco2_build.c:653, src/libscotch/arch_sub.c:230-233",
+  "evidence": "arch_sub.c:466: '  rootptr = archSubArchBuild2 (&matcdat, ... orgarchptr->clasptr->matchMate, treetab, vnumnbr);'; arch_deco2_build.c:653: '  rootptr = archSubArchBuild2 (&matcdat, ... archDeco2BuildMatchMate, treetab, vnumnbr);'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (our finding)",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Pass the number of original vertices to archSubArchBuild2() (patch 0005)",
+    "summary": "archSubArchBuild() passes orgtermnbr and archDeco2ArchBuild() passes vertnbr, which is what the parameter 'finevertnbr' (size of the array) means; coarsening then runs down to one vertex in all cases and the kept terminal becomes the root through the normal single-child collapse of archSubArchBuild3(). Adds a single-vertex sub-architecture to test_scotch_arch.c (ARCHNBR 26 -> 27).",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0005-Bugfix-build-sub-architectures-made-of-a-single-term.patch",
+    "tested": "see 'ran'; check targets 32/64-bit; git am",
+    "tradeoffs": "For vnumnbr >= 2 nothing changes (the parameter is only compared to 1). The deco2 change is in arch_deco2_build.c (possible overlap with a deco group patch: a one-token change on line 653).",
+    "preferred": true,
+    "maintainer_fit": "fixes the callers' misuse of a documented parameter instead of special-casing; both callers in one commit, like his twin fixes (e.g. 6a030db covering every SCOTCH_mesh* routine)."
+   },
+   {
+    "label": "B. Special-case a single kept vertex in both callers",
+    "summary": "If vnumnbr == 1, set treetab[-1].sonstab[0] = NULL and take &treetab[vnumtab[0]] as root without calling archSubArchBuild2().",
+    "diff_file": "",
+    "tested": "7.0.17 only",
+    "tradeoffs": "Two more branches that duplicate a TRICK of archSubArchBuild2(); the matcher structure is still initialized for nothing.",
+    "preferred": false,
+    "maintainer_fit": "unlikely: it works around the parameter instead of passing the right value."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0005-Bugfix-build-sub-architectures-made-of-a-single-term.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_scotch_arch.c: single-vertex sub-architecture (ARCHNBR 26 -> 27)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (not taken upstream). The ecaf094 unconditional 'internal error (2)' check turns the sub crash into a clean failure; the deco2 crash is unchanged. 0005 applies unchanged on top of 0001-0004 (dates bumped, message updated for the new 'sub' symptom). It touches arch_deco2_build.c:653 only."
+ },
+ {
+  "id": "PS2-G01-arch-sub-dist-2",
+  "our_title": "archDistArchBuild still has no caller; maintainer chose to keep dist",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "git grep 'archDistArchBuild' over v7.0.18/src: only the definition (arch_dist.c:177) and module.h; no caller.",
+  "why_not_run": "dead code: nothing to run",
+  "severity": "info",
+  "severity_note": "Dead routine; d4b6f997 shows the maintainer intends to keep and complete the class.",
+  "location_7_0_18": "src/libscotch/arch_dist.c:177-192",
+  "evidence": "arch_dist.c:177: 'archDistArchBuild (' -- no call site in src/ at v7.0.18.",
+  "upstream_change": "d4b6f9976c completes the dist class (loader, free, matching) instead of removing it",
+  "upstream_fix_review": {
+   "commit": "d4b6f9976c",
+   "verdict": "unrelated",
+   "details": "Does not touch archDistArchBuild()'s lack of caller; answers the design question by keeping the class.",
+   "compared_with_ours": "Same outcome as our preferred option A (keep, make loadable)."
+  },
+  "review_accuracy": "not in the review (our finding)",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Keep, make loadable (patch 0003)",
+    "summary": "What the series does: the class remains and now works from files.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0003-Bugfix-complete-loading-and-freeing-of-dist-architec.patch",
+    "tested": "as COR-05",
+    "tradeoffs": "keeps ~600 lines of unused code alive",
+    "preferred": true,
+    "maintainer_fit": "conservative; his call"
+   },
+   {
+    "label": "B. Remove the dist module",
+    "summary": "Delete arch_dist*.[ch], the class-table entry, union members, renames, build entries.",
+    "diff_file": "",
+    "tested": "untested: not written (design decision)",
+    "tradeoffs": "removes a loadable/saveable file type",
+    "preferred": false,
+    "maintainer_fit": "a5ee23b shows he removes dead definitions, but this is a whole class"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (info). No action: the maintainer kept the class."
+ }
+]

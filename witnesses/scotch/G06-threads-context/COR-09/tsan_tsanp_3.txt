@@ -1,0 +1,4 @@
+ERROR: threadCreate: cannot launch thread (2)
+ERROR: threadContextInit: cannot create thread (2)
+spawn (4) returned 1
+exit done

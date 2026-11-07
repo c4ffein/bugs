@@ -1,0 +1,12 @@
+# Projects whose bugs live here. PyScotch and hegel-c keep their own bugs.
+[[project]]
+id = "scotch"
+upstream = "https://gitlab.inria.fr/scotch/scotch"
+
+[[project]]
+id = "linux"
+upstream = "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+
+[[project]]
+id = "libhegel"
+upstream = "https://github.com/hegeldev/hegel"

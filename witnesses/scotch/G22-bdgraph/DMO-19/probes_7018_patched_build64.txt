@@ -1,0 +1,130 @@
+== gather np=1
+      1 rank 0: gather ret=0
+      1 rank 0: gather veextax=0x534000080800 bad=0 of 15606, bbalval=1, compload0dlt=7803 compload0avg=7803
+== gather np=3
+      1 rank 0: gather ret=0
+      1 rank 0: gather veextax=0x534000040800 bad=0 of 15606, bbalval=1, compload0dlt=7803 compload0avg=7803
+      1 rank 1: gather ret=0
+      1 rank 1: gather veextax=0x534000040800 bad=0 of 15606, bbalval=1, compload0dlt=7803 compload0avg=7803
+      1 rank 2: gather ret=0
+      1 rank 2: gather veextax=0x534000040800 bad=0 of 15606, bbalval=1, compload0dlt=7803 compload0avg=7803
+== q veex np=3
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7831 dlt=28 size0=7831 comm=-2242 gainextn=13851 fron=4595 bal=0.00358836345 balcalc=0.00358836345
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7831 dlt=28 size0=7831 comm=-2242 gainextn=13851 fron=4595 bal=0.00358836345 balcalc=0.00358836345
+      1 rank 2: check=0
+      1 rank 2: ret=0 load0=7831 dlt=28 size0=7831 comm=-2242 gainextn=13851 fron=4595 bal=0.00358836345 balcalc=0.00358836345
+== q+x veex np=3
+      1 bdgraph_bipart_ex.c:371:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      3 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      3 bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      3 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      3 bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=-1889 gainextn=12885 fron=4456 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=-1889 gainextn=12885 fron=4456 bal=0 balcalc=0
+      1 rank 2: check=0
+      1 rank 2: ret=0 load0=7803 dlt=0 size0=7803 comm=-1889 gainextn=12885 fron=4456 bal=0 balcalc=0
+== ml fold=n np=1
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7831 dlt=28 size0=7831 comm=-2228 gainextn=13815 fron=4594 bal=0.00358836345 balcalc=0.00358836345
+== ml fold=n np=2
+      2 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=35 gainextn=503 fron=284 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=35 gainextn=503 fron=284 bal=0 balcalc=0
+== ml fold=n np=3
+      2 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      3 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=77 gainextn=569 fron=360 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=77 gainextn=569 fron=360 bal=0 balcalc=0
+      1 rank 2: check=0
+      1 rank 2: ret=0 load0=7803 dlt=0 size0=7803 comm=77 gainextn=569 fron=360 bal=0 balcalc=0
+== ml fold=n np=4
+      4 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      4 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=87 gainextn=531 fron=352 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=87 gainextn=531 fron=352 bal=0 balcalc=0
+      1 rank 2: check=0
+      1 rank 2: ret=0 load0=7803 dlt=0 size0=7803 comm=87 gainextn=531 fron=352 bal=0 balcalc=0
+      1 rank 3: check=0
+      1 rank 3: ret=0 load0=7803 dlt=0 size0=7803 comm=87 gainextn=531 fron=352 bal=0 balcalc=0
+== ml fold=f np=1
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7831 dlt=28 size0=7831 comm=-2228 gainextn=13815 fron=4594 bal=0.00358836345 balcalc=0.00358836345
+== ml fold=f np=2
+      2 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=-980 gainextn=6479 fron=2243 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=-980 gainextn=6479 fron=2243 bal=0 balcalc=0
+== ml fold=f np=3
+      3 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      3 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=-720 gainextn=5859 fron=2225 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=-720 gainextn=5859 fron=2225 bal=0 balcalc=0
+      1 rank 2: check=0
+      1 rank 2: ret=0 load0=7803 dlt=0 size0=7803 comm=-720 gainextn=5859 fron=2225 bal=0 balcalc=0
+== ml fold=f np=4
+      4 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      4 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=-667 gainextn=5603 fron=2136 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=-667 gainextn=5603 fron=2136 bal=0 balcalc=0
+      1 rank 2: check=0
+      1 rank 2: ret=0 load0=7803 dlt=0 size0=7803 comm=-667 gainextn=5603 fron=2136 bal=0 balcalc=0
+      1 rank 3: check=0
+      1 rank 3: ret=0 load0=7803 dlt=0 size0=7803 comm=-667 gainextn=5603 fron=2136 bal=0 balcalc=0
+== ml fold=d np=1
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7831 dlt=28 size0=7831 comm=-2228 gainextn=13815 fron=4594 bal=0.00358836345 balcalc=0.00358836345
+== ml fold=d np=2
+      2 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=-1267 gainextn=8957 fron=3174 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=-1267 gainextn=8957 fron=3174 bal=0 balcalc=0
+== ml fold=d np=3
+      3 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      3 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      3 bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=-1420 gainextn=8737 fron=2919 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=-1420 gainextn=8737 fron=2919 bal=0 balcalc=0
+      1 rank 2: check=0
+      1 rank 2: ret=0 load0=7803 dlt=0 size0=7803 comm=-1420 gainextn=8737 fron=2919 bal=0 balcalc=0
+== ml fold=d np=4
+      1 bdgraph_bipart_ex.c:371:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      4 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      2 bdgraph_bipart_ex.c:385:7: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      4 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 bdgraph_bipart_ex.c:457:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=-766 gainextn=6847 fron=2676 bal=0 balcalc=0
+      1 rank 1: check=0
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=-766 gainextn=6847 fron=2676 bal=0 balcalc=0
+      1 rank 2: check=0
+      1 rank 2: ret=0 load0=7803 dlt=0 size0=7803 comm=-766 gainextn=6847 fron=2676 bal=0 balcalc=0
+      1 rank 3: check=0
+      1 rank 3: ret=0 load0=7803 dlt=0 size0=7803 comm=-766 gainextn=6847 fron=2676 bal=0 balcalc=0

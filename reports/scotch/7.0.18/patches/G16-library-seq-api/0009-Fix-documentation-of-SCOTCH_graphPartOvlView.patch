@@ -1,0 +1,41 @@
+From 4b26e6130f722ae82e108a8df25cc86e48e2a0e0 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:18:32 +0000
+Subject: [PATCH 9/9] Fix documentation of `SCOTCH_graphPartOvlView()`
+
+The reference to the section of `SCOTCH_graphPartOvl()` was written
+as a `\label`, which defined the label a second time, so that the
+references to that section elsewhere in the manual pointed to the
+new section, and printed nothing in place. The `partnbr` and
+`parttab` parameters are `const`, as in `library.h`.
+---
+ doc/src/scotch/s_l.tex | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/doc/src/scotch/s_l.tex b/doc/src/scotch/s_l.tex
+index 04d24511..33077ff8 100644
+--- a/doc/src/scotch/s_l.tex
++++ b/doc/src/scotch/s_l.tex
+@@ -4079,8 +4079,8 @@ filled, but its contents are not significant.
+ 
+ {\tt\begin{tabular}{l@{}ll}
+ int SCOTCH\_graphPartOvlView ( & const SCOTCH\_Graph * & grafptr, \\
+-                               & SCOTCH\_Num           & partnbr, \\
+-                               & SCOTCH\_Num *         & parttab, \\
++                               & const SCOTCH\_Num     & partnbr, \\
++                               & const SCOTCH\_Num *   & parttab, \\
+                                & FILE *                & stream
+ \end{tabular}}
+ 
+@@ -4099,7 +4099,7 @@ The \texttt{SCOTCH\_graphPartOvlView} routine writes to
+ partition of the source graph \texttt{grafptr} into \texttt{partnbr}
+ parts, as passed in \texttt{parttab}.
+ See also \texttt{SCOTCH\_graphPartOvl},
+-Section~\label{sec-lib-func-graphpartovl}.
++Section~\ref{sec-lib-func-graphpartovl}.
+ 
+ Fortran users must use the \texttt{PXFFILENO} or \texttt{FNUM}
+ functions to obtain the number of the Unix file descriptor
+-- 
+2.43.0
+

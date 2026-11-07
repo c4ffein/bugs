@@ -1,0 +1,139 @@
+From bc8667bab5594d9b0b128b13f1c10a95adf483a0 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:54:57 +0000
+Subject: [PATCH 014/232] Bugfix: validate decomposition-defined architectures
+ on loading [report R. Perry]
+
+The terminal count check of `archDecoArchBuild2()` was only performed
+in debug mode, so that type-0 target files with duplicate terminal
+numbers were accepted, and a declared terminal domain that was an
+ancestor of other terminal domains made the distance computation loop
+read and write past the distance array. Also, the size of the distance
+array and the overall weight of terminal domains were not checked for
+overflow, and the domain array of type-1 (compiled) target files was
+not checked to describe a binary tree, so that malformed files made
+`archDecoDomSize()` and `archDecoDomDist()` read past it.
+
+Perform the terminal count check unconditionally, reject terminal
+domains that are not leaves, bound the largest domain number and the
+overall terminal weight, reject negative type-1 domain sizes, and check
+that every type-1 domain of size greater than one has two sons that
+add up to it, and that the root domain holds all terminals.
+
+Refs: COR-16, COR-21, PS-COR-1, PS2-G03-1
+---
+ src/libscotch/arch_deco.c | 44 +++++++++++++++++++++++++++++++--------
+ 1 file changed, 35 insertions(+), 9 deletions(-)
+
+diff --git a/src/libscotch/arch_deco.c b/src/libscotch/arch_deco.c
+index d11a89a6..b49c1306 100644
+--- a/src/libscotch/arch_deco.c
++++ b/src/libscotch/arch_deco.c
+@@ -66,7 +66,7 @@
+ /**                # Version 6.0  : from : 14 feb 2011     **/
+ /**                                 to   : 28 apr 2019     **/
+ /**                # Version 7.0  : from : 17 jan 2023     **/
+-/**                                 to   : 15 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -161,12 +161,18 @@ const Anum * const              termdisttab)      /*+ Terminal distance map
+       archptr->domverttab[dfatnum].wght += archptr->domverttab[domnnum].wght;
+     }
+   }
+-#ifdef SCOTCH_DEBUG_ARCH1
+-  if (archptr->domverttab[0].size != termdomnbr) { /* If incorrect accumulation */
+-    errorPrint ("archDecoArchBuild2: bad terminal count");
++  if (archptr->domverttab[0].size != termdomnbr) { /* If incorrect accumulation, e.g. duplicate terminal numbers */
++    errorPrint       ("archDecoArchBuild2: bad terminal count");
++    archDecoArchFree (archptr);
+     return (1);
+   }
+-#endif /* SCOTCH_DEBUG_ARCH1 */
++  for (domnnum = 0; domnnum < termdomnbr; domnnum ++) { /* A declared terminal domain must be a leaf */
++    if (archptr->domverttab[termverttab[domnnum].num - 1].size != 1) {
++      errorPrint       ("archDecoArchBuild2: terminal domain is not a leaf");
++      archDecoArchFree (archptr);
++      return (1);
++    }
++  }
+ 
+   memSet (archptr->domdisttab, 0, termdommax * (termdommax - 1) * sizeof (Anum) / 2); /* Assume distance is not known */
+ 
+@@ -241,6 +247,7 @@ FILE * restrict const       stream)
+   INT                         domnnum;
+   INT                         distidx;
+   INT                         distsiz;
++  Anum                        wghtsum;            /* Overall weight of terminal domains               */
+   int                         o;
+ 
+ #ifdef SCOTCH_DEBUG_ARCH1
+@@ -266,7 +273,8 @@ FILE * restrict const       stream)
+   if ((intLoad (stream, &termdomnbr) != 1) ||     /* Proceed with type-0 and type-1 architectures */
+       (intLoad (stream, &termdommax) != 1) ||
+       (termdommax < termdomnbr)            ||
+-      (termdomnbr < 1)) {
++      (termdomnbr < 1)                     ||
++      ((termdommax - 1) > (ANUMMAX / termdommax))) { /* Size of distance array must fit in an Anum */
+     errorPrint ("archDecoArchLoad: bad input (2)");
+     return (1);
+   }
+@@ -281,7 +289,7 @@ FILE * restrict const       stream)
+       return (1);
+     }
+ 
+-    for (domnnum = 0; domnnum < termdomnbr; domnnum ++) { /* For all declared terminals */
++    for (domnnum = 0, wghtsum = 0; domnnum < termdomnbr; domnnum ++) { /* For all declared terminals */
+       INT                 termvertlabl;
+       INT                 termvertwght;
+       INT                 termvertnum;
+@@ -292,10 +300,12 @@ FILE * restrict const       stream)
+           (termvertlabl < 0)                     ||
+           (termvertwght < 0)                     ||
+           (termvertnum  < 1)                     ||
+-          (termvertnum  > termdommax)) {
++          (termvertnum  > termdommax)            ||
++          (termvertwght > (ANUMMAX - wghtsum))) { /* Overall weight must fit in an Anum */
+         errorPrint ("archDecoArchLoad: bad input (3)");
+         goto fail1;
+       }
++      wghtsum += (Anum) termvertwght;
+       termverttab[domnnum].labl = (ArchDomNum) termvertlabl;
+       termverttab[domnnum].wght = (Anum)       termvertwght;
+       termverttab[domnnum].num  = (Anum)       termvertnum;
+@@ -338,7 +348,7 @@ fail1:
+           (intLoad (stream, &domvertsize) != 1) ||
+           (intLoad (stream, &domvertwght) != 1) ||
+           (domvertlabl < -1)                    || /* -1 for unused domain slots */
+-          (domvertsize < -1)                    ||
++          (domvertsize < 0)                     ||
+           (domvertwght < -1)) {
+         errorPrint ("archDecoArchLoad: bad input (5)");
+ fail2:
+@@ -362,6 +372,22 @@ fail2:
+       archptr->domdisttab[distidx] = domdistval;
+     }
+ 
++    for (domnnum = 0; domnnum < termdommax; domnnum ++) { /* Check that domain array describes a binary tree */
++      Anum                domnsiz;
++
++      domnsiz = archptr->domverttab[domnnum].size;
++      if ((domnsiz > 1) &&                        /* A splittable domain needs two sons that add up to it */
++          ((((2 * domnnum) + 2) >= termdommax) ||
++           ((domnsiz - archptr->domverttab[(2 * domnnum) + 1].size) != archptr->domverttab[(2 * domnnum) + 2].size))) {
++        errorPrint ("archDecoArchLoad: bad input (7)");
++        goto fail2;
++      }
++    }
++    if (archptr->domverttab[0].size != termdomnbr) { /* Root domain must hold all terminals */
++      errorPrint ("archDecoArchLoad: bad input (8)");
++      goto fail2;
++    }
++
+     o = 0;                                        /* Everything went well */
+   }
+ 
+-- 
+2.43.0
+

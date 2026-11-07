@@ -1,0 +1,94 @@
+From 444992549d134b2f423f2cd050e5960b9d6f1864 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:10:01 +0000
+Subject: [PATCH 05/10] Bugfix: parenthesize operands of saved strategy test
+ expressions [report R. Perry]
+
+Since 088a1279, `stratTestSave()` parenthesizes operands of lower
+priority than their operator, but it compared the positions of the
+operators in the `StratTestType` enumeration, which are not the
+priorities of the grammar: '+' and '-' have the same priority, and
+'%' binds tighter than '*'. Also, a right operand of the same priority
+must be parenthesized, since all operators are left-associative. Hence,
+`a-(b-c)` or `a%(b%c)` were saved as `a-b-c` and `a%b%c`, which
+re-parse with another meaning. Use a priority table that follows the
+grammar, and parenthesize right operands of the same priority.
+
+Refs: COR-13
+---
+ src/libscotch/parser.c |  7 ++++---
+ src/libscotch/parser.h | 10 +++++-----
+ 2 files changed, 9 insertions(+), 8 deletions(-)
+
+diff --git a/src/libscotch/parser.c b/src/libscotch/parser.c
+index 15bf0035..e09e98fb 100644
+--- a/src/libscotch/parser.c
++++ b/src/libscotch/parser.c
+@@ -54,7 +54,7 @@
+ /**                # Version 6.0  : from : 01 jun 2012     **/
+ /**                                 to   : 30 dec 2016     **/
+ /**                # Version 7.0  : from : 02 mar 2018     **/
+-/**                                 to   : 24 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -562,6 +562,7 @@ StratTest * const           testptr)
+ 
+ static char                 strattestsaveop[STRATTESTNBR] = "|&!=><+-*%##";
+ static char *               strattestsavepa[2][2] = { { "", "" }, { "(", ")" } };
++static int                  strattestsavepr[STRATTESTNBR] = { 0, 1, 2, 3, 3, 3, 4, 4, 5, 6, 7, 7 }; /* Operator priorities, as in grammar */
+ 
+ int
+ stratTestSave (
+@@ -595,13 +596,13 @@ FILE * const                stream)
+     case STRATTESTSUB :                           /* Subtraction operator    */
+     case STRATTESTMUL :                           /* Multiplication operator */
+     case STRATTESTMOD :                           /* Modulus operator        */
+-      i  = (testptr->data.testtab[0]->testval < testptr->testval) ? 1 : 0;
++      i  = (strattestsavepr[testptr->data.testtab[0]->testval] < strattestsavepr[testptr->testval]) ? 1 : 0;
+       o  = (fprintf (stream, "%s", strattestsavepa[i][0]) == EOF);
+       o |= stratTestSave (testptr->data.testtab[0], stream);
+       o |= (fprintf (stream, "%s", strattestsavepa[i][1]) == EOF);
+       if (o == 0) {
+         o  = (fprintf (stream, "%c", strattestsaveop[testptr->testval]) == EOF);
+-        i  = (testptr->data.testtab[1]->testval < testptr->testval) ? 1 : 0;
++        i  = (strattestsavepr[testptr->data.testtab[1]->testval] <= strattestsavepr[testptr->testval]) ? 1 : 0; /* Operators are left-associative */
+         o |= (fprintf (stream, "%s", strattestsavepa[i][0]) == EOF);
+         o |= stratTestSave (testptr->data.testtab[1], stream);
+         o |= (fprintf (stream, "%s", strattestsavepa[i][1]) == EOF);
+diff --git a/src/libscotch/parser.h b/src/libscotch/parser.h
+index 2d1a747d..815fee36 100644
+--- a/src/libscotch/parser.h
++++ b/src/libscotch/parser.h
+@@ -1,4 +1,4 @@
+-/* Copyright 2004,2007,2008,2014,2018,2021,2023,2024 IPB, Universite de Bordeaux, INRIA & CNRS
++/* Copyright 2004,2007,2008,2014,2018,2021,2023,2024,2026 IPB, Universite de Bordeaux, INRIA & CNRS
+ **
+ ** This file is part of the Scotch software package for static mapping,
+ ** graph partitioning and sparse matrix ordering.
+@@ -52,7 +52,7 @@
+ /**                # Version 6.0  : from : 30 sep 2014     **/
+ /**                                 to   : 30 sep 2014     **/
+ /**                # Version 7.0  : from : 02 mar 2018     **/
+-/**                                 to   : 07 nov 2024     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -84,9 +84,9 @@ typedef int StratParamType;                       /*+ Same type as enum +*/
+ 
+ #define STRATPARAMDEPRECATED        8             /*+ Indicates deprecated parameter; can be merged with the above +*/
+ 
+-/*+ Test types, ordered by ascending priority,
+-    for proper writing of parentheses. Initial
+-    value should be zero for proper indexing.  +*/
++/*+ Test types, ordered by ascending priority.
++    Initial value should be zero for proper
++    indexing of operator and priority arrays.  +*/
+ 
+ typedef enum StratTestType_ {
+   STRATTESTOR = 0,                                /*+ Or operator             +*/
+-- 
+2.43.0
+

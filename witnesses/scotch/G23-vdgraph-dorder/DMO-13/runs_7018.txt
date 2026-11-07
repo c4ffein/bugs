@@ -1,0 +1,66 @@
+== DMO-05 pristine
+      5     #2 0x7f0eda419b9c in vdgraphSeparateMlUncoarsen /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/vdgraph_separate_ml.c:399
+      5     #2 0x7f5da7419b9c in vdgraphSeparateMlUncoarsen /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/vdgraph_separate_ml.c:399
+      4     #2 0x7fb907619b9c in vdgraphSeparateMlUncoarsen /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/vdgraph_separate_ml.c:399
+      5     #3 0x7f0eda420d30 in vdgraphSeparateMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/vdgraph_separate_ml.c:775
+      5     #3 0x7f5da7420d30 in vdgraphSeparateMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/vdgraph_separate_ml.c:775
+      4     #3 0x7fb907620d30 in vdgraphSeparateMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/vdgraph_separate_ml.c:775
+      4     #4 0x7f0eda420cd2 in vdgraphSeparateMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/vdgraph_separate_ml.c:772
+      1     #4 0x7f0eda421270 in _SCOTCHvdgraphSeparateMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/vdgraph_separate_ml.c:825
+== DMO-13 leak pristine
+      1 Direct leak of 1 byte(s) in 1 object(s) allocated from:
+      2 Direct leak of 12 byte(s) in 1 object(s) allocated from:
+      2 Direct leak of 13 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 152 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 168 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 22 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 3 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 30 byte(s) in 1 object(s) allocated from:
+   blk.out md5=aca951a7
+== DMO-13 /dev/full pristine
+      1 (0): ERROR: dorderSaveBlock2: bad output (2)
+      1 rank 0: OrderCompute rc=0
+      1 rank 0: OrderSave(b) rc=1
+      1 rank 1: OrderCompute rc=0
+      1 rank 1: OrderSave(b) rc=0
+== DMO-13 /dev/full small graph pristine
+      1 rank 0: OrderCompute rc=0
+      1 rank 0: OrderSave(b) rc=0
+      1 rank 1: OrderCompute rc=0
+      1 rank 1: OrderSave(b) rc=0
+== DMO-14 pristine
+      1 CblkDist=1
+      3 CblkDist=7
+== DMO-05 patched
+      3 Direct leak of 1 byte(s) in 1 object(s) allocated from:
+      6 Direct leak of 12 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 128 byte(s) in 4 object(s) allocated from:
+      5 Direct leak of 13 byte(s) in 1 object(s) allocated from:
+      3 Direct leak of 152 byte(s) in 1 object(s) allocated from:
+      2 Direct leak of 160 byte(s) in 5 object(s) allocated from:
+      3 Direct leak of 168 byte(s) in 1 object(s) allocated from:
+      3 Direct leak of 21 byte(s) in 1 object(s) allocated from:
+== DMO-13 leak patched
+      1 Direct leak of 1 byte(s) in 1 object(s) allocated from:
+      2 Direct leak of 12 byte(s) in 1 object(s) allocated from:
+      2 Direct leak of 13 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 152 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 168 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 21 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 3 byte(s) in 1 object(s) allocated from:
+      1 Direct leak of 30 byte(s) in 1 object(s) allocated from:
+   blk.out md5=aca951a7
+== DMO-13 /dev/full patched
+      1 (0): ERROR: dorderSaveBlock2: bad output (2)
+      1 rank 0: OrderCompute rc=0
+      1 rank 0: OrderSave(b) rc=1
+      1 rank 1: OrderCompute rc=0
+      1 rank 1: OrderSave(b) rc=0
+== DMO-13 /dev/full small graph patched
+      1 rank 0: OrderCompute rc=0
+      1 rank 0: OrderSave(b) rc=0
+      1 rank 1: OrderCompute rc=0
+      1 rank 1: OrderSave(b) rc=0
+== DMO-14 patched
+      1 CblkDist=1
+      3 CblkDist=7

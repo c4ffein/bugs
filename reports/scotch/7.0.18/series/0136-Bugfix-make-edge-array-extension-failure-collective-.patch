@@ -1,0 +1,45 @@
+From 30fb2787a8e9da17e5717d2d4278d9717ab78da4 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:34:57 +0000
+Subject: [PATCH 136/232] Bugfix: make edge array extension failure collective
+ in `dmeshDgraphDual()` [report PyScotch]
+
+When the edge array of the dual graph could not be extended, the
+failing process returned on its own, leaking its work arrays, while
+the other processes waited forever in `dgraphBuild2()`.
+
+Handle this case like the failure of the edge hash table resizing:
+jump to the common exit point with a negative number of local
+vertices, so that `dgraphBuild2()` fails on all processes.
+
+Refs: DGR-20
+---
+ src/libscotch/dmesh_dgraph.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/libscotch/dmesh_dgraph.c b/src/libscotch/dmesh_dgraph.c
+index 79564947..f87a078b 100644
+--- a/src/libscotch/dmesh_dgraph.c
++++ b/src/libscotch/dmesh_dgraph.c
+@@ -41,7 +41,7 @@
+ /**                conversion function.                    **/
+ /**                                                        **/
+ /**   DATES      : # Version 7.0  : from : 20 jan 2023     **/
+-/**                                 to   : 30 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -622,7 +622,8 @@ test:         if (nghbnbr <= 0) {                 /* If new instance allows us t
+ 
+                   if ((edgeloctmp = memRealloc (edgeloctax + baseval, edgelocmax * sizeof (Gnum))) == NULL) {
+                     errorPrint ("dmeshDgraphDual: out of memory (6)");
+-                    return (1);
++                    velmlocnbr = -1;              /* TRICK: make dgraphBuild2() fail collectively */
++                    goto abort;
+                   }
+ 
+                   edgeloctax = edgeloctmp - baseval;
+-- 
+2.43.0
+

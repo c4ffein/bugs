@@ -1,0 +1,5 @@
+NEW:invfix - SCOTCH_graphMapFixed hangs when the fixed part array holds >= 32 (cmplt(4)) distinct out-of-range terminal numbers.
+Build: gcc -g -fsanitize=address,undefined -I$LIBDIR/../include -o invfix invfix.c -L$LIBDIR -lscotch -lscotcherr -lz -lm -lpthread
+Run:   ./invfix 40 4   (40 fixed vertices with terminals 100..139 on cmplt(4), 32x32 grid)
+Pristine 7.0.18 and the G12-patched build: no return (timeout). With the follow-up patch: "ret=1" (invalid fixed part array).
+./invfix 31 4 and ./invfix 10 4 return 1 everywhere.

@@ -1,0 +1,20 @@
+{
+ "review": {
+  "author": "Robert Perry",
+  "date": "2026-10-07",
+  "version": "7.0.16",
+  "commit": "b748bc4"
+ },
+ "previous": {
+  "version": "7.0.17",
+  "commit": "b4801db"
+ },
+ "sender": "[your name]",
+ "verifier": "PyScotch, with automated assistance",
+ "highlights": [
+  "Of the 192 review leads, 7.0.18 fixes 45 completely and 37 partly; 108 are still present and 2 are not bugs. We reviewed about 70 of the 7.0.18 commits against our findings (a commit can get different verdicts for different findings); 8 of them are wrong for at least one finding (they introduce a defect). The 25 new defects we found this round (PS3-*) are mostly in code the 7.0.18 fixes touched.",
+  "The 8 wrong fixes (the eighth, 635741dd, is below): the tree-leaf loader (18911e4f) now frees malformed tleaf/ltleaf files twice and its overflow test is itself undefined behaviour; the sub-architecture loader (ecaf094e) double-frees on bad terminal numbers; SCOTCH_graphMapFixed() loops forever when there are many more parts than fixed vertices (22c9c42e); a failed thread start still hangs, now in pthread_cond_destroy, with the context freed under a running thread (86559b85); dgmap -v prints CommDelta=2 for every unweighted graph (27f4193c); dummysizes takes one-character file names for stdin/stdout (858ea2bc); non-root processes offset an uninitialised label pointer (59c9a31c). The eighth: 635741dd (parallel build with older Bison) makes a default configure with the Ninja generator fail with a dependency cycle between dummysizes and scotch.h; v7.0.17 and its parent build, Unix Makefiles accept the cycle (PS3-G29-2). Separately, 52dcf602 fixes COR-24 but makes a core number of -1 (documented as unbound) pin threads to CPU 0.",
+  "Threaded bgraphBipartGg(): unchanged since 7.0.17 (SEP-13). With SCOTCH_DETERMINISTIC=1 the pristine 7.0.18 gives several partitions over fresh runs (4 at 2 threads, 2-3 at 4 threads over 20 runs), and ThreadSanitizer shows the seeding race on every run. Our series gives one partition per thread count, the same as on 7.0.17.",
+  "The combined series (248 commits on v7.0.18: 232 from the first pass, 16 follow-ups from the independent re-check, which also fixes the Ninja failure) applies with a plain git am, builds with 0 warnings on 32- and 64-bit Gnum ASan+UBSan trees, and is checked with make check, ptcheck and escheck against the pristine 7.0.18 built the same way (qa.json)."
+ ]
+}

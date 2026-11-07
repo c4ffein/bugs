@@ -1,0 +1,626 @@
+[
+ {
+  "id": "DMO-01",
+  "our_title": "Folded halo graph vertex loads sent from a stale slice (regression check)",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "onef.sh fi0/fi orderfi np 3 and np 5 on repro/common/4elt_w.grf (vertex-weighted), mode check: 'rank 0: ordering check rc=0' on all ranks, 0 live blocks, no UBSan, on pristine 7.0.18 and on the series.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "silent wrong vertex loads or MPI abort in the default parallel ordering of any weighted graph on >= 3 processes; same as the review",
+  "location_7_0_18": "src/libscotch/hdgraph_fold.c (hdgraphFold2 vertex load send)",
+  "evidence": "hdgraph_fold.c changed in 7.0.18 only by 0e79c872 (error message typo); the 7.0.17 fix of the send is unchanged.",
+  "upstream_change": "0e79c872 Typo fix (message 'dgraphFold2' -> 'hdgraphFold2' in hdgraphFold2 fail3)",
+  "upstream_fix_review": {
+   "commit": "0e79c872",
+   "verdict": "correct",
+   "details": "Message prefix fixed to the routine name (hdgraph_fold.c:894); no functional change.",
+   "compared_with_ours": "No patch of ours (G18's series rewrites this block anyway)."
+  },
+  "review_accuracy": "accurate (mechanism, origin 2747e2b, fix); on 3 ranks the visible symptom is a downstream heap overflow, truncation shows from 5 ranks",
+  "first_pass_critique": "Right on status and evidence. It did not check completeness: done here, every other send of hdgraphFold2() (edge :423, vnum :446, vertex index sends :333/:339 through inner-scope vertsndbas/vertsndnbr) uses per-communication offsets; the dgraph_fold.c twin was correct.",
+  "extra_instances": [],
+  "fix_options": [],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed."
+ },
+ {
+  "id": "DMO-06",
+  "our_title": "Leaf ordering status dropped; one rank fails alone and the others hang",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). hdgraphOrderSi2#0 on rank 0: pristine '(0): ERROR: hdgraphOrderSi2: out of memory', rank 0 rc=1, HANG (ranks 1, 2 never return, exit 124); series: rc=1 on all three ranks, 0 live blocks. dorderNewSequ#0 on rank 0 / rank 2: pristine DISAGREE (failing rank rc=1, others rc=0, failing rank leaks 2 blocks); series rc=1 everywhere, 0 blocks.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "on the base the symptom is a hang of the other processes rather than the review's \"success then dorderPerm fails\", because the leaf failure happens before the next fold collectives; same rating as the review",
+  "location_7_0_18": "src/libscotch/hdgraph_order_nd.c:325, :484; hdgraph_order_st.c:206; hdgraph_order_si.c:93-104",
+  "evidence": "hdgraph_order_nd.c:325 'hdgraphOrderSt (grafptr, cblkptr, paraptr->ordstratlea); /* Order this leaf */' (result dropped); hdgraph_order_st.c:206 'hdgraphOrderSi (grafptr, cblkptr);          /* Always maintain a consistent ordering */'; hdgraph_order_si.c:93 '#ifndef SCOTCH_DEBUG_HDGRAPH1' (release builds return alone).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate on the two dropped statuses; the downstream description (dorderPerm \"invalid parameters (2)\", dorderSave waits forever) assumes every process returns, which they do not on 7.0.17 (hang inside OrderCompute); dorderSave does wait forever once the statuses agree (PS2-G24-3)",
+  "first_pass_critique": "Status, sites and the np 3 injection are right. It left the ranks disagreeing (\"pre-existing design\") instead of fixing it, which is the user-visible hang; and its claim \"ranks 0 and 2 still return 0\" hides that on the base they do not return at all. Its option B (API-level completeness check) is now alt/DMO-06-B; it detects a missing fragment but not the hang.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/hgraph_order_nd.c:180 (sequential twin)",
+    "quote": "return (hgraphOrderSt (grafptr, ordeptr, ordenum, cblkptr, paraptr->ordstratlea)); /* Order this leaf */",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: return the leaf statuses and make every distributed ordering routine agree (recommended, committed)",
+    "summary": "hdgraphOrderNd2 returns hdgraphOrderSt's status for leaves; hdgraphOrderSt keeps hdgraphOrderSi's status for empty strategies; hdgraphOrderSi2 always agrees (the debug-only Allreduce becomes unconditional); hdgraphOrderSq broadcasts the root's status; hdgraphOrderNd2 always agrees on its allocations; hdgraphOrderNd agrees on the result of both halves.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0001-Bugfix-propagate-and-agree-on-the-status-of-distribu.patch",
+    "tested": "injection scans np 3 (every rank, every allocation): 33 HANG -> all-rc1 on rank 0 (and rank 1), 10 on rank 2, no new hang/crash; check targets np 1-4 and ptcheck 32/64-bit; ordering check mode np 1-5",
+    "tradeoffs": "one Allreduce per hdgraphOrderSi2 leaf, one Bcast per sequential leaf, one Allreduce per nested dissection call (all small); reverses the \"communication cannot be merged with a useful one\" release-mode choice, as G18/G19 did",
+    "preferred": true,
+    "maintainer_fit": "the sequential twin hgraph_order_nd.c:180 returns the leaf status; unconditional agreements are his own idiom in hdgraphGather (0635547) and hdgraphInduceList (3436099)"
+   },
+   {
+    "label": "B: completeness check in SCOTCH_dgraphOrderComputeList (first pass B)",
+    "summary": "after hdgraphOrderSt, sum the local leaf fragment sizes, Allreduce, compare with vertglbnbr, return 1 on every process when a fragment is missing.",
+    "diff_file": "",
+    "tested": "-fsyntax-only with the build flags (0 problems); not run",
+    "tradeoffs": "one Allreduce plus a list walk per call; detects the symptom only, and only when every process returns (not the base hang); library_dgraph_order.c is outside this group",
+    "preferred": false,
+    "maintainer_fit": "he prefers fixing the producer (hdgraphOrderNd2) to adding a consumer check"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0001-Bugfix-propagate-and-agree-on-the-status-of-distribu.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Commit applies unchanged (rebased from base-combined onto bare v7.0.18 without conflict)."
+ },
+ {
+  "id": "DMO-07",
+  "our_title": "Separator column block NULL check: fixed upstream exactly as we proposed",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). dorderNew#1 on rank 0 (separator node): pristine 7.0.18 -> '(0): ERROR: dorderNew: out of memory', 'dorderNew: cannot create new node' on the three ranks, rc=1 on all ranks, 0 live blocks, no UBSan (7.0.17: 'hdgraph_order_nd.c:363:26: runtime error: member access within null pointer' then SIGSEGV).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "crash of every process on out-of-memory in the default parallel ordering; same as the review",
+  "location_7_0_18": "src/libscotch/hdgraph_order_nd.c:362-363",
+  "evidence": "hdgraph_order_nd.c:362 'if ((cblkptr2 = dorderNew (cblkptr, grafptr->s.proccomm)) == NULL) /* Create separator node */' :363 'goto fail;'",
+  "upstream_change": "da4af29e Check memory allocation [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "da4af29e",
+   "verdict": "correct",
+   "details": "Identical to our 7.0.17 commit 0001 (same test, same 'goto fail'). dorderNew() fails collectively, so all ranks take 'fail' together (ran). The parent block was already marked DORDERCBLKNEDI with an unset cblkglbnbr before the failure (hdgraph_order_nd.c:355); harmless since the ordering is abandoned, but it is what PS2-G24-3 trips on if a user saves it anyway. Variant hunt: every other dorderNew/dorderNewSequ result in the tree is tested.",
+   "compared_with_ours": "Same diff; our commit dropped. Our alternative B (create the separator node before marking the parent) would avoid the half-built parent but is not needed."
+  },
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Fully right (status, injection, fix). Its note that fail: does not free the induced graphs is DMO-16, handled in patches/0003.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: test the result and goto fail (recommended, committed)",
+    "summary": "\"if ((cblkptr2 = dorderNew (...)) == NULL) goto fail;\" like the two other calls of the routine",
+    "diff_file": "",
+    "tested": "injection above; check targets np 1-4 and ptcheck",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "identical to the dorderNew/dorderNewSequ tests at :410 and :427 of the same routine"
+   },
+   {
+    "label": "B: create the separator node before marking the parent as a nested dissection node",
+    "summary": "hoist dorderNew above \"cblkptr->typeval = DORDERCBLKNEDI\" so that a failure leaves the parent untouched; the empty-separator branch sets the type itself.",
+    "diff_file": "",
+    "tested": "-fsyntax-only (0 problems); not run",
+    "tradeoffs": "slightly cleaner state on failure, but restructures the branch for no observable benefit (the ordering is discarded on failure anyway)",
+    "preferred": false,
+    "maintainer_fit": "more churn than he applies for a NULL test"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed by da4af29e (our 0001 dropped)."
+ },
+ {
+  "id": "DMO-08",
+  "our_title": "hdgraphGather error block frees uninitialised pointers: SIGSEGV on bare 7.0.18",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). hdgraphGather#1 on rank 0 (root allocation '(1)'): pristine 7.0.18 and this series -> '(0): ERROR: hdgraphGather: out of memory (1)' then 'process rank 0 ... exited on signal 11 (Segmentation fault)' (exit 139); strategy 'q', hdgraphGather#0: same SIGSEGV. With G18's rebased series applied on top ($WORK/fi18, repro/common/reverify18_g18.txt): rc=1 on every rank, 0 live blocks, both cases.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Was fixed only in our base by G18's commit, which 7.0.18 did not take.",
+  "location_7_0_18": "src/libscotch/hdgraph_gather.c:93 (verthaltax uninitialised), :198-209 (error block)",
+  "evidence": "hdgraph_gather.c:93 'Gnum * restrict     verthaltax;' (no initialisation before the root's first 'goto fail'); :204-205 'if (verthaltax != NULL) memFree (verthaltax + dgrfptr->s.baseval);'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; \"assigned only inside if (cheklocval == 0)\" describes 7.0.16, in 7.0.17 the assignment is unconditional but still skipped by the root's earlier goto fail",
+  "first_pass_critique": "Right on status and the pattern-init reproduction. Its option A sets eight fields; only three matter: hgraphFree() reads vnhdtax only under HGRAPHFREEVNHD (not set) and graphFree() only frees edgetax (GRAPHFREEEDGE), verttax (set NULL by memAllocGroup on failure) and compares vendtax under GRAPHVERTGROUP (never freed); vnumtax/velotax/vlbltax/edlotax are not read (GRAPHFREEVNUM/GRAPHFREEOTHR not set). G18's minimal fix is complete.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: G18 81b8fbc (in the base): verthaltax = NULL, baseval and edgetax set before the first allocation",
+    "summary": "see G18 patch 0004",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/patches/0004-Bugfix-rework-error-handling-of-dgraphGatherAll2-rep.patch",
+    "tested": "runs above",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "his hdgraphFold2 idiom \"Base value is needed for premature freeing of based arrays\" (G18 8d84d13 wording, same as dgraph_fold.c)"
+   },
+   {
+    "label": "B: also NULL every Hgraph array field (first pass A)",
+    "summary": "explicit NULL for verttax, vendtax, velotax, vnumtax, vlbltax, edlotax, vnhdtax on top of A",
+    "diff_file": "",
+    "tested": "-fsyntax-only (0 problems); not run",
+    "tradeoffs": "harmless but dead: none of these fields is freed by hgraphExit() with the flags set; an hgraphInit()-style memSet would be the maintainer alternative if he wanted belt and braces",
+    "preferred": false,
+    "maintainer_fit": "he sets what is read, not everything"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/patches/0004-Bugfix-rework-error-handling-of-dgraphGatherAll2-rep.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed (by G18 in the base) -> 7.0.18 status: still-present (bare v7.0.18). Fixed by G18's rebased commit 'rework error handling of dgraphGatherAll2()' (hdgraph_gather.c hunk), verified at runtime on top of this series; no duplicate commit here."
+ },
+ {
+  "id": "DMO-16",
+  "our_title": "Folded and centralized graphs leaked on nested dissection and bipartitioning failures",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). Leak counts (live Scotch blocks at exit, baseline 0): ordering hdgraphInduceList#3 on rank 0: pristine ranks 0/1 = 3/3, series 0/0; dorderNewSequ#0 on rank 0: pristine 2, series 0; mapping (mapfi cmplt:5) dgraphInduce2#4 on rank 0: pristine 3/3, series 0/0. Fold allocation failures (hdgraphFold2#0, #2, dgraphFoldComm#0): HANG on pristine and on this series alone (PS-DMO-4), rc=1 everywhere and 0 blocks with G18's series on top.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "leaks only on error paths that now (after G18/G19 and this series) return cleanly instead of hanging; same as the review",
+  "location_7_0_18": "src/libscotch/hdgraph_order_nd.c:223-233, :410-430; src/libscotch/kdgraph_map_rb_part.c:109-112, :330-336, :374-397",
+  "evidence": "hdgraph_order_nd.c:231 'o = hdgraphOrderNdFold2 (&fldthrdtab[0]) ||   /* Perform inductions in sequence */'; kdgraph_map_rb_part.c:374 'errorPrint (\"kdgraphMapRbPart2: cannot bipartition domain\");' followed by a return without freeing.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate on every listed path; it does not mention the hdgraphOrderNdFold / kdgraphMapRbPartFold case (one part folded, the other failed) nor the kgraphInit failure, which leak as well",
+  "first_pass_critique": "Status right, but \"source-read\" with a hang excuse: the leaks are measurable (live-block counting in the injector works without ASan). Its option A would add MPI_Waitall on error in hdgraphFold2 without the collective gate that makes it safe; G18 did it properly. It missed the Fold-level leak (first part folded, second part fails), the largest one (the whole folded graph on every receiver), and the kgraphInit failure.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/hdgraph_order_nd.c:223-233 (hdgraphOrderNdFold)",
+    "quote": "o = hdgraphOrderNdFold2 (&fldthrdtab[0]) ||   /* Perform inductions in sequence */",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/kdgraph_map_rb_part.c:330-336 (kdgraphMapRbPartFold)",
+    "quote": "o = kdgraphMapRbPartFold2 (&fldthrdtab[0]) || /* Perform inductions in sequence */",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/kdgraph_map_rb_part.c:109-112 (kdgraphMapRbPartSequ)",
+    "quote": "errorPrint (\"kdgraphMapRbPartSequ: cannot initialize centralized graph\");\\n    return (1);",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: record each part status and free; common fail label in kdgraphMapRbPart2 (recommended, committed)",
+    "summary": "hdgraphOrderNdFold/kdgraphMapRbPartFold mark the failing part in fldthrdtab[].orggrafptr (as the threaded variant already does) and free our folded graph when the other part failed; hdgraphOrderNd2 frees the folded graph when its column block cannot be created; kdgraphMapRbPart2 routes its three early returns through \"fail:\" (dgraphExit); kdgraphMapRbPartSequ frees the centralized graph on kgraphInit failure. The now-unused local \"o\" of both Fold routines is removed.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0002-Bugfix-free-folded-graphs-on-error-in-distributed-ne.patch",
+    "tested": "fault injection np 3 base vs patched: every leaking index above goes to 0 live blocks; check_scotch_dgraph_order/check, check_prog_dgord/dgpart np 1-4 and the full ptcheck on 32-bit and 64-bit ASan trees; debug tree checks",
+    "tradeoffs": "slightly larger diff in the Fold routines; the threaded (SCOTCH_PTHREAD_MPI) variant shares the same cleanup",
+    "preferred": true,
+    "maintainer_fit": "his own failN label idiom (hdgraphGather 0635547, hdgraphInduceList 3436099) and the \"Indicate an error\" convention of hdgraphOrderNdFold3 already in the file"
+   },
+   {
+    "label": "B: minimal frees only (no Fold-level cleanup)",
+    "summary": "free the folded graph on dorderNew*/dorderNewSequ failure and dgraphExit on the three early returns of kdgraphMapRbPart2, keep the || chain in the Fold routines.",
+    "diff_file": "",
+    "tested": "untested beyond -fsyntax-only with the build flags (0 problems)",
+    "tradeoffs": "leaves the biggest leak (the whole folded graph of the successful part when the other part fails: #125 rank 0, #127 rank 0 above) and the kgraphInit case",
+    "preferred": false,
+    "maintainer_fit": "too partial: he would ask why the fold case is left out"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0002-Bugfix-free-folded-graphs-on-error-in-distributed-ne.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0003-Bugfix-free-graphs-on-error-in-parallel-recursive-bi.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/patches/0003-Bugfix-make-error-handling-of-dgraphFold2-and-hdgrap.patch"
+  ],
+  "cleanup_done": "removed the now-unused local \"o\" of hdgraphOrderNdFold() and kdgraphMapRbPartFold()",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: partially-fixed -> 7.0.18 status: still-present (the hdgraph_fold.c part was fixed only in our base, by G18's commit; on bare v7.0.18 it is G18's rebased 0003). Our 0002/0003 (nested dissection / recursive bipartitioning) apply unchanged; 0003 was rebased from G23's context onto bare v7.0.18 without conflict."
+ },
+ {
+  "id": "DMO-17",
+  "our_title": "Parallel mapping onto non-complete targets fails as documented; documentation stale",
+  "status": "not-a-bug",
+  "method": "ran",
+  "ran": "mpirun -np 2 bin_asan/mapfi m16x16.grf $INFRA/asan/tgt/h3.tgt (pristine 7.0.18) -> '(0)/(1): ERROR: kdgraphMapRbMap: not implemented yet', 'rank 0/1: arch hcub map rc=1', no hang; cmplt:5 -> rc=0. Docs unchanged: p_l.tex:2931 and :2974 still say version 6.0 / next release; dgmap.1.txt:96 still names 'wcmplt'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "documented limitation; the stale wording of the manuals is the only defect",
+  "location_7_0_18": "src/libscotch/kdgraph_map_rb_map.c:77; doc/src/ptscotch/p_l.tex:2931, :2974; man/man1/dgmap.1.txt:96",
+  "evidence": "kdgraph_map_rb_map.c:77 'errorPrint (\"kdgraphMapRbMap: not implemented yet\");'; p_l.tex:2931 '{\\bf Attention}: version {\\sc 6.0} of \\scotch\\ does not allow yet to'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate as a description; \"Reject unsupported targets early with a clear message\" is a design choice (alt C)",
+  "first_pass_critique": "Right on not-a-bug and on the dgmap man page; it did not read p_l.tex (said it could not read the PDF; the LaTeX source is in the tree) which promises removal \"in the next release\" after 6.0, and did not notice that 'wcmplt' is not an architecture name.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: documentation only (recommended, committed)",
+    "summary": "p_l.tex (both SCOTCH_dgraphMap and SCOTCH_dgraphMapCompute): version 7.0, name the four supported types (cmplt, cmpltw, cmpltws, varcmplt), state that other targets result in an error; dgmap.1.txt and dgmap.1: version 7.0, correct names.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0006-Document-the-target-architectures-supported-by-paral.patch",
+    "tested": "text only (txt2man not installed: dgmap.1 edited by hand, same lines)",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "he fixed user manual text in this release (3e389d1 Fortran synopses)"
+   },
+   {
+    "label": "B: clearer message at the stub",
+    "summary": "\"kdgraphMapRbMap: parallel mapping onto non-complete target architectures not implemented yet\"",
+    "diff_file": "",
+    "tested": "-fsyntax-only (0 problems)",
+    "tradeoffs": "message text only",
+    "preferred": false,
+    "maintainer_fit": "possible, but internal routine names in messages are his convention"
+   },
+   {
+    "label": "C: reject non-archPart targets in SCOTCH_dgraphMapCompute",
+    "summary": "\"if (! archPart (&srcmappptr->m.archdat)) { errorPrint (... \": target architecture not supported for parallel mapping\"); goto fail; }\" before building the strategy",
+    "diff_file": "",
+    "tested": "-fsyntax-only (0 problems); not run",
+    "tradeoffs": "fails before kdgraphInit (cheaper) with an API-level message; would make kdgraphMapRbMap unreachable from the API (the stub would then be dead code to remove)",
+    "preferred": false,
+    "maintainer_fit": "he keeps the stub as the placeholder of the future implementation"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0006-Document-the-target-architectures-supported-by-paral.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "doc/src/ptscotch/p_l.tex, man/man1/dgmap.1.txt, man/man1/dgmap.1",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: not-a-bug -> 7.0.18 status: not-a-bug (documentation still stale; commit applies unchanged)."
+ },
+ {
+  "id": "PS-DMO-4",
+  "our_title": "Fold allocation failures not agreed upon in release builds: hang on bare 7.0.18",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). hdgraphFold2#0 ('out of memory (1)'), hdgraphFold2#2 ('(3)'), dgraphFoldComm#0 on rank 0: pristine 7.0.18 and this series alone -> failing rank rc=1, HANG (exit 124). With G18's rebased series on top (fi18): rc=1 on every rank, 0 live blocks (reverify18_g18.txt).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "hang of the whole job on out-of-memory inside the default parallel ordering; same as the first pass",
+  "location_7_0_18": "src/libscotch/hdgraph_fold.c:276-284 (fail1: '#else chekglbval = cheklocval'), :891-899, :925-933",
+  "evidence": "hdgraph_fold.c:282-283 '#else /* SCOTCH_DEBUG_HDGRAPH1 */ chekglbval = cheklocval;'",
+  "upstream_change": "0e79c872 (message typo only)",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (first-pass finding); the finding is accurate",
+  "first_pass_critique": "Accurate finding. Its option A (make only the fail1 agreement unconditional) would leave the receivers edge-array failure (hdgraphFold2 \"out of memory (6)\", after senders posted their edge sends) hanging; G18 added the second gate (fail3) that this needs.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: G18 7018b17 (in the base): unconditional first agreement plus a collective gate before edge data is sent",
+    "summary": "see G18's patch 0003",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/patches/0003-Bugfix-make-error-handling-of-dgraphFold2-and-hdgrap.patch",
+    "tested": "runs above",
+    "tradeoffs": "two small collectives per fold in release builds",
+    "preferred": true,
+    "maintainer_fit": "same policy as his unconditional agreements in hdgraphGather (0635547) and hdgraphInduceList (3436099)"
+   },
+   {
+    "label": "B: fail1 agreement only (first pass A)",
+    "summary": "remove the #ifdef around the fail1 Allreduce only",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "edge-array failure of normal receivers still hangs the senders",
+    "preferred": false,
+    "maintainer_fit": "incomplete"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/patches/0002-Bugfix-set-baseval-early-in-hdgraphFold2-to-allow-fo.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/patches/0003-Bugfix-make-error-handling-of-dgraphFold2-and-hdgrap.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed (by G18 in the base) -> 7.0.18 status: still-present on bare v7.0.18; fixed by G18's rebased commits (verified on top of this series). No duplicate commit."
+ },
+ {
+  "id": "PS-DMO-5",
+  "our_title": "Sequential halo ordering returns only the root process status",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). strategy 'q', orderInit#0 on rank 0: pristine '(0): ERROR: orderInit: out of memory', 'hdgraphOrderSq2: cannot initialize centralized ordering', rank 0 rc=1, ranks 1 and 2 rc=0 (DISAGREE); series: rc=1 on every rank, 0 live blocks.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "disagreement only when the root fails inside the sequential ordering of a multi-process leaf (strategy q or ole=q on >= 2 processes); the agreements of patches/0002 at the nested dissection level hide it for the default strategy; raised from the first pass \"info\" because the user-visible effect is a hang on the next collective",
+  "location_7_0_18": "src/libscotch/hdgraph_order_sq.c:96-102",
+  "evidence": "hdgraph_order_sq.c:98 'o = hdgraphOrderSq2 (&cgrfdat, cblkptr, paraptr->ordstratseq);' on the root only, then :102 'return (o);' without broadcast.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (first-pass finding); accurate",
+  "first_pass_critique": "Accurate but sketch-level (\"MPI_Allreduce ... MPI_MAX\"); either Bcast or Allreduce works, Bcast expresses the root-only source.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: MPI_Bcast of the root status (recommended, committed in patches/0002)",
+    "summary": "after the root's hdgraphOrderSq2, \"MPI_Bcast (&o, 1, MPI_INT, 0, grafptr->s.proccomm)\"; the root is process 0 by construction (:90).",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0001-Bugfix-propagate-and-agree-on-the-status-of-distribu.patch",
+    "tested": "q-strategy injections (above) and the whole scan matrix",
+    "tradeoffs": "one Bcast per sequential leaf",
+    "preferred": true,
+    "maintainer_fit": "dorderSave uses MPI_Bcast for the root status (dorder_io.c, debug block); hdgraphGather sets the root with the same \"proclocnum == 0\" convention"
+   },
+   {
+    "label": "B: MPI_Allreduce MAX of a local status",
+    "summary": "cheklocval/chekglbval idiom",
+    "diff_file": "",
+    "tested": "-fsyntax-only (0 problems); not run",
+    "tradeoffs": "same cost; slightly more code",
+    "preferred": false,
+    "maintainer_fit": "fine too; Bcast is more explicit"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0001-Bugfix-propagate-and-agree-on-the-status-of-distribu.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G24-1",
+  "our_title": "Local failures before the first collective of SCOTCH_dgraphOrderComputeList hang the others",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). contextThreadInit2#0 on rank 0: '(0): ERROR: contextThreadInit2: out of memory', 'SCOTCH_dgraphOrderComputeList: cannot initialize context', rank 0 rc=1, HANG on pristine and on this series.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_dgraph_order.c:205-213",
+  "evidence": "library_dgraph_order.c:211 'if (SCOTCH_stratDgraphOrderBuild (straptr, SCOTCH_STRATQUALITY, srcgrafptr->procglbnbr, 0, 0.2))' -> 'goto fail' on one rank (and CONTEXTINIT before it).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: agree on the local status once before the first collective of the API routine",
+    "summary": "cheklocval after the context/strategy/allocation steps, MPI_Allreduce MAX on srcgrafptr->proccomm before dorderFrst (which is collective), return 1 everywhere on failure.",
+    "diff_file": "",
+    "tested": "untested: design only; library_dgraph_order.c is outside this group (G23/API groups)",
+    "tradeoffs": "one small collective per API call",
+    "preferred": true,
+    "maintainer_fit": "same policy as the unconditional agreements of this series"
+   },
+   {
+    "label": "B: document that API-level allocation failures are fatal for the job",
+    "summary": "no code change",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "hang stays",
+    "preferred": false,
+    "maintainer_fit": "not his direction in 7.0.17"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No patch (as in 7.0.17)."
+ },
+ {
+  "id": "PS2-G24-2",
+  "our_title": "dgmap cannot read a centralized target architecture file with more than one process",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "mpirun -np 2 $INFRA/asan/bin/dgmap m16x16.grf $INFRA/asan/tgt/h3.tgt /dev/null -> 'dgmap(1): ERROR: main: target architecture file not provided'; np 1 -> 'kdgraphMapRbMap: not implemented yet' (DMO-17).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/scotch/dgmap.c:377-378",
+  "evidence": "dgmap.c:378 'errorPrint (\"main: target architecture file not provided\");'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: load the target architecture on the root and broadcast it (SCOTCH_archLoad on root, serialize/broadcast), or let every process open the target file (mark the target stream as not centralized)",
+    "summary": "the simplest correct behaviour for a small text file is to open it on every process: in dgmap.c, open the target file independently of fileBlockOpenDist (every process has the file name) and load it everywhere.",
+    "diff_file": "",
+    "tested": "untested: tools group file (G27/G28)",
+    "tradeoffs": "every process reads the file (small)",
+    "preferred": true,
+    "maintainer_fit": "dgord opens its centralized output only on the root the same way; the maintainer should decide the intended semantics"
+   },
+   {
+    "label": "B: add check_prog_dgmap to src/check/Makefile and CMakeLists.txt so that the tool is exercised",
+    "summary": "a dgmap run on a cmplt target file at np 3",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "none",
+    "preferred": false,
+    "maintainer_fit": "the test would fail today"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No patch."
+ },
+ {
+  "id": "PS2-G24-3",
+  "our_title": "dorderSave waits forever on an incomplete distributed ordering",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). mode all (Perm and Save called whatever the status), hdgraphOrderSi2#0 on rank 0: series -> rc=1 on every rank, 'perm rc=0' on every rank, then SCOTCH_dgraphOrderSave() never returns (exit 124); pristine hangs earlier (DMO-06).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/dorder_io.c:171",
+  "evidence": "dorder_io.c:171 'if (linkptr == &ordeptr->linkdat) {         /* If fragment not found locally */' then MPI_Bcast/MPI_Recv of a fragment that no process holds.",
+  "upstream_change": "addcd163/59c9a31c touched dorder_io.c (label array basing), not this wait",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: reduce the fragment sizes first, as dorderPerm does, and fail collectively when they do not cover vnodglbnbr",
+    "summary": "MPI_Allreduce SUM of the local leaf vnodlocnbr before the collection loop; errorPrint \"dorderSave: incomplete ordering\"; return 1 on every process.",
+    "diff_file": "",
+    "tested": "untested: dorder_io.c is G23's file",
+    "tradeoffs": "one Allreduce per save",
+    "preferred": true,
+    "maintainer_fit": "dorderPerm already has exactly this check (dorder_perm.c:115-119)"
+   },
+   {
+    "label": "B: leave as is (an ordering whose computation failed must not be saved)",
+    "summary": "documentation",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "hang on misuse",
+    "preferred": false,
+    "maintainer_fit": "the symmetric routine dorderPerm checks, so should dorderSave"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No patch."
+ },
+ {
+  "id": "PS2-G24-4",
+  "our_title": "Remaining hangs on the parallel ordering path: vdgraphGatherAll and dgraphHaloSync2",
+  "status": "still-present",
+  "method": "partly-run",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). vdgraphGatherAll#0 on rank 0: '(0): ERROR: vdgraphGatherAll: out of memory (1)', 'vdgraphSeparateSq: cannot build centralized graph', HANG on pristine and on this series.",
+  "read_only": "dgraphHaloSync2 (dgraph_halo.c) not re-injected in this round (index-based injection is not deterministic with threaded folds); file unchanged since 7.0.17.",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/vdgraph_gather_all.c; src/libscotch/dgraph_halo.c",
+  "evidence": "vdgraphGatherAll returns 1 on the failing rank only (observed hang).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: agree on the allocation status before the collective in each routine (G23 vdgraph files; dgraph_halo.c)",
+    "summary": "cheklocval/chekglbval idiom",
+    "diff_file": "",
+    "tested": "untested: other groups' files",
+    "tradeoffs": "one collective each",
+    "preferred": true,
+    "maintainer_fit": "same policy as the series"
+   },
+   {
+    "label": "B: leave",
+    "summary": "",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "hangs stay",
+    "preferred": false,
+    "maintainer_fit": "no"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (owners G23 / G21)."
+ },
+ {
+  "id": "PS2-G24-5",
+  "our_title": "Leaf failures of parallel recursive bipartitioning not agreed: others hang in dmapTerm",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/common/reverify18.sh (output reverify18.txt): orderfi/mapfi drivers (MPI_Init_thread MULTIPLE), np 3, m16x16.grf, per-routine injection with repro/common/fishim2.so (FI_FUNC, live-block count at exit) via onef.sh; fi0 = pristine 7.0.18 and fi = this series, both -fsanitize=undefined -ftrivial-auto-var-init=pattern, no ASan. fishim2.c was fixed for this round: it resolved callers with dladdr()/backtrace() while holding its own mutex, which deadlocked against the loader lock (every run hung, even without injection). mapfi cmplt:5: kgraphInit#0 on rank 0 and on rank 2, kdgraphMapRbAdd2#0 on rank 0: pristine -> failing rank rc=1, HANG (exit 124); series -> rc=1 on every rank, 0 live blocks.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/kdgraph_map_rb_part.c:445; library_dgraph_map.c:190-193",
+  "evidence": "kdgraph_map_rb_part.c:445 'return (kdgraphMapRbPart2 (&grafdat, &datadat)); /* Perform DRB */' (no agreement before dmapTerm, which is collective).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: agree on the status at the end of kdgraphMapRbPart (recommended, committed)",
+    "summary": "MPI_Allreduce MAX of the local status on grafptr->s.proccomm, as hdgraphOrderNd now does.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0007-Bugfix-agree-on-the-status-of-parallel-recursive-bip.patch",
+    "tested": "injections kgraphInit#0/#1, kdgraphMapRbAdd2#0/#1 (ranks 0 and 2) base HANG -> patched rc=1 on every rank; check_prog_dgpart np 1-4 and ptcheck",
+    "tradeoffs": "one Allreduce per parallel mapping",
+    "preferred": true,
+    "maintainer_fit": "same design as patches/0002 for ordering"
+   },
+   {
+    "label": "B: agree in SCOTCH_dgraphMapCompute before dmapTerm",
+    "summary": "Allreduce of o in the API routine",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "library_dgraph_map.c is outside this group; fixes the API symptom only",
+    "preferred": false,
+    "maintainer_fit": "producer-side fix preferred"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G24-hdgraph/patches/0007-Bugfix-agree-on-the-status-of-parallel-recursive-bip.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ }
+]

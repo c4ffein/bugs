@@ -1,0 +1,21 @@
+== np=1 dgord lbl.grf ord -T tree
+   rc=0
+   ord: 12 101	101 102	102 103	103 104	104 105	105 106	106 107	107 108	108 109	109 110	110 111	111 112	112 
+   tre: 12 101	-1 102	-1 103	-1 104	-1 105	-1 106	-1 107	-1 108	-1 109	-1 110	-1 111	-1 112	-1 
+== np=1 dgord lbl14.grf (glibc-aligned size)
+   rc=0
+== np=1 dgord lbl14.grf -T only
+      1 [vm:23282] *** Process received signal ***
+      1 [vm:23282] Signal: Aborted (6)
+      1 [vm:23282] [ 2] /lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e)[0x7f29d084527e]
+      1 mpirun noticed that process rank 0 with PID 0 on node vm exited on signal 6 (Aborted).
+      1 munmap_chunk(): invalid pointer
+   rc=134
+== np=3 dgord lbl.grf ord -T tree
+   rc=0
+   ord: 12 101	107 102	108 103	109 104	110 105	111 106	112 107	104 108	105 109	106 110	101 111	102 112	103 
+   tre: 12 101	5 102	5 103	5 104	5 105	5 106	-1 107	3 108	3 109	5 110	3 111	3 112	3 
+== np=3 dgord lbl14.grf (glibc-aligned size)
+   rc=0
+== np=3 dgord lbl14.grf -T only
+   rc=0

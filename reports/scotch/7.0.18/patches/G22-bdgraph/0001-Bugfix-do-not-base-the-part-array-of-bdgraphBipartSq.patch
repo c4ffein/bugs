@@ -1,0 +1,43 @@
+From c00d57cccb1f3bc722f015c528785a1cf46ab9ae Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:14:34 +0000
+Subject: [PATCH 1/6] Bugfix: do not base the part array of `bdgraphBipartSq()`
+ when it could not be allocated [report R. Perry]
+
+When the allocation of the part array of the distributed graph failed,
+the NULL pointer was still offset by the base value, so that, for
+graphs based at 1, the distributed graph held a non-NULL invalid part
+array pointer, which `bdgraphExit()` and any later method took as
+allocated. Base the array only when it has been allocated.
+
+Refs: DMO-03
+---
+ src/libscotch/bdgraph_bipart_sq.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/libscotch/bdgraph_bipart_sq.c b/src/libscotch/bdgraph_bipart_sq.c
+index 0cf6669a..a490fd23 100644
+--- a/src/libscotch/bdgraph_bipart_sq.c
++++ b/src/libscotch/bdgraph_bipart_sq.c
+@@ -49,7 +49,7 @@
+ /**                # Version 6.0  : from : 27 dec 2007     **/
+ /**                                 to   : 31 aug 2014     **/
+ /**                # Version 7.0  : from : 17 jan 2023     **/
+-/**                                 to   : 31 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -192,7 +192,8 @@ const BdgraphBipartSqParam * const  paraptr)      /*+ Method parameters +*/
+         errorPrint ("bdgraphBipartSq: out of memory (1)");
+         reduloctab[5] = 1;                        /* Allocated data will be freed along with graph structure */
+       }
+-      dgrfptr->partgsttax -= dgrfptr->s.baseval;
++      else
++        dgrfptr->partgsttax -= dgrfptr->s.baseval;
+     }
+     if ((dgrfptr->fronloctab = (Gnum *) memAlloc (dgrfptr->s.vertlocnbr * sizeof (Gnum))) == NULL) {
+       errorPrint ("bdgraphBipartSq: out of memory (2)");
+-- 
+2.43.0
+

@@ -1,0 +1,79 @@
+From 03db9f888e7f33be66b72bd2700439d7b1e6f6fb Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:35:45 +0000
+Subject: [PATCH 009/232] Bugfix: leave tree-leaf architectures freeable when
+ building them fails [report R. Perry]
+
+When `SCOTCH_archTleaf()` and `SCOTCH_archLtleaf()` rejected their
+parameters, they freed the arrays they had allocated but left them in
+the architecture, the class of which was already set, so that the
+`SCOTCH_archExit()` call of the caller freed them a second time.
+
+`SCOTCH_archTleaf()` now sets the architecture class only on success,
+and `SCOTCH_archLtleaf()` frees the tree part too and resets the class
+on error, so that a failed architecture is empty.
+
+Refs: API-10, PS-API-4, PS3-G02-3
+---
+ src/libscotch/library_arch.c | 18 +++++++++++-------
+ 1 file changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/src/libscotch/library_arch.c b/src/libscotch/library_arch.c
+index 1efd6b4c..01fb0364 100644
+--- a/src/libscotch/library_arch.c
++++ b/src/libscotch/library_arch.c
+@@ -554,10 +554,8 @@ const SCOTCH_Num * const    linktab)              /*+ Link cost array, by increa
+     return (1);
+   }
+ 
+-  tgtarchptr          = (Arch *) archptr;
+-  tgtarchdatptr       = (ArchTleaf *) (void *) (&tgtarchptr->data);
+-  tgtarchptr->clasptr = archClass ("tleaf");
+-  tgtarchptr->flagval = tgtarchptr->clasptr->flagval; /* Copy architecture flag */
++  tgtarchptr    = (Arch *) archptr;
++  tgtarchdatptr = (ArchTleaf *) (void *) (&tgtarchptr->data);
+ 
+   if ((tgtarchdatptr->sizetab = memAlloc ((levlnbr * 2 + 1) * sizeof (Anum))) == NULL) { /* TRICK: One more slot for linktab[-1] */
+     errorPrint (STRINGIFY (SCOTCH_archTleaf) ": out of memory");
+@@ -587,6 +585,9 @@ const SCOTCH_Num * const    linktab)              /*+ Link cost array, by increa
+   }
+   tgtarchdatptr->termnbr = archsiz;
+ 
++  tgtarchptr->clasptr = archClass ("tleaf");      /* Set class only on success  */
++  tgtarchptr->flagval = tgtarchptr->clasptr->flagval; /* Copy architecture flag */
++
+   return (0);
+ }
+ 
+@@ -615,7 +616,10 @@ const SCOTCH_Num * const    permtab)              /*+ Permutation array
+ 
+   if ((tgtarchdatptr->permtab = memAlloc (permnbr * 2 * sizeof (Anum))) == NULL) { /* TRICK: space for peritab too */
+     errorPrint (STRINGIFY (SCOTCH_archLtleaf) ": out of memory");
+-    return (1);
++fail:
++    memFree (tgtarchdatptr->sizetab);             /* Free tree part                  */
++    tgtarchptr->clasptr = NULL;                   /* Architecture is no longer valid */
++    return  (1);
+   }
+   tgtarchdatptr->permnbr = (Anum) permnbr;
+   tgtarchdatptr->peritab = tgtarchdatptr->permtab + permnbr;
+@@ -628,14 +632,14 @@ const SCOTCH_Num * const    permtab)              /*+ Permutation array
+         (tgtarchdatptr->permtab[permnum] >= tgtarchdatptr->permnbr)) {
+       errorPrint (STRINGIFY (SCOTCH_archLtleaf) ": invalid permutation index");
+       memFree    (tgtarchdatptr->permtab);
+-      return (1);
++      goto fail;
+     }
+   }
+   for (permnum = 0; permnum < tgtarchdatptr->permnbr; permnum ++) { /* Build inverse permutation      */
+     if (tgtarchdatptr->peritab[tgtarchdatptr->permtab[permnum]] != ~0) { /* Check inverse permutation */
+       errorPrint (STRINGIFY (SCOTCH_archLtleaf) ": duplicate permutation index");
+       memFree    (tgtarchdatptr->permtab);
+-      return (1);
++      goto fail;
+     }
+     tgtarchdatptr->peritab[tgtarchdatptr->permtab[permnum]] = permnum;
+   }
+-- 
+2.43.0
+

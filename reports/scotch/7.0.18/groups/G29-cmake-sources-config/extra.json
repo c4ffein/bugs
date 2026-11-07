@@ -1,0 +1,37 @@
+[
+ {
+  "local_id": "PS3-G29-1",
+  "our_title": "635741dd removed metisf_h: both MeTiS libraries now generate metisf.h concurrently",
+  "severity": "low",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18 CMake tree (cm/base32): 'Generating metisf.h' rule in scotchmetisv3.dir and scotchmetisv5.dir build.make; 10 x (rm src/include/metis.h metisf.h; make -j3): metisf.h generated twice in 4/10 runs (cm/race-base-all.log). In 7.0.17 both libraries depended on the metisf_h target, which generated it once. With patch 0007: once in 10/10 (cm/race-patched-all.log).",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotchmetis/CMakeLists.txt:61-65,85",
+  "evidence": "libscotchmetis/CMakeLists.txt:62 'add_custom_command(OUTPUT ${GENERATED_INCLUDE_DIR}/metisf.h' and :85 '${GENERATED_INCLUDE_DIR}/metisf.h)' in add_library(scotchmetisv${version} ...) for 3 and 5; 635741dd deleted 'add_custom_target(metisf_h ...)' and 'add_dependencies(scotchmetisv${version} scotch_h metisf_h)'.",
+  "related_ids": [
+   "BLD-12"
+  ],
+  "fix_options": [
+   {
+    "label": "a: drive metis.h and metisf.h by one metis_h custom target (with BLD-12)",
+    "summary": "See BLD-12 option a.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0007-Bugfix-generate-the-headers-shared-by-two-libraries-.patch",
+    "tested": "race loop 10 x -> once each; ctest 172/172 (32/64)",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "as BLD-12"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0007-Bugfix-generate-the-headers-shared-by-two-libraries-.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "635741dd",
+   "verdict": "incomplete",
+   "details": "Introduced by 635741dd: removing metisf_h left metisf.h with two independent owners (libscotchmetis/CMakeLists.txt:85 in foreach 3 5); see BLD-12.",
+   "compared_with_ours": "Fixed by our rewritten BLD-12 commit."
+  }
+ }
+]

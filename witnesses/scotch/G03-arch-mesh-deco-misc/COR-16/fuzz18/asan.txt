@@ -1,0 +1,25 @@
+distinct signatures: 24
+  atst | AddressSanitizer: heap-buffer-overflow on address 0x50600000
+  atst | runtime error: signed integer overflow: 126 + 2147483647 can
+  atst | runtime error: signed integer overflow: 1999999999 * 2000000
+  atst | runtime error: signed integer overflow: 207 + 2147483647 can
+  atst | runtime error: signed integer overflow: 2147483646 * 2147483
+  atst | runtime error: signed integer overflow: 2147483647 + 1 canno
+  atst | runtime error: signed integer overflow: 2147483647 + 4 canno
+  atst | runtime error: signed integer overflow: 3 + 2147483647 canno
+  atst | runtime error: signed integer overflow: 318 + 2147483647 can
+  gmap | AddressSanitizer: heap-buffer-overflow on address 0x50200000
+  gmap | AddressSanitizer: heap-buffer-overflow on address 0x50600000
+  gmap | AddressSanitizer: heap-buffer-overflow on address 0x51600000
+  gmap | AddressSanitizer: heap-buffer-overflow on address 0x51c00000
+  gmap | AddressSanitizer: heap-use-after-free on address 0x506000000
+  gmap | runtime error: signed integer overflow: 1 + 2147483647 canno
+  gmap | runtime error: signed integer overflow: 1999999999 * 2000000
+  gmap | runtime error: signed integer overflow: 2147483646 * 2147483
+  gmap | runtime error: signed integer overflow: 2147483647 + 1 canno
+  gmap | runtime error: signed integer overflow: 2147483647 + 2 canno
+  gmap | runtime error: signed integer overflow: 2147483647 + 2147483
+  gmap | runtime error: signed integer overflow: 2147483647 + 4 canno
+  gmap | runtime error: signed integer overflow: 3 + 2147483647 canno
+  gmap | runtime error: signed integer overflow: 3 - -2147483648 cann
+  gmap | runtime error: signed integer overflow: 6 - -2147483648 cann

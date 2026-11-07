@@ -1,0 +1,637 @@
+[
+ {
+  "id": "COR-01",
+  "our_title": "PARAMVAL error action dereferences parser context cleared by the nested-strategy mid-rule",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/run_strings.sh <libdir> runs all reproducer strings through repro/common/st (pristine: $INFRA/asan/lib, patched: $WORK/build/lib). Pristine 7.0.18: 'r{sep=m{asc=b{:width=3}}}' -> 'parser_yy.y:485:45: runtime error: member access within null pointer of type const struct StratParamTab' then SEGV; 'r{sep=m{asc=(b{width=3}|' -> 'member access within null pointer of type struct Strat'; 'r{sep=m{asc=b{bnd=f,org=f},low=h{:}}}' -> same at :485:45. Patched: 'invalid value for parameter \"asc\" of method \"m\", line 1, column 13', ret=1, no sanitizer output. Mutation fuzz on 7.0.18 (repro/common/fuzz.py, bases regenerated with defstrat on 7.0.18 = repro/common/bases18.txt, 4 default strategies x 600 mutations): pristine 7.0.18 seed 1: 2086/2400 sanitizer hits (1913 leaks parser_yy.y:288, 116+26 NULL deref parser_yy.y:485:72/:45, 3 misaligned Strat* stores parser_yy.y:479, 15 leaks :225, 7 :180, crashes in stratSave library_parser.c:135 / parser.c:212/254); patched series seed 1: 0/2400, seed 2: 0/2400 (repro/common/fuzz18_*.txt). check_strat_seq (32- and 64-bit trees), check_strat_par (mpicc), check_scotch_graph_map, check_scotch_graph_order pass on the patched 32-bit ASan tree (graph_map: 2 pre-existing UBSan 'offset to null pointer' reports bgraph_bipart_ml.c:195 / kgraph_map_ml.c:239, unrelated); 0 warnings on 32- and 64-bit trees; bison 3.8.2 builds the grammar with no conflict, both with make and with CMake after 635741dd (Release configure + 'make scotch', 0 warnings).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Crash (NULL deref) from any user strategy string with a typo inside a nested parameter; parser_yy.y untouched by 7.0.18.",
+  "location_7_0_18": "src/libscotch/parser_yy.y:458-464 (mid-rule clears context), :482-488 (error action); file unchanged since 7.0.17",
+  "evidence": "parser_yy.y:485: 'penvptr->paraptr->nameptr, penvptr->straptr->tablptr->methtab[penvptr->straptr->data.methdat.methnum].nameptr,' reached with penvptr->straptr/paraptr NULL after the mid-rule '($<SAVE>$).strat = penvptr->straptr; ... penvptr->straptr = NULL; penvptr->paraptr = NULL;' was discarded by error recovery. git diff v7.0.17 v7.0.18 -- src/libscotch/parser_yy.y: empty.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate on crash, location and reproducer. Its 'Fix' (guard NULL or restore from saved state) is only half right: a NULL guard loses the parameter name, and the saved state cannot be restored by the final action because bison has already discarded it; the restore must happen when the value is discarded (destructor) or the error rule must move inside the sub-strategy alternative. The context can also be non-NULL but stale (inner method with outer parameter), which a NULL guard does not catch.",
+  "first_pass_critique": "Status/evidence right. Preferred option A (NULL guard + generic message) is not what the maintainer would want: it prints a different, parameter-less message for the nested case and still lets a stale non-NULL context print a misleading 'parameter X of method Y' (e.g. 'r{sep=(m{asc=b}m{:})}' prints asc of m); it also leaves the leaks of the discarded context untouched. Option B (stack in ParserEnv) is more state than needed. The claim 'd555f2c shows the idiom is a local NULL guard' is a stretch: d555f2c removed a call to a non-existent routine.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/parser_yy.y:482-488 reached with stale non-NULL context, e.g. 'r{sep=(m{asc=b}m{:})}' (ran)",
+    "quote": "invalid value for parameter \"asc\" of method \"m\" printed for an error in the second m (pristine)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Typed <SAVE> mid-rule value with a %destructor that restores the context (recommended)",
+    "summary": "Give the mid-rule value a type (bison >= 3.1 typed mid-rule, CMake already requires 3.8.2) and declare '%destructor { penvptr->straptr = ($$).strat; penvptr->paraptr = ($$).param; } <SAVE>', so that whenever bison discards the sub-strategy context during error recovery or abort, the enclosing method and parameter are restored and the existing error rule prints the right names. Grammar and error rule unchanged, no conflict.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0002-Bugfix-restore-parser-context-before-reporting-a-syn.patch",
+    "tested": "Built (0 warnings, 0 conflicts) 32/64-bit; all crash strings above now print the correct parameter/method; Mutation fuzz (repro/common/fuzz.py, 4 default strategies x 600 mutations, seed 1): pristine 2072/2400 sanitizer hits, patched 0/2400 (and 0/2400 with seed 2). check targets pass; test_strat_seq regression case added.",
+    "tradeoffs": "Relies on bison calling destructors for popped symbols (documented since bison 1.875) and on typed mid-rule actions (bison 3.1+; the project's CMake requires 3.8.2 and last_resort files are generated by 3.8.2). Side-effecting destructor must be understood by readers (comment added). No behaviour change on valid input; messages for scalar typos unchanged.",
+    "preferred": true,
+    "maintainer_fit": "Smallest coherent fix that keeps his single error rule and message; the same %destructor mechanism is what COR-23 needs (commit 3), so the three defects share one design: 'every discarded parser value has a destructor'. Precedent for minimal targeted grammar/lexer fixes: e1700d7 (COR-12), a94688c (COR-25)."
+   },
+   {
+    "label": "B. New PARAMSTRAT nonterminal with its own error alternative, context restored before YYERROR",
+    "summary": "'PARAMVAL: $@ PARAMSTRAT {restore; if ($2 == NULL) YYERROR; store}', 'PARAMSTRAT: STRATSELECT | error { $$ = NULL; }'. The error is caught in the state after the mid-rule, where the saved value is still on the stack.",
+    "diff_file": "",
+    "tested": "Built and run: all crash strings print the right parameter; BUT bison reports 1 shift/reduce conflict on token error in state 78 (PARAMVAL: error vs. reduce of the mid-rule), because both error rules are reachable there. Removing 'PARAMVAL: error' avoids the conflict but makes the scalar-typo message depend on bison default reductions and needs a second errorPrint site.",
+    "tradeoffs": "Plain yacc, no destructor; but either a grammar conflict or a duplicated message and reliance on default reductions.",
+    "preferred": false,
+    "maintainer_fit": "He does not ship grammars with conflicts; rejected."
+   },
+   {
+    "label": "C. NULL-guard the error action and print a generic message (first pass / review)",
+    "summary": "Test penvptr->paraptr/straptr for NULL and print 'invalid value for strategy parameter, line, column' when cleared.",
+    "diff_file": "",
+    "tested": "Not re-run by me (first pass reports 0/2264 crashes with it); by construction it still prints misleading names when the context is stale but non-NULL ('r{sep=(m{asc=b}m{:})}').",
+    "tradeoffs": "Three lines, but two different messages for the same error class, loses the parameter name exactly when the user needs it (nested strategies), and does not address the discarded context being wrong rather than NULL.",
+    "preferred": false,
+    "maintainer_fit": "He would take a guard for a pure NULL case, but here the root cause is a discarded value; the guard hides it."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0002-Bugfix-restore-parser-context-before-reporting-a-syn.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0010-Add-strategy-string-checks-to-test_strat_seq.patch"
+  ],
+  "cleanup_done": "none needed (the $<SAVE>$ casts become typed $$/$1; nothing left unused)",
+  "test_added": "src/check/test_strat_seq.c: stratbadtab[0] 'r{sep=m{asc=b{:width=3}}}' must be rejected (crashes on pristine)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. None of the 7.0.18 parser commits (088a1279, c778efa6, 13e4dee6 touch parser.c only; 4d47bfde regenerates last_resort) touches the grammar. Our commit applies unchanged (git am -3, no conflict); only the header date is bumped. Alternative diffs B and C were not re-cut (options unchanged)."
+ },
+ {
+  "id": "COR-12",
+  "our_title": "Whitespace rule no longer calls parserLocationUpdate() twice (regression check)",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "LD_LIBRARY_PATH=$INFRA/asan/lib repro/common/st '   r  {   sep   =  m  { asc  = b{x} } }' -> 'invalid method parameter name \"x\", line 1, column 34, before \"x} } }\"' (x is the 34th character); the only sanitizer output is the COR-23 leak of the error path (absent on the patched tree).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Was an over-read of the string on error messages (7.0.16); agrees with the review.",
+  "location_7_0_18": "src/libscotch/parser_ll.l:90 (YY_USER_ACTION), :166 (whitespace rule)",
+  "evidence": "parser_ll.l unchanged between v7.0.17 and v7.0.18 (git diff empty); last_resort/parser_ll.c regenerated by 4d47bfde still matches flex 2.6.4 output except #line numbers.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed (no regression)."
+ },
+ {
+  "id": "COR-13",
+  "our_title": "stratTestSave() priorities follow enum order, not grammar; right operands of equal priority unparenthesized",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Differential tester repro/COR-13/rt.c built against 7.0.18 internals: LD_LIBRARY_PATH=$INFRA/asan/lib ASAN_OPTIONS=detect_leaks=0 ./rt 2000 7 -> '2000 expressions: 675 round-trip tree mismatches, 97 non-idempotent saves' (was 942/942 on 7.0.17); 3000 42 -> 980/149; 5000 3 -> 1651/262. Example: in '/((24.25)=((edge)%(((levl)*(levl))%(13.75))))?r;' saved as '24.250000=edge%(levl*levl)%13.750000'. Patched: 0/0 for (2000,7), (3000,42), (5000,3). Regression test: test_strat_seq on pristine 7.0.18 lib -> 'saved strategy differs: \"(/(vert>(10+2)*3+4-2)?...\" vs. \"(/(vert>((10+2)*3+4)-2)?...\"'; passes on the patched tree.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Saved strategies (SCOTCH_stratSave, -vs) change meaning when re-parsed: a-(b-c) -> a-b-c, a%(b%c) -> a%b%c.",
+  "location_7_0_18": "src/libscotch/parser.c:563-564 (tables), :597-608 (use); parser.h:87-89",
+  "evidence": "parser.c:564 'static char *               strattestsavepa[2][2] = { { \"\", \"\" }, { \"(\", \")\" } };' and :597 'i  = (testptr->data.testtab[0]->testval < testptr->testval) ? 1 : 0;', :601 'i  = (testptr->data.testtab[1]->testval < testptr->testval) ? 1 : 0;' compare StratTestType enum positions (ADD=6 < SUB=7, MUL=8 < MOD=9) while the grammar (parser_yy.y:592-662) gives '+'/'-' one level and '%' a higher level than '*'.",
+  "upstream_change": "088a1279 swaps the rows of strattestsavepa; c778efa6 propagates fprintf/stratTestSave errors in the same block",
+  "upstream_fix_review": {
+   "commit": "088a1279 (+ c778efa6)",
+   "verdict": "incomplete",
+   "details": "Right: swapping the rows fixes the reported example ('(10+2)*3' now kept) and c778efa6 makes stratTestSave return output errors of both operands (parser.c:598-607). Missing: (1) a right operand of the SAME priority needs parentheses since every binary operator is left-associative: a-(b-c) saves as 'a-b-c' (different value), a%(b%c) as 'a%b%c' (different value); (2) the test uses enum order as priority, but '+'/'-' share one grammar level and '%' binds tighter than '*', so a+(b-c) saves as 'a+b-c' and re-parses into another tree, and (a+b)-c saves with useless parentheses (non-idempotent save). 675/2000 random expressions still change tree on round trip. No new bug introduced.",
+   "compared_with_ours": "Our 7.0.17 patch (always parenthesize both operands, drop the table) was correct but discarded his minimal-parentheses display; now that he chose the table, our rebased commit keeps his table and error handling and only adds a grammar priority table (strattestsavepr) and '<=' for the right operand: 3 lines, 0/5000 mismatches. Ours is better on correctness; his intent (minimal parentheses) is preserved. The 'always parenthesize' variant is kept as alt A."
+  },
+  "review_accuracy": "Diagnosis right. 'Swap the table rows' is insufficient: with left-associative operators a right operand of equal priority needs parentheses ('a-(b-c)', 'a%(b%c)' = different values), and '+'/'-' share a grammar level while the enum orders them (tested variant C: swapping rows alone leaves such cases wrong).",
+  "first_pass_critique": "Analysis of the associativity/equal-priority problem is right and its rank-based diff works (equivalent to my alternative B). It preferred the minimal-parentheses output although that changes the saved form of every existing conditional ('(vert)>(1)' becomes 'vert>1'), which breaks textual comparisons in users' golden files and PyScotch snapshots for no functional gain; it did not consider the fully-parenthesised form that stratSave() already uses for strategy operators.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/parser.c:601 (right operand of equal priority, e.g. a-(b-c), a%(b%c))",
+    "quote": "i  = (testptr->data.testtab[1]->testval < testptr->testval) ? 1 : 0;",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/parser.c:597/:601 (enum order: '+' < '-' and '*' < '%' are not grammar priorities)",
+    "quote": "(testptr->data.testtab[0]->testval < testptr->testval)",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/parser.c:613 ('%lf' loses double precision; PS2-G04-strategy-parser-5)",
+    "quote": "o = (fprintf (stream, \"%lf\", testptr->data.val.valdbl) == EOF);",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "B. Grammar priority table + parenthesize right operands of equal priority, on top of 088a1279 (recommended)",
+    "summary": "Add 'strattestsavepr[STRATTESTNBR] = { 0, 1, 2, 3, 3, 3, 4, 4, 5, 6, 7, 7 }' and compare priorities, with '<=' for the right operand (left-associative operators). Keeps his row swap and c778efa6 error handling.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0005-Bugfix-parenthesize-operands-of-saved-strategy-test-.patch",
+    "tested": "rt.c 0/2000, 0/3000, 0/5000 mismatches (32-bit); fuzz 0/2400 x2; test_strat_seq round-trip case fails on pristine 7.0.18, passes patched; 64-bit check_strat_seq passes.",
+    "tradeoffs": "One more static table indexed by the enum (enum comment updated in parser.h).",
+    "preferred": true,
+    "maintainer_fit": "Completes his own approach with the smallest diff."
+   },
+   {
+    "label": "A. Always parenthesize both operands, drop the table (our 7.0.17 preferred fix)",
+    "summary": "Replace the table logic with unconditional '(' left ')' op '(' right ')'.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/alt/COR-13-a-always-parenthesize-operands.diff",
+    "tested": "Compiles (gcc -fsyntax-only -Wall, 0 warnings); on 7.0.17 gave 0/5000 mismatches; not re-run on 7.0.18.",
+    "tradeoffs": "Simplest and obviously correct, but reverts his 088a1279 display choice.",
+    "preferred": false,
+    "maintainer_fit": "He just chose minimal parentheses; unlikely."
+   },
+   {
+    "label": "C. Swap the table rows only (review's fix)",
+    "summary": "What 088a1279 did.",
+    "diff_file": "",
+    "tested": "Shipped in 7.0.18: 675/2000 round-trip mismatches.",
+    "tradeoffs": "Incomplete (equal priorities, enum order).",
+    "preferred": false,
+    "maintainer_fit": "Already merged."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0005-Bugfix-parenthesize-operands-of-saved-strategy-test-.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0010-Add-strategy-string-checks-to-test_strat_seq.patch"
+  ],
+  "cleanup_done": "parser.h enum comment updated (order no longer used for parentheses directly)",
+  "test_added": "src/check/test_strat_seq.c: save/re-parse/save of '/(vert>(10+2)*3+(4-2))?r;' must be idempotent (fails on pristine 7.0.18)",
+  "docs_updated": "src/libscotch/parser.h comment only; user docs do not describe the saved format",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed (088a1279 fixes lower-priority children only). Our 7.0.17 commit 0005 conflicts with 088a1279/c778efa6; rewritten on top of them with the same subject. The 7.0.17 test string '/(vert>(10+2)*3)?r;' now passes on pristine, so the test uses '/(vert>(10+2)*3+(4-2))?r;' instead."
+ },
+ {
+  "id": "COR-22",
+  "our_title": "Strategy value accepted for any parameter type, including empty scalar values like f{move=}",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/run_strings.sh <libdir> runs all reproducer strings through repro/common/st (pristine: $INFRA/asan/lib, patched: $WORK/build/lib). Pristine 7.0.18: 'r{sep=m{vert=}}', 'r{sep=m{vert=()}}', 'n{sep=m{vert=/(vert>1)?f;g}}' o, and the empty scalar values 'f{move=}', 'r{sep=f{move=,pass=3}}', 'b{width=}', 'f{bal=}' are all accepted with 'LeakSanitizer: detected memory leaks' (empty-strategy node stored over the scalar slot); fuzz: 3 'parser_yy.y:479:91: runtime error: store to misaligned address ... struct Strat *' and 2 stratSave crashes library_parser.c:135 ('job='). Patched: 'invalid value for parameter \"move\" of method \"f\", line 1, column 8, before \"}\"' (and likewise for vert/width/bal), ret=1, no sanitizer output. Mutation fuzz on 7.0.18 (repro/common/fuzz.py, bases regenerated with defstrat on 7.0.18 = repro/common/bases18.txt, 4 default strategies x 600 mutations): pristine 7.0.18 seed 1: 2086/2400 sanitizer hits (1913 leaks parser_yy.y:288, 116+26 NULL deref parser_yy.y:485:72/:45, 3 misaligned Strat* stores parser_yy.y:479, 15 leaks :225, 7 :180, crashes in stratSave library_parser.c:135 / parser.c:212/254); patched series seed 1: 0/2400, seed 2: 0/2400 (repro/common/fuzz18_*.txt).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Raised from the review's Low: no error recovery is needed, a syntactically accepted string ('m{vert=}') silently corrupts method data (8-byte store over a 4-byte INT or case slot, overlapping the next field) and leaks; stratSave then crashes for case slots. Reachable from user strategy strings only.",
+  "location_7_0_18": "src/libscotch/parser_yy.y:458-481 (fifth PARAMVAL alternative; store at :478-479); file unchanged since 7.0.17",
+  "evidence": "parser_yy.y:478-479: '*((Strat **) ((byte *) &penvptr->straptr->data.methdat.datadat + (penvptr->paraptr->doffptr - penvptr->paraptr->dbasptr))) = ($2);' with no test of penvptr->paraptr->typeval.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Location and impact right; mechanism wrong ('after error recovery'): no error is involved, the grammar simply accepts a strategy (or nothing) as any parameter's value. 'Check typeval before storing' is the right direction but checking only at the store would first parse the garbage with the wrong tables.",
+  "first_pass_critique": "Correct on mechanism and preferred option (check in the mid-rule). Its diff adds a new message 'does not accept a strategy', which is misleading for 'vert=}' (empty value) and duplicates the existing 'invalid value' wording; routing through the existing error rule with YYERROR is simpler. It did not notice that the lookahead set makes the check fire for empty values too.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/parser_yy.y:387-413 (case slot) via 'r{job=,...}' (fuzz hit, ran)",
+    "quote": "stratSave crash in library_parser.c:135 after a Strat* was stored over the case slot",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Type check in the mid-rule, YYERROR into the existing error rule (recommended)",
+    "summary": "At the start of the mid-rule: 'if (penvptr->paraptr->typeval != STRATPARAMSTRAT) YYERROR;' - bison then shifts `error` in the state after '=' (context still valid) and the existing action prints 'invalid value for parameter X of method Y'. Nothing is parsed or allocated.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0001-Bugfix-reject-strategy-values-for-non-strategy-param.patch",
+    "tested": "Built 32/64-bit, 0 warnings/conflicts; 'vert=}', 'vert=()', 'vert=/(..)?f;g', 'job=' all rejected with the existing message; valid strategies unchanged; Mutation fuzz (repro/common/fuzz.py, 4 default strategies x 600 mutations, seed 1): pristine 2072/2400 sanitizer hits, patched 0/2400 (and 0/2400 with seed 2). test_strat_seq case added.",
+    "tradeoffs": "Uses YYERROR (standard bison, any version). Same comparison as :371 (no DEPRECATED mask), consistent with the table switch; no deprecated strategy parameter exists (vdgraph_separate_st.c:171-172 are deprecated INT ones).",
+    "preferred": true,
+    "maintainer_fit": "One line in the right place, reuses his message; mirrors his habit of rejecting bad input at the earliest check (c5baef9, febaef7)."
+   },
+   {
+    "label": "B. Check in the final action and free the parsed tree",
+    "summary": "After STRATSELECT: if the parameter is not a strategy, errorPrint, stratExit ($2), YYABORT.",
+    "diff_file": "",
+    "tested": "untested: generated from pristine source; straightforward but inferior.",
+    "tradeoffs": "Parses the sub-strategy with the enclosing tables first (confusing secondary 'invalid method name' errors), allocates then frees, second copy of the message.",
+    "preferred": false,
+    "maintainer_fit": "Would work but is later and noisier than A."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0001-Bugfix-reject-strategy-values-for-non-strategy-param.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0010-Add-strategy-string-checks-to-test_strat_seq.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_strat_seq.c: stratbadtab[1] 'r{sep=m{vert=}}' and [2] 'r{sep=m{vert=/(vert>1)?f;f}}' must be rejected",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 7.0.18 did not touch the grammar; the empty scalar value case (f{move=}) is this defect (STRATEMPTY accepted as a strategy value for an INT/DOUBLE/CASE slot). Our commit applies unchanged."
+ },
+ {
+  "id": "COR-23",
+  "our_title": "No %destructor: strategy and test sub-trees popped on parse error are leaked",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/run_strings.sh <libdir> runs all reproducer strings through repro/common/st (pristine: $INFRA/asan/lib, patched: $WORK/build/lib). Pristine 7.0.18 (detect_leaks=1): '(m{vert=100}|m{vert=)', '/(vert>1 & ', '/(vert>(1+', 'r{sep=(m{asc=b}m{:})}', and the COR-12 string -> 'LeakSanitizer: detected memory leaks'; fuzz: 1913/2400 leaks at parser_yy.y:288. Patched: no leak on any of them; fuzz 0/2400 (two seeds).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Leak only on invalid strings; agrees with the review.",
+  "location_7_0_18": "src/libscotch/parser_yy.y (no %destructor; stratParserParse cleanup :824-828); file unchanged since 7.0.17",
+  "evidence": "git grep '%destructor' v7.0.18 -- src -> none; parser_yy.y:824-828 'if (o != 0) { if (penvdat.straptr != NULL) stratExit (penvdat.straptr); return (NULL); }' is still the only cleanup.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; its fix (add %destructor for the strategy and test types) is right but incomplete: it does not cover the method nodes being built (kept in penvptr->straptr / in the saved mid-rule values, not in typed stack values), and 'string value types' need no destructor (fixed-size arrays).",
+  "first_pass_critique": "Preferred option B (a pending-node list in ParserEnv) is unnecessary bookkeeping; option A's worry about double frees with existing manual frees is unfounded (bison never destructs the RHS of the aborting rule). It did not analyse which nodes are on the stack and which are in penvptr, which is the crux. No option was tested.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/parser_yy.y:471-475 (SCOTCH_DEBUG_PARSER2 internal error (5) path does not free $2)",
+    "quote": "errorPrint (\"stratParserParse: internal error (5)\"); YYABORT;",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/parser_yy.y:478-479 (parameter set twice overwrites the first sub-strategy)",
+    "quote": "= ($2);  (previous slot value never freed)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. %destructor for <STRAT> and <TEST>; <SAVE> destructor frees the discarded in-progress method node (recommended)",
+    "summary": "Ownership invariant: typed stack values own completed sub-trees (destructors stratExit/stratTestExit); penvptr->straptr owns the method node being built; the <SAVE> chain owns enclosing ones; the <SAVE> destructor frees the inner node before restoring the outer; stratParserParse frees whatever is left (in-progress node or completed tree after STRAT reduced). Manual frees before YYABORT stay; the debug internal-error path gets its missing stratExit ($2).",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0003-Bugfix-free-partially-built-strategy-trees-on-parsin.patch",
+    "tested": "Built 32/64-bit, 0 warnings; every leak string above is clean under LeakSanitizer; Mutation fuzz (repro/common/fuzz.py, 4 default strategies x 600 mutations, seed 1): pristine 2072/2400 sanitizer hits, patched 0/2400 (and 0/2400 with seed 2). valid strategies and all check targets unchanged.",
+    "tradeoffs": "Depends on bison destructor semantics for popped symbols and abort cleanup (documented, stable). STRAT (start symbol) stays untyped on purpose: bison destroys the start symbol on accept.",
+    "preferred": true,
+    "maintainer_fit": "Standard bison practice, few lines, keeps his explicit frees; coherent with commit 2's destructor."
+   },
+   {
+    "label": "B. Own the method node on the stack via a typed STRATMETHOD mid-rule value; stratParserParse no longer frees",
+    "summary": "'STRATMETHOD : METHODNAME <STRAT>{ ... ($$) = straptr; }' so bison frees the in-progress node; remove the free in stratParserParse to avoid a double free.",
+    "diff_file": "",
+    "tested": "Built and run: fixes the nested leaks but LEAKS the whole tree when the error comes after a complete strategy ('r{...}:' -> 624 bytes) because the STRAT rule has already handed the tree to penvdat.straptr, which is no longer freed; also bison -Wother 'unused value: $2'. Rejected.",
+    "tradeoffs": "Cannot distinguish 'in-progress node on the stack' from 'completed tree in penvdat' at stratParserParse time.",
+    "preferred": false,
+    "maintainer_fit": "No."
+   },
+   {
+    "label": "C. Free only the observed sites (first pass option C)",
+    "summary": "Add explicit frees in the specific YYABORT paths that drop nodes.",
+    "diff_file": "",
+    "tested": "untested: never complete, the discarded-by-recovery values are not reachable from actions.",
+    "tradeoffs": "Cannot fix values popped by bison itself.",
+    "preferred": false,
+    "maintainer_fit": "No."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0003-Bugfix-free-partially-built-strategy-trees-on-parsin.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0004-Bugfix-free-previous-value-of-a-strategy-parameter-t.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0010-Add-strategy-string-checks-to-test_strat_seq.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_strat_seq.c: stratbadtab[4] '(m{vert=100}|m{vert=)' must be rejected (leak itself is only visible under LeakSanitizer; fuzz harness is the evidence)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Commits 0003/0004 apply unchanged."
+ },
+ {
+  "id": "COR-25",
+  "our_title": "parserLocationUpdate() tests the current character for newlines (regression check)",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "LD_LIBRARY_PATH=$INFRA/asan/lib repro/common/st \"$(printf 'r{\\n\\n sep=m{asc=\\nb{x}}}')\" -> 'line 4, column 2' (line right); \"$(printf 'r{\\nsep=m{asc=b{x}}}')\" -> 'line 2, column 12'. Patched (commit 0008): 'line 4, column 3', 'line 2, column 13'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Diagnostic only; agrees with the review.",
+  "location_7_0_18": "src/libscotch/parser.c:660-664",
+  "evidence": "parser.c:661 'if (textptr[textidx] == '\\n') {', :662 'locaptr->coennum = 0;'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate",
+  "first_pass_critique": "It called the fix verified with 'line 4, column 2' without noticing that column 2 is 0-based (x is the 3rd character of that line) while line 1 columns are 1-based: a residual off-by-one in the same three lines (reported as PS2-G04-strategy-parser-2, fixed in commit 8).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/parser.c:650 (column reset to 0 after a newline while the initial column is 1, parser_yy.y:100-103)",
+    "quote": "locaptr->coennum = 0;",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0008-Bugfix-number-columns-from-1-on-all-lines-of-strateg.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed (line numbers). The 0-based column after a newline is PS2-G04-strategy-parser-2 (commit 0008, applies unchanged)."
+ },
+ {
+  "id": "COR-26",
+  "our_title": "Modulus by zero now an error, but INTVALMIN % -1 still traps; integer literals unchecked",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: gmap bump.grf c4.tgt -M'r{sep=/(vert%0>1)?m;m}' -> 'stratTestEval: invalid modulus by zero (2)' (fixed); -M'r{sep=/(vert%0.0>1)?m;m}' -> '...(1)'; -M'r{sep=/((0-2147483647-1)%(0-1)=0)?m;m}' -> 'parser.c:439:63: runtime error: division of -2147483648 by -1 cannot be represented in type int' then 'AddressSanitizer: FPE ... _SCOTCHstratTestEval parser.c:439'; 64-bit tree with 0-9223372036854775807-1: same FPE. -M'r{sep=/(-2147483648%-1=0)?m;m}' also hits 'parser_yy.y:761:101: runtime error: negation of -2147483648'. Literals: st 'r{sep=m{vert=99999999999999999999}}', 'vert=2147483648', 'vert=1e30', '/(vert>99999999999999999999)?r;' -> ret=0 (silently wrapped); 64-bit 9223372036854775808 and 1e19 -> ret=0. Patched: modulus by -1 evaluates to 0 without trap (32 and 64 bit); literals -> 'value out of range, line 1, column 14' ret=1; 2147483647 / 9223372036854775807 accepted.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "SIGFPE needs a deliberate '%0' in a user strategy; literal overflow gives a silent wrong parameter value. Agrees with the review.",
+  "location_7_0_18": "src/libscotch/parser.c:439 (integer modulus); src/libscotch/parser_ll.l:137, :141, :153 ((INT) atol / (INT) atof)",
+  "evidence": "parser.c:433-439: 'if (testtab[1].data.val.valint == 0) { errorPrint (\"stratTestEval: invalid modulus by zero (2)\"); o = 1; break; } evalptr->data.val.valint = testtab[0].data.val.valint % testtab[1].data.val.valint;'; parser_ll.l:137 'PARSERYYLVAL (INTEGER) = (INT) atol (yytext);'",
+  "upstream_change": "13e4dee6 rejects a zero divisor (integer and double) in stratTestEval()",
+  "upstream_fix_review": {
+   "commit": "13e4dee6",
+   "verdict": "incomplete",
+   "details": "Right: zero divisor rejected for both integer (parser.c:433-437) and double (:426-430) modulus, with o=1 propagated to the caller, which reports 'error in mapping strategy'; making the double case an error too (it was NaN, silently false) is a reasonable choice. Missing: INTVALMIN % -1 overflows and traps (SIGFPE) on x86 (ran, 32 and 64 bit); integer literal range (parser_ll.l:137/141/153) untouched. Behaviour change: the double modulus by zero, previously silently false, now aborts the strategy (acceptable, documented nowhere). Messages '(1)'/'(2)' follow his usual numbering.",
+   "compared_with_ours": "Our 7.0.17 commit 0006 had the zero check (integer only) plus the -1 guard; his adds the double check, ours had the -1 guard. Rebased: our commit shrinks to the -1 guard only (new subject 'do not trap when evaluating a modulus by -1'); our literal-range commit 0007 applies unchanged."
+  },
+  "review_accuracy": "accurate; 'parse with strtol/strtod' would not be INT-size agnostic (long is 32-bit on Windows with INTSIZE64).",
+  "first_pass_critique": "Modulus part right and tested; lexer part declared but not implemented. Its sketch returns 'a YYerror-ish token' without noticing that errorPrint cannot be called from the lexer as the file stands (common.h is included before module.h in the %top block, so the renamed symbol is undeclared) - the fix needs the include-order change.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/parser.c:439 (INTVALMIN % -1 overflow trap)",
+    "quote": "evalptr->data.val.valint = testtab[0].data.val.valint % testtab[1].data.val.valint;",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/parser_ll.l:137, :141, :153 (unchecked literal conversion)",
+    "quote": "PARSERYYLVAL (INTEGER) = (INT) atol (yytext);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/parser_yy.y:761 (negation of INTVALMIN literal; disappears with commit 7 since 2147483648 is rejected)",
+    "quote": "($$) = (($1) == STRATTESTSUB) ? - ($2) : ($2);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/parser.c:381-418 (integer +, -, * of the evaluator overflow silently; UB but no trap; not patched)",
+    "quote": "evalptr->data.val.valint = testtab[0].data.val.valint * testtab[1].data.val.valint;",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A1. Guard INTVALMIN % -1 on top of 13e4dee6 (recommended, commit 6)",
+    "summary": "Any integer modulo -1 is 0: do not perform the division when the divisor is -1.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0006-Bugfix-do-not-trap-when-evaluating-a-modulus-by-1-in.patch",
+    "tested": "Patched 32/64 bit: no trap on (0-INTVALMAX-1)%(0-1); vert%0 still reports his error.",
+    "tradeoffs": "One ternary.",
+    "preferred": true,
+    "maintainer_fit": "Completes his fix in his style."
+   },
+   {
+    "label": "A2. Digit accumulation with overflow check in the lexer, YYerror on overflow (recommended, commit 7)",
+    "summary": "As in 7.0.17.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0007-Bugfix-check-the-range-of-integer-literals-in-strate.patch",
+    "tested": "Applies unchanged; ran: out-of-range literals rejected on 32 and 64 bit, max values accepted.",
+    "tradeoffs": "As in 7.0.17.",
+    "preferred": true,
+    "maintainer_fit": "As in 7.0.17."
+   },
+   {
+    "label": "B. Reject a constant zero divisor at parse time (parser action)",
+    "summary": "As in 7.0.17.",
+    "diff_file": "",
+    "tested": "Not re-run (superseded by 13e4dee6).",
+    "tradeoffs": "Only constants.",
+    "preferred": false,
+    "maintainer_fit": "Superseded."
+   },
+   {
+    "label": "C. strtoimax()/errno in the lexer",
+    "summary": "As in 7.0.17.",
+    "diff_file": "",
+    "tested": "Not re-run.",
+    "tradeoffs": "As in 7.0.17.",
+    "preferred": false,
+    "maintainer_fit": "As in 7.0.17."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0006-Bugfix-do-not-trap-when-evaluating-a-modulus-by-1-in.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0007-Bugfix-check-the-range-of-integer-literals-in-strate.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0010-Add-strategy-string-checks-to-test_strat_seq.patch"
+  ],
+  "cleanup_done": "the duplicated <ltest>{INTEGER} rule is merged into the shared rule; nothing else made unused",
+  "test_added": "test_strat_seq: 'r{sep=m{vert=99999999999999999999}}' must be rejected (accepted on pristine 7.0.18)",
+  "docs_updated": "none needed: doc/src/scotch/s_l.tex documents only relational operators on variables/constants; arithmetic operators are undocumented",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed (13e4dee6 handles zero divisors). Remaining: -1 divisor trap and literal ranges."
+ },
+ {
+  "id": "PS2-G04-strategy-parser-1",
+  "our_title": "Strategy parameter set twice leaks the first sub-strategy",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: st 'm{asc=b{bnd=f,org=f},asc=b{bnd=f,org=f}}' and 'b{bnd=f,bnd=f}' -> 'LeakSanitizer: detected memory leaks'. Patched: ret=0, no leak.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/parser_yy.y:478-479",
+  "evidence": "'*((Strat **) (...)) = ($2);' overwrites the slot without freeing its previous value (unchanged in 7.0.18).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. stratExit() the previous slot value before storing (recommended)",
+    "summary": "Compute the slot pointer once, 'stratExit (*slotptr); *slotptr = ($2);'.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0004-Bugfix-free-previous-value-of-a-strategy-parameter-t.patch",
+    "tested": "Built, leak gone, valid strategies unchanged, check targets pass.",
+    "tradeoffs": "stratExit(&stratdummy) and stratExit(NULL) are no-ops, so safe for every default.",
+    "preferred": true,
+    "maintainer_fit": "Three lines in his style; alternative (reject duplicates with an error) would change accepted input."
+   },
+   {
+    "label": "B. Reject a parameter given twice",
+    "summary": "Track set parameters per method and errorPrint on a repeat.",
+    "diff_file": "",
+    "tested": "untested: not written; would need per-method state in ParserEnv.",
+    "tradeoffs": "Behaviour change for currently accepted strings.",
+    "preferred": false,
+    "maintainer_fit": "Over-engineering for a leak."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0004-Bugfix-free-previous-value-of-a-strategy-parameter-t.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present; commit 0004 applies unchanged."
+ },
+ {
+  "id": "PS2-G04-strategy-parser-2",
+  "our_title": "Column numbers are 1-based on line 1 and 0-based on later lines",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: st \"$(printf 'r{\\nsep=m{asc=b{x}}}')\" -> 'line 2, column 12' for the 13th character. Patched: 'line 2, column 13'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/parser.c:662",
+  "evidence": "'locaptr->coennum = 0;' after a newline, while parser_yy.y initialises columns to 1.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Reset the column to 1 (recommended)",
+    "summary": "'locaptr->coennum = 1;'",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0008-Bugfix-number-columns-from-1-on-all-lines-of-strateg.patch",
+    "tested": "Built; columns now 1-based on every line; check targets pass.",
+    "tradeoffs": "Column numbers in messages for multi-line strategies shift by one (they were wrong).",
+    "preferred": true,
+    "maintainer_fit": "One token, same loop he fixed in a94688c."
+   },
+   {
+    "label": "B. Make all columns 0-based",
+    "summary": "Initialise cobenum/coennum to 0 in %initial-action.",
+    "diff_file": "",
+    "tested": "untested: not written.",
+    "tradeoffs": "Changes every existing message (line 1 columns), and 1-based is the convention of editors.",
+    "preferred": false,
+    "maintainer_fit": "No."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0008-Bugfix-number-columns-from-1-on-all-lines-of-strateg.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present; commit 0008 applies unchanged."
+ },
+ {
+  "id": "PS2-G04-strategy-parser-3",
+  "our_title": "bgraph/bdgraph bd and hdgraph nd default tables leave a strategy parameter NULL",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: st 'r{sep=m{asc=b,low=b}}' -> 'WARNING: strategy parameter \"org\" of method \"b\" not set' then 'runtime error: member access within null pointer of type const struct Strat' (stratSave). Patched: ret=0, no sanitizer output.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_st.c:96, bdgraph_bipart_st.c:84, hdgraph_order_st.c:81",
+  "evidence": "bgraph_bipart_st.c:96 '} bgraphbipartstdefaultbd = { { 3, &stratdummy } };'; bdgraph_bipart_st.c:84 same; hdgraph_order_st.c:81 '{ { &stratdummy, &stratdummy, &stratdummy } }' for 4 strategy fields.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Add the missing &stratdummy defaults (recommended)",
+    "summary": "Three initialisers completed so that an unset strategy parameter is the empty strategy, as for every other method.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0009-Bugfix-set-default-empty-strategies-for-all-strategy.patch",
+    "tested": "Built 32/64-bit (0 warnings); gmap reproducer completes; stratSave prints 'org='; audit script 0 mismatches; check targets pass.",
+    "tradeoffs": "Touches bgraph_bipart_st.c, bdgraph_bipart_st.c, hdgraph_order_st.c (files outside this group: coordinate with their owners).",
+    "preferred": true,
+    "maintainer_fit": "The warning in the parser exists precisely to catch a table lacking a default (every other table has one); this is the fix he would make."
+   },
+   {
+    "label": "B. Make 'strategy parameter not set' a parser error",
+    "summary": "errorPrint + YYABORT instead of errorPrintW in the STRATMETHOD final action.",
+    "diff_file": "",
+    "tested": "untested: generated from pristine.",
+    "tradeoffs": "Prevents the crash for any future table mistake, but turns a warning into a hard error and does not give the method a usable default.",
+    "preferred": false,
+    "maintainer_fit": "Possible hardening on top of A; alone it leaves the tables wrong."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G04-strategy-parser/patches/0009-Bugfix-set-default-empty-strategies-for-all-strategy.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 7a2e069c touched hdgraph_order_st.c (debug test operator) but not the default table; our commit 0009 conflicted only on the header date and was resolved."
+ },
+ {
+  "id": "PS2-G04-strategy-parser-4",
+  "our_title": "last_resort parser files regenerated for 7.0.18; YY_NO_UNISTD_H now present",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "bison -p_SCOTCHyy --defines=parser_ly.h --output=parser_yy.c and flex -P_SCOTCHyy on pristine 7.0.18 parser_yy.y/parser_ll.l, diffed against src/libscotch/last_resort/: parser_yy.c 0 lines, parser_ly.h 0 lines, parser_ll.c/parser_lh.h only '#line' numbers (known flex build difference).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/last_resort/parser_yy.c:142",
+  "evidence": "last_resort/parser_yy.c:142 '#define YY_NO_UNISTD_H                            /* Improve portability */'",
+  "upstream_change": "4d47bfde Update last_resort parser files for v7.0.18",
+  "upstream_fix_review": {
+   "commit": "4d47bfde",
+   "verdict": "correct",
+   "details": "All four last_resort files regenerated from the 7.0.18 sources (byte-identical for bison output). Note: our G04 grammar commits change parser_yy.y, so last_resort will again be stale until his next release-time regeneration (his procedure; we do not regenerate).",
+   "compared_with_ours": "We had no patch (fix option A was exactly this release-time regeneration)."
+  },
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Regenerate all four last_resort files at release time (maintainer's own procedure)",
+    "summary": "As in 38cbde4, but for parser_yy.c/parser_ly.h/parser_lh.h as well.",
+    "diff_file": "",
+    "tested": "untested: a local regeneration differs from his by #line numbering (his flex emits numbers one lower), so not provided as a patch.",
+    "tradeoffs": "Generated-file churn.",
+    "preferred": true,
+    "maintainer_fit": "His release step."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed by 4d47bfde."
+ },
+ {
+  "id": "PS2-G04-strategy-parser-5",
+  "our_title": "Double constants in saved test expressions printed with %lf lose precision",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18 st '/(vert>0.1234567)?r;' -> saved '(/(vert>0.123457)?...'; unchanged by the series.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/parser.c:613",
+  "evidence": "'o = (fprintf (stream, \"%lf\", testptr->data.val.valdbl) == EOF);'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Print with '%.17g' (round-trip exact)",
+    "summary": "Use a format that preserves the double value.",
+    "diff_file": "",
+    "tested": "untested: not written; format choice is the maintainer's (changes every saved double).",
+    "tradeoffs": "Longer, uglier numbers in saved strategies.",
+    "preferred": true,
+    "maintainer_fit": "Decision for the maintainer; reported, not patched."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No patch (printed format is the maintainer's decision)."
+ }
+]

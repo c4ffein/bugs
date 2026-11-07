@@ -1,0 +1,78 @@
+From 615781fbfb07c4079390233b3fac428258a98e7d Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:48:47 +0000
+Subject: [PATCH 7/7] Bugfix: check extended edge insertion failures in
+ `kgraphMapFm()` [report R. Perry]
+
+Since 25322c9a, `kgraphMapFmPartAdd()` and `kgraphMapFmPartAdd2()`
+return 1 when the extended edge array cannot be enlarged, but their
+three call sites in `kgraphMapFm()` ignore the result, so that the
+refinement goes on with incomplete extended edge lists and the routine
+eventually returns success. Check the result and abort, as the other
+allocation failures of the routine do.
+
+While at it, replace a tab character by spaces.
+
+Refs: GRA-17
+---
+ src/libscotch/kgraph_map_fm.c | 23 +++++++++++++++++++----
+ 1 file changed, 19 insertions(+), 4 deletions(-)
+
+diff --git a/src/libscotch/kgraph_map_fm.c b/src/libscotch/kgraph_map_fm.c
+index 25170be1..5ab64400 100644
+--- a/src/libscotch/kgraph_map_fm.c
++++ b/src/libscotch/kgraph_map_fm.c
+@@ -716,7 +716,7 @@ KgraphMapFmTabl * restrict const            tablptr)
+         if (kgraphMapFmEdgeResize (vexxtab, vexxidx, edxxtabptr, edxxsizptr, *edxxnbrptr, tablptr) != 0) {
+           errorPrint ("kgraphMapFmPartAdd: cannot resize");
+           return (1);
+-	}
++        }
+       }
+ 
+       edxxidx = (*edxxnbrptr) ++;                 /* Allocate new slot */
+@@ -1137,7 +1137,12 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+     if ((pfixtax == NULL) || (pfixtax[vertnum] == -1)) { /* Add only not fixed vertices */
+       for (hashnum = (vertnum * KGRAPHMAPFMHASHPRIME) & hashmsk; vexxtab[hashnum].vertnum != ~0; hashnum = (hashnum + 1) & hashmsk) ;
+ 
+-      kgraphMapFmPartAdd (grafptr, vertnum, hashnum, vexxtab, &edxxtab, &edxxsiz, &edxxnbr, tablptr);
++      if (kgraphMapFmPartAdd (grafptr, vertnum, hashnum, vexxtab, &edxxtab, &edxxsiz, &edxxnbr, tablptr) != 0) {
++        errorPrint ("kgraphMapFm: cannot add vertex (1)");
++        memFree    (vexxtab);                     /* Free group leader */
++        kgraphMapFmTablExit (tablptr);
++        return (1);
++      }
+ 
+ #ifdef SCOTCH_DEBUG_KGRAPH2
+       if (vexxtab[hashnum].edxxidx == -1) {       /* If vertex does not have any neighbor */
+@@ -1508,7 +1513,12 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+              (vexxtab[vexxend].vertnum != vertend) && (vexxtab[vexxend].vertnum != ~0); vexxend = (vexxend + 1) & hashmsk) ;
+ 
+         if (vexxtab[vexxend].vertnum == ~0) {     /* If neighbor vertex not yet inserted, create it */
+-          kgraphMapFmPartAdd (grafptr, vertend, vexxend, vexxtab, &edxxtab, &edxxsiz, &edxxnbr, tablptr);
++          if (kgraphMapFmPartAdd (grafptr, vertend, vexxend, vexxtab, &edxxtab, &edxxsiz, &edxxnbr, tablptr) != 0) {
++            errorPrint ("kgraphMapFm: cannot add vertex (2)");
++            memFree    (vexxtab);                 /* Free group leader */
++            kgraphMapFmTablExit (tablptr);
++            return (1);
++          }
+           hashnbr ++;                             /* One more vertex in hash table */
+ #ifdef SCOTCH_DEBUG_KGRAPH2
+           if (vexxtab[vexxend].edxxidx == -1) {
+@@ -1645,7 +1655,12 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+           Gnum        edxxidx;
+ #endif /* SCOTCH_DEBUG_KGRAPH2 */
+ 
+-          kgraphMapFmPartAdd2 (grafptr, vexxtab, vexxend, &edxxtab, &edxxsiz, &edxxnbr, vexxtab[vexxend].domnnum, domnend, edloval, tablptr); /* Add new extended edge */
++          if (kgraphMapFmPartAdd2 (grafptr, vexxtab, vexxend, &edxxtab, &edxxsiz, &edxxnbr, vexxtab[vexxend].domnnum, domnend, edloval, tablptr) != 0) { /* Add new extended edge */
++            errorPrint ("kgraphMapFm: cannot add extended edge");
++            memFree    (vexxtab);                 /* Free group leader */
++            kgraphMapFmTablExit (tablptr);
++            return (1);
++          }
+ #ifdef SCOTCH_DEBUG_KGRAPH2
+           for (edxxidx = vexxtab[vexxend].edxxidx; (edxxidx != -1) && (edxxtab[edxxidx].domnnum != domnend); edxxidx = edxxtab[edxxidx].edxxidx) ;
+           if (edxxidx == -1) {
+-- 
+2.43.0
+

@@ -1,0 +1,8 @@
+pristine_asan parmetis.h touched -> 
+pristine_asan hgraph_order_cc.h touched -> hgraph_order_st recompiled: 0
+pristine_asan arch_vcmplt.h touched -> arch_vcmplt recompiled: 0
+build parmetis.h touched -> 
+build hgraph_order_cc.h touched -> hgraph_order_st recompiled: 1
+build arch_vcmplt.h touched -> arch_vcmplt recompiled: 0
+pristine_asan parmetis.h touched -> -c parmetis_dgraph_dual.c -c parmetis_dgraph_order.c -c parmetis_dgraph_order_f.c -c parmetis_dgraph_part.c -c parmetis_dgraph_part_f.c 
+build parmetis.h touched -> -c parmetis_dgraph_dual.c -c parmetis_dgraph_dual_f.c -c parmetis_dgraph_order.c -c parmetis_dgraph_order_f.c -c parmetis_dgraph_part.c -c parmetis_dgraph_part_f.c 

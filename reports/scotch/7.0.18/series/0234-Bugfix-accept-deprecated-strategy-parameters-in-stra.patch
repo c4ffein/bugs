@@ -1,0 +1,38 @@
+From 6e4be7a0df1bc27963b36f47f0bd5d1a59c6d560 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:54:35 +0000
+Subject: [PATCH 234/248] Bugfix: accept deprecated strategy parameters in
+ strategy value check
+
+The check added to the nested-strategy alternative of PARAMVAL compared
+the parameter type with STRATPARAMSTRAT without masking
+STRATPARAMDEPRECATED, unlike the lookup done a few lines above, which
+uses 'typeval & ~STRATPARAMDEPRECATED'. A deprecated parameter that
+takes a strategy would hence have its value rejected instead of being
+parsed and ignored, as is done for deprecated scalar parameters. No
+such parameter exists in the current tables, so the defect is latent.
+
+Tested with a throw-away tree where bgraph method 'm', parameter 'asc',
+was declared 'STRATPARAMDEPRECATED | STRATPARAMSTRAT': strategy
+'r{sep=m{asc=f}}' gave 'invalid value for parameter asc' before and
+ret=0 after; 'm{vert=()}' is still rejected.
+---
+ src/libscotch/parser_yy.y | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/libscotch/parser_yy.y b/src/libscotch/parser_yy.y
+index d7ed163..2588617 100644
+--- a/src/libscotch/parser_yy.y
++++ b/src/libscotch/parser_yy.y
+@@ -469,7 +469,7 @@ PARAMVAL      : VALCASE
+               }
+               | <SAVE>
+               {
+-                if (penvptr->paraptr->typeval != STRATPARAMSTRAT) /* If parameter cannot hold a strategy */
++                if ((penvptr->paraptr->typeval & ~STRATPARAMDEPRECATED) != STRATPARAMSTRAT) /* If parameter cannot hold a strategy */
+                   YYERROR;                        /* Report invalid parameter value         */
+ 
+                 ($$).strat = penvptr->straptr;    /* Save current method and parameter; typed value is restored by destructor on error */
+-- 
+2.47.3
+

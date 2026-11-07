@@ -1,0 +1,12 @@
+distinct signatures: 11
+  atst | runtime error: signed integer overflow: 126 + 2147483647 can
+  atst | runtime error: signed integer overflow: 207 + 2147483647 can
+  atst | runtime error: signed integer overflow: 2147483647 + 1 canno
+  atst | runtime error: signed integer overflow: 2147483647 + 4 canno
+  atst | runtime error: signed integer overflow: 3 + 2147483647 canno
+  atst | runtime error: signed integer overflow: 318 + 2147483647 can
+  gmap | runtime error: signed integer overflow: 1 + 2147483647 canno
+  gmap | runtime error: signed integer overflow: 2147483647 + 1 canno
+  gmap | runtime error: signed integer overflow: 2147483647 + 2147483
+  gmap | runtime error: signed integer overflow: 2147483647 + 4 canno
+  gmap | runtime error: signed integer overflow: 3 + 2147483647 canno

@@ -1,0 +1,8 @@
+G03 kits adapted to 7.0.18 (copied from PYS/upstream/repro/G03-arch-mesh-deco-misc; per-id READMEs are the 7.0.17 ones).
+New:
+  new/*.tgt         m2b/m3b/mxb/t2b 'mesh2D 100000 50000'-like sizes that wrap to a larger value (PS3-G03-1); cwb cmpltw sum;
+                    m2ok 'mesh2D 46340 46340' (largest valid square); m2b64/m2ok64 for 64-bit trees
+  new/torusapi.c    SCOTCH_archTorus2/3/X, SCOTCH_archMesh2/X with arguments: torusapi t2 0 5, tx 0 4, mx 2 0 4 ...
+  COR-20/run18.sh <dummysizes>   run from COR-20/run (one-char names PS3-G03-2, 2046/2047-char lines)
+Commands: LD_LIBRARY_PATH=<tree>/lib <tree>/bin/atst <file.tgt>; <tree>/bin/gmap COR-07/m4x4.grf <file.tgt> /dev/null
+Transcript: RESULTS18.txt.

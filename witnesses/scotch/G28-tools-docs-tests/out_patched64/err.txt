@@ -1,0 +1,6 @@
+dgtst, version 7.0.18 ("Sankara")
+Copyright 1992-2026 IPB, Universite de Bordeaux, INRIA & CNRS, France
+This software is libre/free software under CeCILL-C -- see the user's manual for more information
+dgtst, version 7.0.18 ("Sankara")
+Copyright 1992-2026 IPB, Universite de Bordeaux, INRIA & CNRS, France
+This software is libre/free software under CeCILL-C -- see the user's manual for more information

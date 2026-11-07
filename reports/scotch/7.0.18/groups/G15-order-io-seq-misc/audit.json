@@ -1,0 +1,748 @@
+[
+ {
+  "id": "GRA-03",
+  "our_title": "orderLoad() trusts the vertex count and permutation values of .ord files",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "cd $WORK/repro && ./runall.sh pristine|pristine64: `gotst p4.grf bad_count.ord` -> 'AddressSanitizer: heap-buffer-overflow WRITE of size 4'; bad_range/bad_neg -> heap-buffer-overflow WRITE (orderPeri); bad_dup -> SEGV (32-bit); bad_short -> 'orderCheck: invalid vertex count'. Series 32/64: 'orderLoad: bad input (1)' / 'invalid permutation value' / 'duplicate permutation value'; check_scotch_graph_order (with the new round-trip and invalid-file cases) passes.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "User-controlled .ord file loaded by the public SCOTCH_graphOrderLoad() and gotst: heap writes at a file-chosen offset.",
+  "location_7_0_18": "src/libscotch/order_io.c:100-125",
+  "evidence": "order_io.c:96 'if (intLoad (stream, &ordeptr->vnodnbr) != 1) {' after :91 'permtab = memAlloc (ordeptr->vnodnbr * sizeof (Gnum))'; :103 'for (vertnum = 0; vertnum < ordeptr->vnodnbr; vertnum ++)'; :107 'intLoad (stream, &permtab[vertnum])'; :120 'orderPeri (permtab, ordeptr->baseval, ordeptr->vnodnbr, ordeptr->peritab, ordeptr->baseval)'; order.c:170 'peritab[permtab[permnum] - permbas] = permnum + peribas;' with no check.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate. It misses the duplicate-rank case (holes in peritab, later SEGV) and the fact that a smaller count silently changes ordeptr->vnodnbr.",
+  "first_pass_critique": "Status, evidence and preferred option are right. Its sketch kept the now-useless `permtab` allocation and `memFree` calls (the committed patch removes the temporary array altogether, as building the inverse on the fly makes it dead) and did not add the natural regression test to test_scotch_graph_order.c (which had a save step but no load step).",
+  "extra_instances": [
+   {
+    "location": "src/esmumps/order_io.c:119-123",
+    "quote": "peritax[permtax[vertnum]] = vertnum;",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/dorder_io.c (dorderLoad, G23)",
+    "quote": "not read in detail; distributed ordering loader is in group G23",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "a. Validate while reading, build inverse permutation on the fly (committed)",
+    "summary": "Read the count into a local and require it to equal ordeptr->vnodnbr; memSet peritab to ~0; for each line check rank in [baseval, vnodnbr+baseval[ and not yet assigned; set peritab directly. Removes the temporary permtab and the orderPeri call.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0001-Bugfix-validate-vertex-count-and-permutation-values-.patch",
+    "tested": "repro/GRA-03 (6 files), fuzz before/after, check_scotch_graph_order + new round-trip and 4 invalid-file cases, 32/64-bit",
+    "tradeoffs": "Rejects files whose count differs from the graph size (previously a smaller count was 'accepted' with a corrupted structure). No allocation any more. Lines must still be in vertex order (pre-existing, see PS2-G15-5).",
+    "preferred": true,
+    "maintainer_fit": "Same marker idiom as his orderCheck() (order_check.c:156-172 memSet ~0 / 'invalid index' / 'duplicate index') and the read-loop validation of G14's graphLoad() patch; one fewer allocation."
+   },
+   {
+    "label": "b. Keep orderPeri(), add a validation pass after reading",
+    "summary": "Check count, then a separate loop over permtab with peritab as flag array before calling orderPeri().",
+    "diff_file": "",
+    "tested": "untested: superseded by a, which is strictly simpler [7.0.18: diff no longer applies]",
+    "tradeoffs": "Keeps the temporary array and two passes; same behaviour.",
+    "preferred": false,
+    "maintainer_fit": "He would not keep an allocation whose only purpose is to be inverted afterwards."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0001-Bugfix-validate-vertex-count-and-permutation-values-.patch"
+  ],
+  "cleanup_done": "Removed the temporary direct permutation array, its memAlloc/memFree and the orderPeri() call in orderLoad(); ordeptr->vnodnbr is no longer written.",
+  "test_added": "src/check/test_scotch_graph_order.c: save to a second tmpfile, reload with SCOTCH_graphOrderLoad, SCOTCH_graphOrderCheck, compare peritab with the computed one; checkOrderLoad() helper writes four invalid files (bad line count, rank below base, rank above range, duplicate rank) and requires the load to fail. Runs in check_scotch_graph_order (Makefile and CMake unchanged).",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. order_io.c unchanged; ff9d5a54 (intLoad, G07: correct) removes the intLoad overflow UBSan reports seen in the 7.0.17 fuzz. Patch 0001 rebased unchanged."
+ },
+ {
+  "id": "GRA-14",
+  "our_title": "graphCoarsen ignores thread error status and returns success with broken coarse graph",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "./runall.sh pristine (LD_PRELOAD inj.so failing the N-th malloc): N=7 -> 'graphCoarsen3: out of memory (1)' then 'heap-use-after-free' in graphCheck; N=8 -> ret=0 with edgenbr=0, 'graphCheck: invalid vertex arrays'; 4 threads N=18 -> use-after-free; match N=4 -> ret=0 with 9800 bad mates. Series 32/64: every case 'ret=2', no sanitizer report.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Out-of-memory only, but then callers (all multilevel methods) use a freed or uninitialized graph; agrees with the review.",
+  "location_7_0_18": "src/libscotch/graph_coarsen.c (graphCoarsen2/3), src/libscotch/graph_match.c",
+  "evidence": "graph_coarsen.c:256-258 'if (coargrafptr->verttax != NULL) memFree (coargrafptr->verttax); coarptr->retuval = 2;' (pointer left dangling); :555-556 'if (coargrafptr->verttax == NULL) return (coarptr->retuval);' then :566 'return (0);' regardless of retuval; :371 'coarptr->retuval = 2;' after a hash-table failure with the coarse arrays already allocated; :552-553 'if (coargrafptr == NULL) return (0);' reached after a graphMatch failure in graphCoarsenMatch(); :527-528 'if (graphMatchInit (coarptr, thrdnbr) != 0) return (2);' leaks finematetab; graph_match.c:322-326 frees only the thread's own queue.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate for the two cited cases; it missed the graphCoarsenMatch() case (returns 0 with an invalid mating array after a queue allocation failure) and the leaks on the threaded error paths.",
+  "first_pass_critique": "Its diff (NULL verttax + 'retuval != 0 after verttax check') still returns 0 from graphCoarsenMatch() on a matching failure (the coargrafptr == NULL early return precedes its new test) and reads coargrafptr->verttax from an uninitialized caller structure when the failure happens before thread 0's memSet; it leaves the mating/lock/hash leaks. Its 'one of 6 multi-threaded runs hung' remark was not reproduced here (all 90 injection points at 4 threads terminate). The committed patch moves the memSet of the coarse graph before the thread launch so that graphCoarsen2() can act on retuval uniformly.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/graph_coarsen.c:527-528 (mating array leak on graphMatchInit failure)",
+    "quote": "if (graphMatchInit (coarptr, thrdnbr) != 0) return (2);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/graph_match.c:322-326 (lock array leak)",
+    "quote": "if (thrdptr->finequeutab != NULL) memFree (thrdptr->finequeutab); return;",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/graph_coarsen.c:470-472 (shrinking memRealloc unchecked, PS2-G15-4)",
+    "quote": "coaredgetab = memRealloc (coargrafptr->edgetax + baseval, ...); coargrafptr->edgetax = (Gnum *) coaredgetab - baseval;",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/dgraph_coarsen.c:1251-1254 (G21, DGR-13: different structure, return-before-collective)",
+    "quote": "if (coarptr->thrdtab[0].retuval != 0) { errorPrint (...); return (1); }",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "a. One error contract in graphCoarsen2() on retuval, cleanup of partial state (committed)",
+    "summary": "memSet the coarse graph in graphCoarsen2() before launching threads; NULL the vertex array after freeing it in graphCoarsen3(); after the threads, if retuval != 0: free the locally allocated mating array, graphFree() the coarse graph if its arrays exist, return retuval; free the mating array on graphMatchInit failure and the lock array on thrdtab failure; threads free their hash table after the barrier on error; thread 0 frees the lock array when a queue allocation fails in graphMatch().",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0008-Bugfix-report-allocation-failures-in-graphCoarsen-an.patch",
+    "tested": "injection sweeps 1/4 threads + match mode, 32/64-bit; check_scotch_graph_coarsen/map, check_prog_gpart",
+    "tradeoffs": "On 'cannot coarsen' (retuval 1) a mating array allocated for a DSTMATE caller is now freed instead of leaked (callers never received it).",
+    "preferred": true,
+    "maintainer_fit": "graphFree() on the partially built graph as in his own SCOTCH_DEBUG_GRAPH2 path (graph_coarsen.c:559-562); retuval is the channel he designed ('volatile int retuval')."
+   },
+   {
+    "label": "b. First pass's local fix: NULL verttax, test retuval after the verttax test",
+    "summary": "Two-line change in graphCoarsen3() and a retuval test in graphCoarsen2() after the existing early returns.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G15-order-io-seq-misc/GRA-14-b-firstpass-null-verttax-and-retuval.diff",
+    "tested": "untested here (first pass: edge-array injection only)",
+    "tradeoffs": "Misses the graphCoarsenMatch() and pre-allocation cases and all leaks.",
+    "preferred": false,
+    "maintainer_fit": "Incomplete contract."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0008-Bugfix-report-allocation-failures-in-graphCoarsen-an.patch"
+  ],
+  "cleanup_done": "Removed the two early returns in graphCoarsen2() (coarvertnbr >= coarvertmax, verttax == NULL) made redundant by the retuval test, and the memSet in graphCoarsen3().",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Patch 0008 rebased unchanged."
+ },
+ {
+  "id": "GRA-22",
+  "our_title": "Block ordering splits in vertex order, re-runs its strategy, mishandles weights",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "./runall.sh pristine|pristine64: `bl 'b{cmin=1200,strat=g}' 1200 1` -> 'min=24 max=16930 heavier_than_2cmin+maxload=5'; `bl 'b{cmin=1,strat=s}' 1 2` -> 'covered=6/8' check=1; recursive strategy -> rc=124 (no termination); `mord dbl.msh ... -ob{cmin=2,strat=n{...}}` -> rc=124. Series 32/64: 'min=954 max=1577 ... =0', 'covered=8/8 check=0', 209/207 blocks check=0, mord rc=0.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Higher than the review's 'low': silent wrong result on every weighted use of 'b' (documented semantics violated), plus a hang for 'b{strat=<tree-building strategy>}' and an inconsistent tree with zero loads.",
+  "location_7_0_18": "src/libscotch/hgraph_order_bl.c, src/libscotch/hmesh_order_bl.c",
+  "evidence": "hgraph_order_bl.c:140 'vnodnum = grafptr->s.baseval;' and :162 'vnlosum += grafptr->s.velotax[vnodnum];' (local vertex order) while :167 'cblkptr->cblktab[cblknum].vnodnbr = vnodnum - vnodbas;' is applied to ordering positions; :172 'while (vnlosum < grafptr->vnlosum)' stops before trailing zero-weight columns; :192 'if (hgraphOrderBl (grafptr, ordeptr, ordenum, cblkptr->cblktab + cblknum, paraptr) != 0)' re-enters :96 'hgraphOrderSt (grafptr, ...)' on the whole graph for each sub-block; s_l.tex:1357-1360 'the resulting separators tree is traversed and all of the column blocks that are larger than 2 size are split ... without changing the ordering that has been computed'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "The defect is real but its 'Fix:' (go back through peritab) is exactly what a90b1cb removed because it is out of bounds on induced subgraphs (ND leaves, 'o' components, partial orderings); it also missed the non-terminating recursion and the zero-load case.",
+  "first_pass_critique": "Correct diagnosis (including the recursion, its NEW-1) and a structurally right rewrite, but its load array is indexed in original-vertex space and allocated with ordeptr->vnodnbr (the whole graph) at every call, i.e. O(N) memory per nested dissection leaf; it also kept the whole-graph vnlosum/vnohnbr on the recursion. The committed patch builds the column loads in ordering order with two O(n log n) sorts of (original index, value) pairs for induced subgraphs (direct access for the original graph), splits leaves recursively with per-block offsets, handles trailing zero loads, and fixes the mesh twin's recursion.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/hmesh_order_bl.c:124-129",
+    "quote": "if (hmeshOrderBl (meshptr, ordeptr, ordenum, cblkptr->cblktab + cblknum, paraptr) != 0)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "a. Run strategy once, compute column loads in ordering order, split leaves recursively (committed)",
+    "summary": "hgraphOrderBl() runs the strategy, builds vnlotab (loads indexed by ordering number; via peritab for original graphs, by sorting (vnumtax, velotax) and (peritab, position) pairs with intSort2asc1 for induced subgraphs), then static hgraphOrderBl2() walks the tree with the ordering offset of each sub-block and splits leaves; trailing zero-weight columns go to the last block; a split yielding one block is undone. hmeshOrderBl() gets the same split between strategy and static hmeshOrderBl2().",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0007-Bugfix-split-column-blocks-according-to-the-computed.patch",
+    "tested": "repro/GRA-22 (7 strategies, 32/64-bit), mord twin, check_prog_gord/gord_block/gotst/mord",
+    "tradeoffs": "Two temporary arrays (n and 4n Gnums) on weighted induced subgraphs; block boundaries change for weighted graphs (intended); SEQU nodes with a single child are no longer produced.",
+    "preferred": true,
+    "maintainer_fit": "Static '2' helper declared in the .h under the file marker (his hgraph_order_cp.h:95-97 idiom); intSort2asc1 pair matching as in mapLoad (mapping_io.c:158); behaviour is the one his manual documents."
+   },
+   {
+    "label": "b. Minimal: loads through peritab only for original graphs, comment the recursion",
+    "summary": "Restore velotax[peritab[...]] when vnumtax == NULL, keep vertex order for induced subgraphs; does not fix the recursion nor zero loads.",
+    "diff_file": "",
+    "tested": "untested [7.0.18: diff no longer applies]",
+    "tradeoffs": "Leaves ND leaves (the main use of 'b', e.g. check_prog_gord's ole=b) unbalanced and the hang in place.",
+    "preferred": false,
+    "maintainer_fit": "Not a fix of the documented semantics; he already rejected the peritab indexing in a90b1cb."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0007-Bugfix-split-column-blocks-according-to-the-computed.patch"
+  ],
+  "cleanup_done": "Removed the SCOTCH_DEBUG_HGRAPH2 'invalid column block' check (leaves no longer need to be the whole graph) and the whole-graph vnlosum/vnohnbr usage; hmesh_order_bl.c unused variables moved into the helper.",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Patch 0007 rebased unchanged."
+ },
+ {
+  "id": "GRA-25",
+  "our_title": "hgraphOrderCp/hmeshOrderCp leak the coarse column block tree on failure",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "./runall.sh pristine (LeakSanitizer on): `leak g dbl2.grf 'c{rat=0.9,cpr=o{strat=b{cmin=0,strat=s}},unc=s}'` and the mesh twin -> LeakSanitizer reports (coarse tree); series 32/64 -> 'order ret=1', no leak.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Only on strategy failure; leak plus an undestroyed mutex.",
+  "location_7_0_18": "src/libscotch/hgraph_order_cp.c, src/libscotch/hmesh_order_cp.c",
+  "evidence": "hgraph_order_cp.c:449-454 'if (hgraphOrderSt (&coargrafdat, &coarordedat, 0, &coarordedat.rootdat, paraptr->stratcpr) != 0) { memFree (coarperitab); hgraphExit (&coargrafdat); memFree (finecoartax + ...); return (1); }' (no orderExit); success path :496 'orderExit (&coarordedat);'. hmesh_order_cp.c:386-389 same without orderExit.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate; the mesh twin hmeshOrderCp() has the same defect (not mentioned).",
+  "first_pass_critique": "Right fix for the graph side; it noted the mesh twin as 'not checked' and did not patch it. Its gord-based evidence is polluted by hgraphOrderNd error-path leaks; the committed repro isolates the Cp leak. While verifying, the orderExit() call exposed PS2-G15-1 (hgraphOrderCc leaves uninitialized tree cells), fixed in 0004.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/hmesh_order_cp.c:386-389",
+    "quote": "if (hmeshOrderSt (&coarmeshdat, &coarordedat, 0, &coarordedat.rootdat, paraptr->stratcpr) != 0) { hmeshExit (&coarmeshdat); return (1); }",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "a. orderExit() on the error path of both Cp routines (committed)",
+    "summary": "Free the partial tree and destroy the mutex with orderExit(&coarordedat) before freeing the compressed structure.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0003-Bugfix-free-column-block-tree-of-compressed-ordering.patch",
+    "tested": "repro/GRA-25 graph+mesh, check_prog_gord/mord/gotst, 32/64-bit",
+    "tradeoffs": "Requires every tree-building strategy to leave a consistent tree on failure (hgraphOrderCc did not: 0004).",
+    "preferred": true,
+    "maintainer_fit": "Same call as his success path (hgraph_order_cp.c:496, hmesh_order_cp.c:434), reverse order of acquisition."
+   },
+   {
+    "label": "b. Make each tree-building strategy free its own partial tree on failure",
+    "summary": "hgraphOrderNd/hgraphOrderCc/hmeshOrderNd free cblktab on error so that no tree is left behind.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G15-order-io-seq-misc/GRA-25-b-free-tree-in-strategies.diff",
+    "tested": "untested sketch",
+    "tradeoffs": "Three sites instead of two, sub-trees of already-ordered children still leak unless recursive; the coarse ordering mutex still needs orderExit().",
+    "preferred": false,
+    "maintainer_fit": "More invasive; the Order object owns its tree and orderExit() is the designed destructor."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0003-Bugfix-free-column-block-tree-of-compressed-ordering.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0004-Bugfix-initialize-all-column-block-tree-nodes-before.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Patches 0003 (+0004) rebased unchanged."
+ },
+ {
+  "id": "GRA-27",
+  "our_title": "graphDump() emits 'delotab' for the edge load array it declares 'edlotab'",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "./runall.sh: code dumped by graphDump compiled with gcc -fsyntax-only: pristine 32/64 -> 1 error ('mydelotab_x' undeclared); series -> 0 errors.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "graphDump()/graphDump2()/graphDumpArrays() have no caller in the tree (debug helpers); SCOTCH_graphDump/gdump use library_graph_dump.c and are correct.",
+  "location_7_0_18": "src/libscotch/graph_dump.c",
+  "evidence": "graph_dump.c:131 '\"  %sedlotax = %sdelotab%s - \" GNUMSTRING \";\\n\",' vs :213 'graphDumpArray (grafptr->edlotax + baseval, edgenbr, tyinptr, prefptr, \"edlotab\", suffptr, fileptr);'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate, but 'dumped code for graphs with edge loads does not compile' only concerns the uncalled internal dumper, not gdump.",
+  "first_pass_critique": "Fully right.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Fix the typo (committed)",
+    "summary": "delotab -> edlotab.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0005-Bugfix-fix-name-of-edge-load-array-in-code-generated.patch",
+    "tested": "repro/GRA-27 compile of generated code; check_scotch_graph_dump",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "Trivial typo fix, like his 'Bugfix: variable type' commits."
+   },
+   {
+    "label": "b. Remove the uncalled internal dumper",
+    "summary": "Delete graph_dump.c/.h and their Makefile entries since SCOTCH_graphDump() is the maintained generator.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G15-order-io-seq-misc/GRA-27-b-remove-unused-internal-dumper.diff",
+    "tested": "untested (diff generated with git rm; CMakeLists.txt entries would also need removal)",
+    "tradeoffs": "Loses a debugging helper the maintainer may use locally (hgraph_dump.c keeps using it? no: hgraph_dump.c has its own code).",
+    "preferred": false,
+    "maintainer_fit": "He keeps debugging helpers in the tree (hgraph_dump.c, graphDumpArrays)."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0005-Bugfix-fix-name-of-edge-load-array-in-code-generated.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Patch 0005 rebased unchanged."
+ },
+ {
+  "id": "CLI-23",
+  "our_title": "esMUMPS orderLoad writes through unchecked ranks; orderSave loses status",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "./runall.sh pristine|pristine64: `oio 0` -> heap-buffer-overflow WRITE in _ESMUMPSorderLoad; `oio 1` -> SEGV; modes 2/3 accepted (load ret=0); `oio 4` -> heap-buffer-overflow READ in _ESMUMPSorderSave. Series (libesmumps rebuilt) 32/64: 'invalid permutation value' / 'bad input (1)' / 'duplicate permutation value' / 'bad input (4)', mode 4 ret 0 clean; check_libesmumps passes.",
+  "read_only": "The lost write status (order_io.c:169 and :176 overwrite o) needs a transient stream failure; only read.",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "orderLoad is reachable only from src/esmumps/test_fax.c (not built by check) and orderSave only under ESMUMPS_ORDER_DUMP; agrees with the review.",
+  "location_7_0_18": "src/esmumps/order_io.c",
+  "evidence": "order_io.c:91 '(cblknbr > vertnbr)) {' (no cblknbr < 0 test); :121-123 'for (vertnum = ordeptr->rangtab[0], vertnnd = vertnum + vertnbr; vertnum < vertnnd; vertnum ++) peritax[permtax[vertnum]] = vertnum;'; :169 'o = intSave (stream, ordeptr->rangtab[cblknum]);' after the loop; :176 'o = intSave (stream, ordeptr->permtab[vertnum]);' executed even when vertnbr == 0.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate; the vertnbr == 0 read is a real over-read only when permtab is a 0-byte allocation (memAlloc rounds to 8 bytes, so garbage rather than a crash in practice).",
+  "first_pass_critique": "Correct status and reproduction; its preferred diff left duplicate ranks and inconsistent range arrays accepted (symbolFaxGraph() later indexes with rangtab), and added a ferror() test that no other Scotch saver uses. The committed patch validates the range array (non-negative base, strictly increasing, last entry == base + vertnbr) and duplicates with the same flag-array idiom as the libscotch loader.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Validate counts, range array and permutation inline; keep save status (committed)",
+    "summary": "Reject cblknbr < 0; after reading, require baseval >= 0, rangtab[cblknbr] == baseval + vertnbr and rangtab strictly increasing; build the inverse permutation with range and duplicate checks (peritab memSet ~0 as flag array). In orderSave() guard the two trailing intSave() with (o == 1) and (vertnbr > 0).",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0002-Bugfix-validate-ordering-data-read-by-esMUMPS-orderL.patch",
+    "tested": "repro/CLI-23 modes 0-6 pristine vs patched; check_libesmumps 32/64-bit",
+    "tradeoffs": "Files with empty column blocks or inconsistent range arrays are now rejected at load time (orderCheck() already rejected them).",
+    "preferred": true,
+    "maintainer_fit": "Twin of the libscotch orderLoad() fix (0001) and of his esMUMPS orderCheck() checks (order_check.c:96-104, 112-125)."
+   },
+   {
+    "label": "b. Range-check only, then call orderCheck()",
+    "summary": "Check ranks before using them as indices, then run the existing esMUMPS orderCheck() on the loaded ordering.",
+    "diff_file": "",
+    "tested": "untested [7.0.18: diff no longer applies]",
+    "tradeoffs": "Two validation sites, one extra pass; Check routines are meant for debugging per the maintainer guide (3.3).",
+    "preferred": false,
+    "maintainer_fit": "Loaders in the tree validate inline (graphLoad, mapLoad); Check routines are not called from loaders."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0002-Bugfix-validate-ordering-data-read-by-esMUMPS-orderL.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Patch 0002 rebased unchanged."
+ },
+ {
+  "id": "PS-BLD-1",
+  "our_title": "SCOTCH_graphOrderCheck ignores the user's direct permutation array",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "./runall.sh pristine|pristine64: `chk bump.grf` -> 'check(valid)=0 check(permtab swapped)=0 check(permtab out of range)=0' rc=1; series 32/64 -> 'SCOTCH_graphOrderCheck: invalid direct permutation' for both bad cases.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Check routine completeness; no memory effect.",
+  "location_7_0_18": "src/libscotch/library_graph_order.c (SCOTCH_graphOrderCheck)",
+  "evidence": "library_graph_order.c:466 'return (orderCheck (&((LibOrder *) ordeptr)->o));' while LibOrder keeps 'Gnum * permtab' (library_order.h:61); order_check.c:159-179 only checks peritab.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "n/a (first-pass finding); its description is accurate.",
+  "first_pass_critique": "It preferred leaving the library untouched ('test-side check'), which leaves API users without the check that the manual's wording ('checks the consistency of the given SCOTCH_Ordering structure') implies, and it did not notice the precedent in the maintainer's own esMUMPS orderCheck() (order_check.c:118-127 checks permtax[peritax[v]] == v).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/library_dgraph_order.c (SCOTCH_dgraphOrderCheck, G23)",
+    "quote": "not examined (distributed orderings have no user permtab in LibDorder)",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "a. Check permtab against peritab in SCOTCH_graphOrderCheck() (committed)",
+    "summary": "After orderCheck(), if a direct permutation array is attached, verify permtab[peritab[i] - baseval] == i + baseval; document it in s_l.tex.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0009-Check-direct-permutation-array-in-SCOTCH_graphOrderC.patch",
+    "tested": "repro/PS-BLD-1, check_scotch_graph_order/gord/gotst 32/64-bit",
+    "tradeoffs": "O(n) extra; a user who modifies peritab after computing now gets an error from Check (correct).",
+    "preferred": true,
+    "maintainer_fit": "Mirrors his esMUMPS orderCheck(); errorPrint with STRINGIFY(SCOTCH_...) prefix as in library_graph_order.c:257."
+   },
+   {
+    "label": "b. Leave the library, make the test's checkOrder() exit (BLD-04)",
+    "summary": "No API change; only src/check/test_scotch_graph_order.c checks permtab.",
+    "diff_file": "",
+    "tested": "untested (file region owned by G28/BLD-04) [7.0.18: diff no longer applies]",
+    "tradeoffs": "API users get nothing.",
+    "preferred": false,
+    "maintainer_fit": "He writes Check routines to be complete ('A Check method must be created for any new class', guide 3.3)."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0009-Check-direct-permutation-array-in-SCOTCH_graphOrderC.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "doc/src/scotch/s_l.tex (SCOTCH_graphOrderCheck description)",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Patch 0009 rebased unchanged."
+ },
+ {
+  "id": "PS2-G15-1",
+  "our_title": "hgraphOrderCc leaves uninitialized column block cells when a component ordering fails",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "./runall.sh pristine: `leak g dbl2.grf 'o{strat=b{cmin=0,strat=s}}'` -> AddressSanitizer DEADLYSIGNAL (invalid free in orderExit); series 32/64 -> 'order ret=1', clean.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/hgraph_order_cc.c:172-201",
+  "evidence": "hgraph_order_cc.c:173 'cblkptr->cblknbr = rootnbr;' then :177-184 initializes cblktab[rootnum] inside the per-component loop, :197-200 'if (o != 0) { errorPrint (...); break; }' leaves cells rootnum+1.. uninitialized; order.c:145-149 orderExit2 frees cblktab[cblknum].cblktab for all cblknbr cells.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Initialize all cells before ordering any component (committed)",
+    "summary": "Move the cell initialization loop before the ordering loop, as hgraphOrderNd() does for its three cells.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0004-Bugfix-initialize-all-column-block-tree-nodes-before.patch",
+    "tested": "repro/GRA-25 third case 32-bit; check_prog_gord (disconnected.grf with -cd), 64-bit checks",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "Same construction order as his hgraphOrderNd() (hgraph_order_nd.c:228-236)."
+   },
+   {
+    "label": "b. Free the partial tree on error",
+    "summary": "memFree cblktab and reset cblknbr on the error path.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G15-order-io-seq-misc/PS2-G15-1-b-free-partial-tree-on-error.diff",
+    "tested": "untested",
+    "tradeoffs": "Sub-trees of already ordered components would leak unless recursively freed.",
+    "preferred": false,
+    "maintainer_fit": "Leaves the tree inconsistent for the Order destructor."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0004-Bugfix-initialize-all-column-block-tree-nodes-before.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Patch 0004 rebased unchanged."
+ },
+ {
+  "id": "PS2-G15-2",
+  "our_title": "Block ordering re-runs its strategy on every sub-block: no termination",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Same as GRA-22: recursive 'b{...strat=n{...}}' -> rc=124 on pristine 32/64; series terminates (209/207 blocks, check=0).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/hgraph_order_bl.c:188-195; src/libscotch/hmesh_order_bl.c:124-129",
+  "evidence": "hgraph_order_bl.c:192 'if (hgraphOrderBl (grafptr, ordeptr, ordenum, cblkptr->cblktab + cblknum, paraptr) != 0)' -> :96 'hgraphOrderSt (grafptr, ordeptr, ordenum, cblkptr, paraptr->straptr)' on the whole graph again; s_l.tex:1357-1360 says the tree is traversed 'without changing the ordering that has been computed'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Separate strategy run from leaf splitting (committed with GRA-22)",
+    "summary": "Static hgraphOrderBl2()/hmeshOrderBl2() walk the tree with the ordering offset of each sub-block.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0007-Bugfix-split-column-blocks-according-to-the-computed.patch",
+    "tested": "see GRA-22",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": "see GRA-22"
+   },
+   {
+    "label": "b. Minimal: forbid tree-building strategies inside 'b'",
+    "summary": "Return an error when the strategy produced a tree (cblktab != NULL after hgraphOrderSt).",
+    "diff_file": "",
+    "tested": "untested [7.0.18: diff no longer applies]",
+    "tradeoffs": "Contradicts the manual.",
+    "preferred": false,
+    "maintainer_fit": "Documented behaviour is the traversal."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0007-Bugfix-split-column-blocks-according-to-the-computed.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Patch 0007."
+ },
+ {
+  "id": "PS2-G15-3",
+  "our_title": "Weighted block splitting leaves trailing zero-load columns out of every block",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Same kit: `bl 'b{cmin=1,strat=s}' 1 2` -> 'covered=6/8', 'orderCheck2: invalid number of vertex nodes (2)' on pristine 32/64; series 'covered=8/8 check=0'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/hgraph_order_bl.c:161-172",
+  "evidence": "hgraph_order_bl.c:172 '} while (vnlosum < grafptr->vnlosum); /* As long as columns remain */' stops when the load sum is reached although zero-load columns (graphCheck allows velotax >= 0, graph_check.c:177) remain.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Last block absorbs remaining zero-weight columns; loop on columns (committed with GRA-22)",
+    "summary": "'if (vnlocur >= vnlosum) ordetmp = ordennd;' and 'while (ordetmp < ordennd)'.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0007-Bugfix-split-column-blocks-according-to-the-computed.patch",
+    "tested": "see GRA-22",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": "see GRA-22"
+   },
+   {
+    "label": "b. Reject zero vertex loads in 'b'",
+    "summary": "Error out when vnlosum < vnodnbr.",
+    "diff_file": "",
+    "tested": "untested [7.0.18: diff no longer applies]",
+    "tradeoffs": "Zero loads are legal graphs.",
+    "preferred": false,
+    "maintainer_fit": "He accepts zero loads everywhere else."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G15-order-io-seq-misc/patches/0007-Bugfix-split-column-blocks-according-to-the-computed.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Patch 0007."
+ },
+ {
+  "id": "PS2-G15-4",
+  "our_title": "Shrinking memRealloc of the coarse edge array is unchecked",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "graph_coarsen.c memRealloc of the coarse edge array (result stored without NULL test) unchanged in v7.0.18.",
+  "why_not_run": "Not re-injected this round (no change since 7.0.17: graph_coarsen.c not touched by 7.0.18; the injector N values were for the 7.0.17 call sequence).",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/graph_coarsen.c:470-472 (+ the instances above)",
+  "evidence": "graph_coarsen.c:470-471 'coaredgetab = memRealloc (coargrafptr->edgetax + baseval, ...); coargrafptr->edgetax = (Gnum *) coaredgetab - baseval;'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Keep the larger array when the shrink fails",
+    "summary": "Test the memRealloc() result; on NULL keep the old block (still valid after a failed realloc).",
+    "diff_file": "",
+    "tested": "untested [7.0.18: diff no longer applies]",
+    "tradeoffs": "Would have to be applied to ~8 sites to be coherent; shrinking reallocs do not fail with glibc.",
+    "preferred": false,
+    "maintainer_fit": "The tree deliberately leaves shrinking reallocs unchecked; a global decision for the maintainer, not a one-site patch."
+   },
+   {
+    "label": "b. Leave as is (status quo)",
+    "summary": "Document that shrinking reallocs are assumed not to fail.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "UB on exotic allocators.",
+    "preferred": true,
+    "maintainer_fit": "Matches his current convention."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (unchanged file)."
+ },
+ {
+  "id": "PS2-G15-5",
+  "our_title": "Manual says ordering lines may come in any order; orderLoad rejects unsorted files",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "`gotst p4.grf shuffled.ord /dev/null` -> 'orderLoad: bad input (3)' on pristine 7.0.18 and series (32/64).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "doc/src/scotch/s_f.tex:756-758 vs src/libscotch/order_io.c:112-116",
+  "evidence": "s_f.tex:756 'Ordering pairs can be stored in any order in the file; however, indices of source vertices must be all different.' vs order_io.c:112 'if (vertval != (vertnum + ordeptr->baseval)) { errorPrint (\"orderLoad: bad input (3)\");'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Fix the manual (doc/ is G28's)",
+    "summary": "State that lines must be in increasing vertex order.",
+    "diff_file": "",
+    "tested": "n/a [7.0.18: diff no longer applies]",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "He documents the loader as it is; mapLoad accepts any order because it sorts labels, orderLoad never did."
+   },
+   {
+    "label": "b. Make the loader accept any order",
+    "summary": "Index on the vertex index read, add a final completeness pass.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G15-order-io-seq-misc/PS2-G15-5-b-loader-accepts-any-order.diff",
+    "tested": "untested sketch",
+    "tradeoffs": "Behaviour change; labels still unsupported.",
+    "preferred": false,
+    "maintainer_fit": "Larger change for no known user."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G15-6",
+  "our_title": "gotst ignores the return value of SCOTCH_graphOrderLoad",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "src/scotch/gotst.c:167 still calls SCOTCH_graphOrderLoad without testing its result (v7.0.18).",
+  "why_not_run": "gotst.c unchanged in 7.0.18; tool file owned elsewhere.",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/scotch/gotst.c:167",
+  "evidence": "gotst.c:167 'SCOTCH_graphOrderLoad (&grafdat, &ordedat, C_filepntrordinp);' (unchecked), :168 'if (SCOTCH_graphOrderCheck (&grafdat, &ordedat) != 0)'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Check the status and errorPrint (file owned by G27, alt only)",
+    "summary": "'if (SCOTCH_graphOrderLoad (...) != 0) errorPrint (\"main: cannot load ordering\");'.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G15-order-io-seq-misc/PS2-G15-6-a-gotst-check-load-status.diff",
+    "tested": "untested (not applied; G27 owns src/scotch/gotst.c)",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "gord.c checks its calls the same way."
+   },
+   {
+    "label": "b. Rely on SCOTCH_graphOrderCheck()",
+    "summary": "Status quo: the check catches the ~0 markers left by a failed load.",
+    "diff_file": "",
+    "tested": "ran (see above)",
+    "tradeoffs": "Relies on partial state.",
+    "preferred": false,
+    "maintainer_fit": "Sloppy."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G15-7",
+  "our_title": "Manual documents Fortran graph ordering load/save routines that do not exist",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "v7.0.18 s_l.tex:5223, 5259, 5294, 5335 document scotchfgraphorderload/save/savemap/savetree; grep of src/libscotch/*_f.c finds no SCOTCHFGRAPHORDERLOAD. 38006ee5 (doc) did not touch these entries.",
+  "why_not_run": "documentation/API inventory question, nothing to execute",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "doc/src/scotch/s_l.tex:5223-5340; src/libscotch/library_graph_order_f.c",
+  "evidence": "s_l.tex:5183 'scotchfgraphorderload ( & doubleprecision (*) & grafdat, ...' while library_graph_order_f.c defines no GRAPHORDERLOAD/GRAPHORDERSAVE wrapper (grep).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Add the Fortran wrappers (fdopen on fildes) as for scotchfgraphload",
+    "summary": "Owned by the API/docs groups (G05/G28); not written here.",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": "Every C routine has a Fortran twin (STYLE)."
+   },
+   {
+    "label": "b. Remove the entries from the manual",
+    "summary": "",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "",
+    "preferred": false,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (line numbers moved by 38006ee5)."
+ },
+ {
+  "id": "PS2-G15-8",
+  "our_title": "hgraphOrderNd error paths may leak induced subgraphs (mechanism not established)",
+  "status": "inconclusive",
+  "method": "partly-run",
+  "ran": "Observed while reproducing GRA-25 with gord: `gord compress-coarsen.grf /dev/null '-oc{rat=0.9,cpr=n{sep=m{vert=5,low=h{pass=10},asc=f{move=100}},ole=b{cmin=0,strat=s},ose=b{cmin=0,strat=s}},unc=s}'` (SCOTCH_PTHREAD_NUMBER=1, LSan on) -> 'Direct leak of 2440 byte(s) ... #1 hgraphInduce2 hgraph_induce.c:207 #2 _SCOTCHhgraphInduceList #3 hgraphOrderNd2 hgraph_order_nd.c:98' (4 such leaks) and 'Direct leak of 8 byte(s) ... graphInduce3 ... _SCOTCHhgraphOrderNd hgraph_order_nd.c:256'.",
+  "read_only": "hgraph_order_nd.c:103-107 does call hgraphExit() after the sub-ordering, so the mechanism (which hgraphInduce2 allocation survives) was not established; hgraph_order_nd.c/hgraph_induce.c belong to no other group.",
+  "why_not_run": "not root-caused within this group's scope",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/hgraph_order_nd.c:98-107, 256-262",
+  "evidence": "see ran",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a. Root-cause with a failing sub-strategy and LSan on a small graph",
+    "summary": "to do",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": ""
+   },
+   {
+    "label": "b. none",
+    "summary": "",
+    "diff_file": "",
+    "tested": "",
+    "tradeoffs": "",
+    "preferred": false,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: inconclusive -> 7.0.18 status: inconclusive (hgraph_order_nd.c unchanged apart from our 0006; not re-investigated)."
+ }
+]

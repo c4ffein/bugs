@@ -1,0 +1,38 @@
+[
+ {
+  "local_id": "PS3-G12-1",
+  "our_title": "Fixed-vertex mapping hangs: 22c9c42e sizes merge hash table from fixed domains only",
+  "severity": "high",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "gcc /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G25-metis-graph-part/repro/PS3-G25-1/fixmerge.c against pristine 7.0.18 (64-vertex ring, one fixed vertex, SCOTCH_graphMapFixed onto K32): 'timeout 20 ./fixmerge_asan 32' rc=124 (32- and 64-bit); gdb backtrace: '#0 _SCOTCHkgraphMapRbVfloMerge (mappptr=..., dfixmax=1, vfixnbr=1, ...) at kgraph_map_rb.c:430 #1 _SCOTCHkgraphMapRb kgraph_map_rb.c:176'. K4 returns normally. Patched (0007): 'returned 0, 32 distinct parts, p[0]=0', 32/64-bit; check_scotch_graph_map passes.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/kgraph_map_rb.c:412-414 (sizing), 419-431 (insertion of all mapping domains)",
+  "evidence": "'for (hashmsk = 1; hashmsk < dfixmax; hashmsk = 2 * hashmsk + 1) ; hashmsk = hashmsk * 4 + 3;' then 'for (domnnum = 0; domnnum < mappptr->domnnbr; domnnum ++) { ... for (hashnum = ...; ; hashnum = (hashnum + 1) & hashmsk) {' with no free slot once domnnbr > hashsiz",
+  "related_ids": [
+   "G12-overlap-kgraph-rb (owner of kgraph_map_rb.c)"
+  ],
+  "fix_options": [
+   {
+    "label": "A. hashnbr = mappptr->domnnbr + dfixmax (0007)",
+    "summary": "restore the 7.0.17 bound (domnnbr + vflonbr), with dfixmax for vflonbr",
+    "diff_file": "",
+    "tested": "fixmerge 32/64; check_scotch_graph_map",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "one variable back, same idiom as his new loop"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/patches/0002-Bugfix-account-for-existing-domains-when-sizing-fixe.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "22c9c42e87",
+   "verdict": "wrong",
+   "details": "Correct for kgraphMapRbVfloBuild (only fixed domains are hashed there) but in kgraphMapRbVfloMerge it dropped mappptr->domnnbr from the bound (7.0.17: 'hashnbr = mappptr->domnnbr + vflonbr'), while lines 419-431 insert every domain of the mapping. Any fixed-vertex mapping with more mapped domains than 4*(upper power of two of dfixmax) slots loops forever. check_scotch_graph_map does not catch it because its fixed-size targets have <= 5 domains.",
+   "compared_with_ours": "not in our 7.0.17 series (introduced by 7.0.18)"
+  },
+  "notes": "Merged into PS3-G12-1 (same defect, same hunk; G12 owns kgraph_map_rb.c and its patch carries the regression test). Former id PS3-G25-1."
+ }
+]

@@ -1,0 +1,80 @@
+From b47955d1edc0e72502c713081bac35b96a5b8a5a Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 16:18:12 +0000
+Subject: [PATCH 164/232] Bugfix: reject strategy condition results that are
+ not logical values [report R. Perry]
+
+Since 7a2e069c, the debug-mode check of the results of strategy
+conditions in `hdgraphOrderSt()` reports an error when the result is
+not both a value and a logical. The checks of `hgraphOrderSt()`,
+`hmeshOrderSt()` and `vmeshSeparateSt()` had the same wrong logical
+operator, and only reported an error when the result was neither.
+Use the same test as all other strategy dispatchers.
+
+Refs: DMO-18
+---
+ src/libscotch/hgraph_order_st.c   | 4 ++--
+ src/libscotch/hmesh_order_st.c    | 2 +-
+ src/libscotch/vmesh_separate_st.c | 4 ++--
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/libscotch/hgraph_order_st.c b/src/libscotch/hgraph_order_st.c
+index d4a74355..46366c38 100644
+--- a/src/libscotch/hgraph_order_st.c
++++ b/src/libscotch/hgraph_order_st.c
+@@ -50,7 +50,7 @@
+ /**                # Version 6.0  : from : 17 oct 2012     **/
+ /**                                 to   : 05 apr 2018     **/
+ /**                # Version 7.0  : from : 19 jan 2023     **/
+-/**                                 to   : 20 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -281,7 +281,7 @@ const Strat * restrict const    straptr)          /*+ Graph ordering strategy
+       o = stratTestEval (straptr->data.conddat.testptr, &testdat, (void *) grafptr); /* Evaluate expression */
+       if (o == 0) {                               /* If evaluation was correct */
+ #ifdef SCOTCH_DEBUG_HGRAPH2
+-        if ((testdat.testval != STRATTESTVAL) &&
++        if ((testdat.testval != STRATTESTVAL) ||
+             (testdat.nodeval != STRATPARAMLOG)) {
+           errorPrint ("hgraphOrderSt: invalid test result");
+           o = 1;
+diff --git a/src/libscotch/hmesh_order_st.c b/src/libscotch/hmesh_order_st.c
+index 63e1914e..47ceff05 100644
+--- a/src/libscotch/hmesh_order_st.c
++++ b/src/libscotch/hmesh_order_st.c
+@@ -261,7 +261,7 @@ const Strat * restrict const    straptr)          /*+ Mesh ordering strategy
+       o = stratTestEval (straptr->data.conddat.testptr, &testdat, (void *) meshptr); /* Evaluate expression */
+       if (o == 0) {                               /* If evaluation was correct */
+ #ifdef SCOTCH_DEBUG_HMESH2
+-        if ((testdat.testval != STRATTESTVAL) &&
++        if ((testdat.testval != STRATTESTVAL) ||
+             (testdat.nodeval != STRATPARAMLOG)) {
+           errorPrint ("hmeshOrderSt: invalid test result");
+           o = 1;
+diff --git a/src/libscotch/vmesh_separate_st.c b/src/libscotch/vmesh_separate_st.c
+index 06efe3b0..4ee3ecf0 100644
+--- a/src/libscotch/vmesh_separate_st.c
++++ b/src/libscotch/vmesh_separate_st.c
+@@ -45,7 +45,7 @@
+ /**                # Version 6.0  : from : 06 jun 2018     **/
+ /**                                 to   : 06 jun 2018     **/
+ /**                # Version 7.0  : from : 20 jan 2023     **/
+-/**                                 to   : 08 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -237,7 +237,7 @@ const Strat * restrict const  straptr)            /*+ Separation strategy +*/
+       o = stratTestEval (straptr->data.conddat.testptr, &testdat, (void *) meshptr); /* Evaluate expression */
+       if (o == 0) {                               /* If evaluation was correct */
+ #ifdef SCOTCH_DEBUG_VMESH2
+-        if ((testdat.testval != STRATTESTVAL) &&
++        if ((testdat.testval != STRATTESTVAL) ||
+             (testdat.nodeval != STRATPARAMLOG)) {
+           errorPrint ("vmeshSeparateSt: invalid test result");
+           o = 1;
+-- 
+2.43.0
+

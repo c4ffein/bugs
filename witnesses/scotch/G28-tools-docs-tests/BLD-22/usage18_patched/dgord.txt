@@ -1,0 +1,27 @@
+Usage is:
+  dgord [<input source file> [<output ordering file> [<output log file>]]] <options>
+    -b         : Output block ordering data instead of plain ordering data
+    -C<opt>    : Choose execution context options according to one or several of <opt>:
+                   d  : deterministic behavior (even across multiple threads; implies 'f')
+                   f  : fixed random seed
+                   r  : variable random seed
+                   u  : undeterministic behavior (may be faster with several threads)
+                   Default behavior depends on compilation flags
+    -c<opt>    : Choose default ordering strategy according to one or several of <opt>:
+                   b  : enforce load balance as much as possible
+                   q  : privilege quality over speed (default)
+                   s  : privilege speed over quality
+                   t  : enforce safety
+                   x  : enforce scalability
+    -h         : Display this help
+    -m<file>   : Save column block mapping data to <file>
+    -o<strat>  : Set parallel ordering strategy (see user's manual)
+    -r<num>    : Set root process for centralized files (default is 0)
+    -t<file>   : Save partitioning tree data to <file>
+    -V         : Print program version and copyright
+    -v<verb>   : Set verbose mode to <verb> :
+                   a  : memory allocation information
+                   s  : strategy information
+                   t  : timing information
+  
+  See default strategy with option '-vs'

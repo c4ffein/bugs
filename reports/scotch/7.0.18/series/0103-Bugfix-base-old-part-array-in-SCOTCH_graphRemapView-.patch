@@ -1,0 +1,31 @@
+From 3aac46394ea58aa26b069da0eb1153a7331ed91d Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 13:36:39 +0000
+Subject: [PATCH 103/232] Bugfix: base old part array in
+ `SCOTCH_graphRemapView()` [report PyScotch]
+
+The old part array was not based while it was accessed with based
+vertex indices in the migration loop, which led to out-of-bounds
+reads of the user array for graphs with a non-zero base value.
+
+Refs: PS-API-1
+---
+ src/libscotch/library_graph_map_view.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/libscotch/library_graph_map_view.c b/src/libscotch/library_graph_map_view.c
+index 8e7d667c..57549acf 100644
+--- a/src/libscotch/library_graph_map_view.c
++++ b/src/libscotch/library_graph_map_view.c
+@@ -270,7 +270,7 @@ FILE * const                  stream)             /*+ Output stream
+ 
+   if (libmapoptr != NULL) {
+     lmaoptr = (LibMapping *) libmapoptr;
+-    parotax = lmaoptr->parttab;
++    parotax = lmaoptr->parttab - grafptr->baseval; /* Use based array */
+   }
+   else {
+     lmaoptr = NULL;
+-- 
+2.43.0
+

@@ -1,0 +1,49 @@
+From 0291f454db69a3d035c564ccf25732936f708415 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 21:23:45 +0000
+Subject: [PATCH 237/248] Bugfix: check re-allocation of the edge array in
+ `hmeshInducePart()` [report PyScotch]
+
+The final shrinking memRealloc() of the edge array was not tested, so
+that on failure the routine returned success with a NULL edge array,
+and the caller (e.g. hmeshHgraph() in hmeshOrderGr(), or meshCoarsen()
+through the nested dissection ordering) dereferenced it.
+
+On failure, print an error, free the group leader of the edge array and
+the induced halo mesh, and return 1, as meshInduceSepa() does.
+
+Tested with the malloc fault injector of the G10 reproducer kit
+(SEP-02/sep02 30 2 0, FAIL_NTH=1..700, single thread, ASan/UBSan): 28 runs
+with sanitizer findings before the fix (10 SEGV at hmesh_hgraph.c:185,
+8 SEGV at mesh_coarsen.c:579), 10 after, none of which is in
+hmeshInducePart() or its callers (parser, harness and mesh_order.c
+allocation failures remain, not addressed here). FAIL_NTH=313 now ends
+with "hmeshInducePart: out of memory (3)" and a clean failure return.
+test_scotch_mesh_order passes.
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ src/libscotch/hmesh_induce.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/libscotch/hmesh_induce.c b/src/libscotch/hmesh_induce.c
+index 24384c0..1b89167 100644
+--- a/src/libscotch/hmesh_induce.c
++++ b/src/libscotch/hmesh_induce.c
+@@ -359,7 +359,12 @@ Hmesh * restrict const            indmeshptr)     /* Pointer to induced halo sub
+       indmeshptr->m.vnumtax[indvnodnum] = orgmeshptr->m.vnumtax[indmeshptr->m.vnumtax[indvnodnum] + (orgmeshptr->m.vnodbas - orgmeshptr->m.baseval)];
+   }
+ 
+-  indmeshptr->m.edgetax  = memRealloc (indedgetax + indmeshptr->m.baseval, indmeshptr->m.edgenbr * sizeof (Gnum));
++  if ((indmeshptr->m.edgetax = (Gnum *) memRealloc (indedgetax + indmeshptr->m.baseval, indmeshptr->m.edgenbr * sizeof (Gnum))) == NULL) {
++    errorPrint ("hmeshInducePart: out of memory (3)");
++    memFree    (indedgetax + indmeshptr->m.baseval); /* Free group leader */
++    hmeshExit  (indmeshptr);
++    return     (1);
++  }
+   indmeshptr->m.edgetax -= indmeshptr->m.baseval;
+ 
+ #ifdef SCOTCH_DEBUG_HMESH2
+-- 
+2.47.3
+

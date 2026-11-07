@@ -1,0 +1,42 @@
+From 9dc0c4886d8d7b5687424bfce44f755d5c846e9e Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:56:10 +0000
+Subject: [PATCH 244/248] Bugfix: print nothing for graphs without edges in
+ `SCOTCH_dgraphMapView()` [report PyScotch]
+
+SCOTCH_graphMapView() returns without printing anything when the graph
+has no vertices or no edges. SCOTCH_dgraphMapView() printed statistics
+instead, including "CommDilat=-nan" (0 / (edgeglbnbr / 2)) and
+"Cmlosum[0]=-nan" (cdstmax is set to 0 by the empty-graph early return
+of SCOTCH_dgraphMapStat(), while the communication load sum is 0).
+
+The test is made after SCOTCH_dgraphMapStat() so that all processes
+still take part in its collective operations, and it is based on global
+counts, hence it is identical on all processes.
+
+Tested on a 3-vertex edgeless graph built with SCOTCH_dgraphBuild()
+(repro/G16-library-seq-api/PS-API-7), with 1 and 2 processes: -nan
+lines before, no output after, return value 0. Output of dgmap -vm on
+m4x4_b1_ev.grf / k4.tgt unchanged.
+---
+ src/libscotch/library_dgraph_map_view.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/libscotch/library_dgraph_map_view.c b/src/libscotch/library_dgraph_map_view.c
+index 6c99b55..c631dcc 100644
+--- a/src/libscotch/library_dgraph_map_view.c
++++ b/src/libscotch/library_dgraph_map_view.c
+@@ -110,7 +110,9 @@ FILE * const                  stream)
+     return (1);
+   }
+ 
+-  if (stream == NULL)
++  if ((stream == NULL) ||
++      (grafptr->vertglbnbr == 0) ||               /* Print nothing for graphs without edges, */
++      (grafptr->edgeglbnbr == 0))                 /* like SCOTCH_graphMapView() does         */
+     return (0);
+ 
+   fprintf (stream, "M\tProcessors " GNUMSTRING "/" GNUMSTRING " (%g)\n",
+-- 
+2.47.3
+

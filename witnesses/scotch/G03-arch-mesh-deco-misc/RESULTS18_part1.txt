@@ -1,0 +1,62 @@
+######## /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan
+[gmap COR-07/m4x4.grf COR-07/meshx0.tgt /dev/null] rc=0 | ERROR: archMeshXArchLoad: bad input (1) 
+[gmap COR-07/m4x4.grf COR-07/torusx0.tgt /dev/null] rc=0 | ERROR: archMeshXArchLoad: bad input (1) 
+[gmap COR-07/m4x4.grf COR-07/meshx288.tgt /dev/null] rc=0 | 
+[atst COR-21/m2.tgt] rc=0 | runtime error: signed integer overflow: 65536 * 65536 cannot be represented in type 'int' 
+[atst COR-21/m3.tgt] rc=0 | runtime error: signed integer overflow: 4000000 * 2000 cannot be represented in type 'int' 
+[atst COR-21/mx.tgt] rc=0 | runtime error: signed integer overflow: 65536 * 65536 cannot be represented in type 'int' ERROR: archMeshXArchLoad: invalid architecture size 
+[atst COR-21/t2.tgt] rc=0 | runtime error: signed integer overflow: 65536 * 65536 cannot be represented in type 'int' 
+[atst COR-21/tx.tgt] rc=0 | runtime error: signed integer overflow: 4000000 * 2000 cannot be represented in type 'int' ERROR: archMeshXArchLoad: invalid architecture size 
+[atst COR-21/cw.tgt] rc=0 | runtime error: signed integer overflow: 2000000000 + 2000000000 cannot be represented in type 'int' runtime error: signed integer overflow: -294967296 - 2000000000 cannot be represented in type 'int' 
+[atst COR-21/cws.tgt] rc=0 | runtime error: signed integer overflow: 2000000000 + 2000000000 cannot be represented in type 'int' runtime error: signed integer overflow: -294967296 - 2000000000 cannot be represented in type 'int' 
+[atst COR-21/d0big.tgt] rc=0 | runtime error: signed integer overflow: 69999 * 70000 cannot be represented in type 'int' ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-21/d1big.tgt] rc=0 | runtime error: signed integer overflow: 69999 * 70000 cannot be represented in type 'int' ERROR: archDecoArchLoad: bad input (5) 
+[atst new/m2b.tgt] rc=0 | runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' 
+[atst new/m3b.tgt] rc=0 | runtime error: signed integer overflow: 1000000 * 3000 cannot be represented in type 'int' 
+[atst new/mxb.tgt] rc=0 | runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' 
+[atst new/t2b.tgt] rc=0 | runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' 
+[atst new/cwb.tgt] rc=0 | runtime error: signed integer overflow: 2000000000 + 1000000000 cannot be represented in type 'int' runtime error: signed integer overflow: -1294967296 - 1000000000 cannot be represented in type 'int' 
+[atst new/m2ok.tgt] rc=0 | AddressSanitizer: out of memory: allocator is trying to allocate 0x13ffca4280 bytes asan_malloc_linux.cpp:69 in malloc 
+[atst PS-COR-1/anc.tgt] rc=0 | AddressSanitizer: heap-buffer-overflow on address 0x507000000154 at pc 0x7f4bc14d369a bp 0x7ffc0c1cbce0 sp 0x7ffc0c1cbcd0 arch_deco.c:206 in _SCOTCHarchDecoArchBuild2 
+[atst COR-16/bad1.tgt] rc=0 | AddressSanitizer: heap-buffer-overflow on address 0x506000000078 at pc 0x7f9e98ed6c7c bp 0x7ffc27f273e0 sp 0x7ffc27f273d0 arch_deco.c:512 in _SCOTCHarchDecoDomSize 
+[atst COR-16/dup0.tgt] rc=0 | A	Terminals	nbr=1 
+[atst COR-16/num0.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/wbig.tgt] rc=0 | runtime error: signed integer overflow: 2000000000 + 2000000000 cannot be represented in type 'int' A	Terminals	nbr=2 
+[atst COR-16/wneg.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/w0.tgt] rc=0 | A	Terminals	nbr=2 
+[atst COR-16/zero0.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (4) 
+[atst COR-16/ok0.tgt] rc=0 | A	Terminals	nbr=2 
+[atst COR-16/ok1.tgt] rc=0 | A	Terminals	nbr=2 
+[gmap COR-07/m4x4.grf COR-16/bad1.tgt /dev/null] rc=0 | AddressSanitizer: heap-buffer-overflow on address 0x5060000000cc at pc 0x7f4e9f2d73b5 bp 0x7ffd45696160 sp 0x7ffd45696150 arch_deco.c:538 in _SCOTCHarchDecoDomDist 
+[gmap COR-07/m4x4.grf COR-16/wbig.tgt /dev/null] rc=0 | runtime error: signed integer overflow: 2000000000 + 2000000000 cannot be represented in type 'int' runtime error: signed integer overflow: 2000000000 + 2000000000 cannot be represented in type 'int' 
+######## /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build
+[gmap COR-07/m4x4.grf COR-07/meshx0.tgt /dev/null] rc=0 | ERROR: archMeshXArchLoad: bad input (1) 
+[gmap COR-07/m4x4.grf COR-07/torusx0.tgt /dev/null] rc=0 | ERROR: archMeshXArchLoad: bad input (1) 
+[gmap COR-07/m4x4.grf COR-07/meshx288.tgt /dev/null] rc=0 | 
+[atst COR-21/m2.tgt] rc=0 | 
+[atst COR-21/m3.tgt] rc=0 | 
+[atst COR-21/mx.tgt] rc=0 | ERROR: archMeshXArchLoad: invalid architecture size 
+[atst COR-21/t2.tgt] rc=0 | 
+[atst COR-21/tx.tgt] rc=0 | ERROR: archMeshXArchLoad: invalid architecture size 
+[atst COR-21/cw.tgt] rc=0 | 
+[atst COR-21/cws.tgt] rc=0 | 
+[atst COR-21/d0big.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (2) 
+[atst COR-21/d1big.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (2) 
+[atst new/m2b.tgt] rc=0 | 
+[atst new/m3b.tgt] rc=0 | 
+[atst new/mxb.tgt] rc=0 | ERROR: archMeshXArchLoad: invalid architecture size 
+[atst new/t2b.tgt] rc=0 | 
+[atst new/cwb.tgt] rc=0 | 
+[atst new/m2ok.tgt] rc=0 | AddressSanitizer: out of memory: allocator is trying to allocate 0x13ffca4280 bytes asan_malloc_linux.cpp:69 in malloc 
+[atst PS-COR-1/anc.tgt] rc=0 | 
+[atst COR-16/bad1.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (7) 
+[atst COR-16/dup0.tgt] rc=0 | 
+[atst COR-16/num0.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/wbig.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/wneg.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/w0.tgt] rc=0 | A	Terminals	nbr=2 
+[atst COR-16/zero0.tgt] rc=0 | ERROR: archDecoArchLoad: bad input (4) 
+[atst COR-16/ok0.tgt] rc=0 | A	Terminals	nbr=2 
+[atst COR-16/ok1.tgt] rc=0 | A	Terminals	nbr=2 
+[gmap COR-07/m4x4.grf COR-16/bad1.tgt /dev/null] rc=0 | ERROR: archDecoArchLoad: bad input (7) 
+[gmap COR-07/m4x4.grf COR-16/wbig.tgt /dev/null] rc=0 | ERROR: archDecoArchLoad: bad input (3) 

@@ -1,0 +1,16 @@
+{
+  "name": "bugs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "new": "bun src/new.ts",
+    "snapshot": "bun src/snapshot.ts",
+    "conserve": "bun src/conserve.ts",
+    "lint": "bun src/lint.ts",
+    "overlap": "bun src/overlap.ts",
+    "verify": "bun src/verify.ts",
+    "list": "bun src/list.ts",
+    "show": "bun src/show.ts",
+    "site": "bun src/site.ts"
+  }
+}

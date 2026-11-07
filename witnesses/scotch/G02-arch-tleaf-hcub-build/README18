@@ -1,0 +1,7 @@
+G02 kits adapted to 7.0.18 (copied from PYS/upstream/repro/G02-arch-tleaf-hcub-build; per-id READMEs are the 7.0.17 ones).
+Changes: common/archbuild.c modes 3/4/6/7 print the size only on success (querying a rejected Arch is not a library bug).
+New:
+  new/mapfixed.c   SCOTCH_graphMapFixed() onto "cmplt <n>" with <k> fixed vertices (PS3-G02-4/5/6)
+                   gcc -O0 -g -fsanitize=address,undefined -I<tree>/include -o new/mapfixed new/mapfixed.c -L<tree>/lib -lscotch -lscotcherr -lm -lpthread -lz -lrt
+  new/run.sh <tree> <suffix>   all 7.0.18 cases; harnesses common/archload_<suffix>, common/archbuild_<suffix> built as in common/README
+Transcript: RESULTS18.txt (pristine INFRA/asan, then patched WORK/build; build trees deleted after the run).

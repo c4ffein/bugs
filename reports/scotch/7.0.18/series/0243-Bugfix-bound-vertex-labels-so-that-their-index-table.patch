@@ -1,0 +1,62 @@
+From 1bd265d001e9da789be7486a8550693ea280c7f8 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:55:11 +0000
+Subject: [PATCH 243/248] Bugfix: bound vertex labels so that their index table
+ size cannot wrap in `graphLoad()` [report PyScotch]
+
+The label check of the previous label validation only rejected labels
+>= GNUMMAX. With 64-bit Gnum, graphLoad2() allocates (vlblmax + 1) *
+sizeof (Gnum) bytes: for labels >= 2^61 - 1 this size wraps around
+size_t, yielding a bogus "duplicate vertex label" error, an accidental
+success through pointer wrap-around, or an allocation failure
+(label 2^63 - 2, ASan allocation-size-too-big). Labels are now limited
+to GNUMMAX / sizeof (Gnum) - 1, with the usual "bad input (3)" error.
+
+Also test the range of unlabeled edge ends before adding the base
+adjustment, so that an end close to GNUMMAX cannot overflow the
+addition (signed overflow, UBSan) when a base is prescribed.
+
+Tested with -DINTSIZE64 ASan+UBSan builds: labels 2^61-1, 2^61, 2^61+1,
+2^63-2 now give a clean "bad input (3)"; label 5 and regular graphs at
+bases 0, 1 and -1 still load and pass graphCheck; an edge end of
+GNUMMAX with prescribed base 1 no longer triggers UBSan.
+---
+ src/libscotch/graph_io.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/src/libscotch/graph_io.c b/src/libscotch/graph_io.c
+index 507e57d..b9d320e 100644
+--- a/src/libscotch/graph_io.c
++++ b/src/libscotch/graph_io.c
+@@ -194,7 +194,8 @@ const GraphLoadFlag         flagval)              /* Graph loading flags
+ 
+       if ((intLoad (stream, &vlblval) != 1) ||    /* Read label data                                    */
+           (vlblval < 0)                     ||    /* Labels are used as array indices later, and their  */
+-          (vlblval >= GNUMMAX)) {                 /* maximum plus one as an array size in graphLoad2() */
++          (vlblval > ((GNUMMAX / (Gnum) sizeof (Gnum)) - 1))) { /* maximum plus one as an array size in graphLoad2(); */
++                                                  /* its byte size must not wrap around                */
+         errorPrint ("graphLoad: bad input (3)");
+         graphFree  (grafptr);
+         return (1);
+@@ -252,14 +253,14 @@ const GraphLoadFlag         flagval)              /* Graph loading flags
+         graphFree  (grafptr);
+         return (1);
+       }
+-      edgeval += baseadj;                         /* Adjust edge end to graph base (baseadj is zero for labeled graphs) */
+-      if ((grafptr->vlbltax == NULL) &&           /* If edge ends are vertex indices, they must be in range           */
+-          ((edgeval < grafptr->baseval) || (edgeval >= grafptr->vertnnd))) {
++      if ((grafptr->vlbltax == NULL) &&           /* If edge ends are vertex indices, they must be in range; test before */
++          ((edgeval < (grafptr->baseval - baseadj)) || /* adding baseadj (zero for labeled graphs), so that this cannot overflow */
++           (edgeval >= (grafptr->vertnnd - baseadj)))) {
+         errorPrint ("graphLoad: invalid arc end number");
+         graphFree  (grafptr);
+         return (1);
+       }
+-      grafptr->edgetax[edgenum] = edgeval;
++      grafptr->edgetax[edgenum] = edgeval + baseadj; /* Adjust edge end to graph base */
+     }
+   }
+   grafptr->verttax[vertnum] = edgenum;            /* Set end of edge array             */
+-- 
+2.47.3
+

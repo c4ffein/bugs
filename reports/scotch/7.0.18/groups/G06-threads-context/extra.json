@@ -1,0 +1,73 @@
+[
+ {
+  "local_id": "PS3-G06-1",
+  "our_title": "Core number -1 (documented 'not bound') now pins the thread to CPU 0, even outside the mask",
+  "severity": "low",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/COR-24/core under 'taskset -c 2-3', pristine 7.0.18: coretab {-1 -1 -1 -1} -> all four threads Cpus_allowed_list 0; {-1 3 -1 2} -> 0 3 0 2; {-5 1 -2 0} -> 0 3 2 2. 7.0.17 left -1 entries unbound (2-3). Patched (0003): 2-3 / 3 / 2-3 / 2 on 32- and 64-bit trees.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/common_thread.c:141, :153 (call sites), :926-938 (threadProcessCoreNum)",
+  "evidence": "common_thread.c:927 'thrdnum %= corenbr;' (C remainder keeps -1) ; :930 'for (corenum = 0; thrdnum >= 0; corenum ++) {' not entered -> returns corenum = 0 ; threadCreate :878 'if ((corenum >= 0) && (corenum < CPU_SETSIZE))' then binds to CPU 0; s_l.tex:8224-8226 'A core index of $-1$ results in the thread not being bound to a specific core'.",
+  "related_ids": [
+   "COR-24",
+   "PS2-G06-3"
+  ],
+  "fix_options": [
+   {
+    "label": "Return -1 for negative core numbers in threadProcessCoreNum() (committed)",
+    "summary": "'if (thrdnum < 0) return (-1);' before the modulus; block comment documents the return values.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0003-Bugfix-do-not-bind-threads-with-negative-core-number.patch",
+    "tested": "repro/COR-24 under taskset on both trees; 48/48 check runs",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "Two lines in his routine; threadCreate already skips binding for corenum < 0."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0003-Bugfix-do-not-bind-threads-with-negative-core-number.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "52dcf6026c",
+   "verdict": "incomplete",
+   "details": "Introduced by 52dcf602: explicit coretab entries are now passed to threadProcessCoreNum(), which has no negative-input case.",
+   "compared_with_ours": "Our 7.0.17 0004 had the guard ('if (corelog < 0) return (-1);') and our 7.0.17 critique named this exact bug."
+  }
+ },
+ {
+  "local_id": "PS3-G06-2",
+  "our_title": "Thread start-up abort destroys lock features under waiting slaves, then frees their context",
+  "severity": "medium",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "TSan tree of pristine 7.0.18 (-O1 -g -fsanitize=thread), repro/COR-09 spawn_tsan 4 with FAIL_AT=3: 6 reports: data race common_thread.c:145 (unlocked write of thrdnbr) vs :322 (read under lock, T1 in threadWaitBarrier1); pthread_mutex_destroy/pthread_cond_destroy at :193-194 vs T1 in pthread_cond_wait (:331); 'destroy of a locked mutex'; 'unlock of an unlocked mutex' in T1; free of the ThreadContext at common_context.c:202 vs T1's read at :338. With glibc and no TSan the same path blocks forever in pthread_cond_destroy (gdb). Patched (0002): 0 reports, no hang.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/common_thread.c:145 (unlocked write), :186-194 (Exit3 spin and destroy), common_context.c:201-202 (context freed after failure)",
+  "evidence": "common_thread.c:145 'contptr->thrdnbr = thrdnum;' (no lock); :186-190 'do { ... barrnbr = contptr->barrnbr; ... } while (barrnbr != thrdnbr);' satisfied by slaves parked in the start-up barrier; :193 'pthread_cond_destroy  (&contptr->conddat);'.",
+  "related_ids": [
+   "COR-09"
+  ],
+  "fix_options": [
+   {
+    "label": "Master joins the start-up barrier after a locked reduction (committed, same commit as COR-09)",
+    "summary": "See COR-09 option A.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0002-Bugfix-make-master-thread-join-start-up-barrier-when.patch",
+    "tested": "see COR-09",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "Three lines in his failure path."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/patches/0002-Bugfix-make-master-thread-join-start-up-barrier-when.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "86559b853e",
+   "verdict": "wrong",
+   "details": "Introduced by 86559b85: in 7.0.17 the path spun forever without destroying or freeing anything; now it destroys cond/mutex with waiters (UB) and lets contextThreadInit2 free the ThreadContext the slaves still use. Same root cause as the remaining part of COR-09 (master not counted in the barrier it is expected to complete).",
+   "compared_with_ours": "Our 7.0.17 0002 had the master join the barrier, which avoids the conflation of barrier arrivals and termination acknowledgements."
+  }
+ }
+]

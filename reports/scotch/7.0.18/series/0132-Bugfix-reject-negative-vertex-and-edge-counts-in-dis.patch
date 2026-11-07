@@ -1,0 +1,63 @@
+From 9137f658cdada557f7f06624279515f6d0d28962 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 13:48:41 +0000
+Subject: [PATCH 132/232] Bugfix: reject negative vertex and edge counts in
+ distributed graph loaders [report PyScotch]
+
+`dgraphLoadCent()` and `dgraphLoadDist()` only checked the property
+field of graph headers. Negative global or local vertex and edge counts
+were accepted, leading to huge allocation requests on some processes
+and to the other processes waiting forever in the following collective
+operations, while `graphLoad()` rejects such headers.
+
+Reject negative counts along with invalid property values, so that the
+error is propagated to all processes by the existing broadcast and
+reduction.
+
+Refs: PS2-G20-dgraph-io-dmesh-1
+---
+ src/libscotch/dgraph_io_load.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/src/libscotch/dgraph_io_load.c b/src/libscotch/dgraph_io_load.c
+index 93c65b24..1c67e1e0 100644
+--- a/src/libscotch/dgraph_io_load.c
++++ b/src/libscotch/dgraph_io_load.c
+@@ -47,7 +47,7 @@
+ /**                # Version 6.0  : from : 25 aug 2012     **/
+ /**                                 to   : 18 nov 2012     **/
+ /**                # Version 7.0  : from : 17 jan 2023     **/
+-/**                                 to   : 29 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -221,6 +221,8 @@ const int                   protnum)              /* Root process number
+         (intLoad (fileptr, &reduglbtab[2]) != 1) ||
+         (intLoad (fileptr, &reduglbtab[3]) != 1) ||
+         (intLoad (fileptr, &reduglbtab[4]) != 1) ||
++        (reduglbtab[1] < 0)                      || /* Neither vertex nor edge counts can be negative */
++        (reduglbtab[2] < 0)                      ||
+         (reduglbtab[4] < 0)                      ||
+         (reduglbtab[4] > 111)) {
+       errorPrint ("dgraphLoadCent: bad input (1)");
+@@ -689,9 +691,13 @@ const GraphLoadFlag         flagval)              /* Graph loading flags
+   o += intLoad (fileptr, &reduloctab[11]);
+   o += intLoad (fileptr, &reduloctab[7]);
+   o += intLoad (fileptr, &reduloctab[9]);
+-  if ((o != 8)            ||
+-      (reduloctab[9] < 0) ||
+-      (reduloctab[9] > 111)) {
++  if ((o != 8)             ||
++      (reduloctab[3]  < 0) ||                     /* Neither vertex nor edge counts can be negative */
++      (reduloctab[5]  < 0) ||
++      (reduloctab[10] < 0) ||
++      (reduloctab[11] < 0) ||
++      (reduloctab[9]  < 0) ||
++      (reduloctab[9]  > 111)) {
+     errorPrint ("dgraphLoadDist: bad input (1)");
+     reduloctab[0] = 2;                            /* Immediate abort has maximum value so as to be propagated by MAX reduce */
+   }
+-- 
+2.43.0
+

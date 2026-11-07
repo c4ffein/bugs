@@ -1,0 +1,663 @@
+[
+ {
+  "id": "BLD-01",
+  "our_title": "CMake libScotch lacks five Makefile-built sources, so SCOTCH_contextBindMesh and three Fortran wrappers are missing",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "CMake 3.28.3, CI flags (-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=ON), trees $WORK/cm/{base32 = copy of v7.0.18, patched32, patched64 (-DINTSIZE=64)}. `nm -D base32/lib/libscotch.so | grep -cE ' T (SCOTCH_contextBindMesh|SCOTCHFCONTEXTBINDMESH|scotchfgraphinducelist_|scotchfgraphinducepart_|scotchfnumsizeof_|_SCOTCHhgraphDump)$'` -> 0/6 (Makefile build $INFRA/asan has them); patched32 -> 6/6. `sh ci/check_sources.sh <v7.0.18>/src` -> `< hgraph_dump.c < library_context_mesh.c < library_context_mesh_f.c < library_graph_induce_f.c < library_memory_f.c > common_error.c` and `> symbol_fax.c` (libesmumps), rc=1; on the series rc=0.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Same as the review: a public routine declared in scotch.h (SCOTCH_contextBindMesh) and documented Fortran wrappers cannot be linked from a CMake-built library, which is what distributions and CI use.",
+  "location_7_0_18": "src/libscotch/CMakeLists.txt:146-508 (SCOTCH_C_SOURCES); src/libscotch/Makefile LIBSCOTCHDEPS",
+  "evidence": "src/libscotch/CMakeLists.txt:267-268 'hgraph_check.c / hgraph_induce.c' (no hgraph_dump.c); :357 'library_context_f.c' (no library_context_mesh*.c); :376-377 'library_graph_f.c / library_graph_io_chac.c' (no library_graph_induce_f.c); :399 'library_memory.c' (no library_memory_f.c); :199/:201 'bgraph_cost.c' twice; :243 'library_graph_induce.c' out of place.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate on the five files and the consequence. Imprecise on which 'memory' wrapper is lost: library_memory_f.c provides scotchfnumsizeof (SCOTCH_numSizeof), not the memory statistics wrappers (scotchfmemcur/scotchfmemmax live in library_common_f.c, which CMake builds). hgraph_dump.c is an internal debugging helper with no public caller, so its absence only matters for consistency.",
+  "first_pass_critique": "Status and location right, but the nm evidence is wrong: it cites 'scotchfmemcur' as the symbol of library_memory_f.c, whereas that file defines scotchfnumsizeof (the CMake build has scotchfmemcur from library_common_f.c). It did not run cmake (a working cmake wheel was in the uv cache). It missed that the same list also carries a dead file (common_error.c) that leaks un-prefixed symbols, and the libesmumps mismatch (symbol_fax.c), both found by the very CI check it proposed. Its 'single-source' option 3 is dismissed as 'unlikely to be accepted' without trying it; a working configure-time version exists (alt c).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/CMakeLists.txt:211 'common_error.c'",
+    "quote": "  common_error.c",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/esmumps/CMakeLists.txt:77 'symbol_fax.c)'",
+    "quote": "  symbol_fax_graph.c\\n  symbol_fax.c)",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/CMakeLists.txt:204,206",
+    "quote": "  bgraph_cost.c\\n  bgraph_check.c\\n  bgraph_cost.c",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/Makefile:800 and :2171 (misspelt rules, see PS2-G29-3)",
+    "quote": "arch_vcpmlt$(OBJ)\\t\\t:\\tarch_vcmplt.c",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "a: add the files to SCOTCH_C_SOURCES (+ tidy the list)",
+    "summary": "Add the five .c files and hgraph_dump.h at their alphabetical place, drop the duplicate bgraph_cost.c, move library_graph_induce.c to its place; separate commits remove the dead common_error.c and the standalone symbol_fax.c; a checker script and the Makefile rule typos are separate commits.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0001-Bugfix-add-missing-source-files-to-the-CMake-build-o.patch",
+    "tested": "7.0.18: 7.0.18: patched32 and patched64 CMake builds: make -j3 rc=0, only the pre-existing test_scotch_graph_induce.c -Wstringop-overflow warning (also in base32); ctest 172/172 on both (flock); ci/check_sources.sh rc=0 on the series; nm 6/6 (7.0.17: patched32/patched64 CMake builds: 0 new warnings, nm shows the six symbols, ctest 181/181 (both); suffixed, no-esmumps and static builds also pass; ci/check_sources.sh rc=0 on HEAD.)",
+    "tradeoffs": "None: the list simply becomes what the Makefile builds. Exported symbol set of the CMake libscotch gains 6 and loses 3 (errorPrint/errorPrintW/errorProg, patch 0002).",
+    "preferred": true,
+    "maintainer_fit": "This is the maintainers' own convention (every file hand-listed, e.g. 5efb923 in the combined series adds library_dgraph_grow_f.c to both Makefile and CMakeLists.txt). Minimal and mechanical."
+   },
+   {
+    "label": "b: CI guard only",
+    "summary": "Ship ci/check_sources.sh (diff of Makefile object lists vs CMake source lists for the five libraries) and run it in CI, without fixing the lists.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0005-Add-script-checking-that-Makefile-and-CMake-source-l.patch",
+    "tested": "Run on v7.0.17, base-combined (reports the 7 differences, rc=1) and on HEAD (rc=0); see repro/BLD-01/README.",
+    "tradeoffs": "Alone it fails CI without fixing anything; it is the complement of (a), not a replacement. Needs the one-line job described in SUMMARY.md (G30 owns ci/build_cmake.sh / .gitlab-ci.yml).",
+    "preferred": false,
+    "maintainer_fit": "He would take it together with (a): CI scripts in ci/ are small POSIX shell scripts like this one. Not as the only fix."
+   },
+   {
+    "label": "c: CMake reads the source list from the Makefile",
+    "summary": "Replace set(SCOTCH_C_SOURCES ...) by a function that parses LIBSCOTCHDEPS of src/libscotch/Makefile at configure time (file(READ), continuation lines joined, MATCHALL on xxx$(OBJ)).",
+    "diff_file": "",
+    "tested": "configure-tested only: cmake -S altwork2 -> rc 0, scotch.dir has 230 objects, identical set to the patched tree (alt/TESTS.log). Not built, PTSCOTCH list and header files not converted.",
+    "tradeoffs": "Single source of truth, but hides the list from CMake users, parses a Makefile with regexes, and leaves headers/generated files hand-listed; IDE integration loses the list.",
+    "preferred": false,
+    "maintainer_fit": "Not his style: the CMake files are maintained by hand by the Inria CMake contributors and nothing in the tree parses one build system from the other."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0001-Bugfix-add-missing-source-files-to-the-CMake-build-o.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0002-Remove-unused-common_error.c-from-libScotch-report-P.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0003-Do-not-compile-symbol_fax.c-on-its-own-in-the-CMake-.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0004-Fix-misspelt-dependency-rules-in-the-Makefile-of-lib.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0005-Add-script-checking-that-Makefile-and-CMake-source-l.patch"
+  ],
+  "cleanup_done": "Patch 0002 removes src/libscotch/common_error.c (never built by the Makefile, no reference anywhere else: git grep common_error -> only its CMake entry) and patch 0003 removes the standalone compilation of src/esmumps/symbol_fax.c; duplicate bgraph_cost.c entry removed.",
+  "test_added": "ci/check_sources.sh (new, patch 0005): compares the Makefile object lists with the CMake source lists of libscotch, libptscotch, libesmumps, libscotchmetis and libptscotchparmetis; exits 1 on any difference. Not a src/check test (no natural home there: the defect is in the build description).",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 635741dd only added scotchf.h/ptscotchf.h to the source lists; the five missing files are still missing. Patches 0001-0005 apply unchanged; the CI hook of the checker moved from G30's 0010 into 0005 so that each group stands alone on v7.0.18. 7.0.17 notes: CI job to add (G30, not done here): in ci/build_cmake.sh, before 'mkdir -p build': './ci/check_sources.sh || fatal'. The script is POSIX sh (sed/sort/diff), takes the src directory as optional argument."
+ },
+ {
+  "id": "BLD-02",
+  "our_title": "Installed SCOTCHConfig.cmake includes EsMUMPS target files that suffixed builds never install",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "$WORK/cm/suffix.sh: pristine v7.0.18 with -DSCOTCH_NAME_SUFFIX=_pys -DENABLE_TESTS=OFF, make install, consumer project repro/BLD-02/consumer: `CMake Error at .../inst-suffix-base/lib/cmake/scotch/SCOTCHConfig.cmake:111 (include)` and `:114 (include)` (no esmumpsTargets.cmake installed), rc=1. Patched: configure prints 'EsMUMPS library not built because SCOTCH_NAME_SUFFIX is set', consumer configures (SCOTCH_FOUND=1, SCOTCH_LIBESMUMPS_FOUND empty), builds and prints 'no scotch-internal macros in consumer'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Lower than the review's High: only installs configured with SCOTCH_NAME_SUFFIX are affected (CI never builds one, BLD-14), but for those every find_package(SCOTCH) is a hard error.",
+  "location_7_0_18": "cmake/SCOTCHConfig.cmake.in:85-92; src/CMakeLists.txt:224-226; CMakeLists.txt:87,99",
+  "evidence": "src/CMakeLists.txt:224 'if(BUILD_LIBESMUMPS AND NOT USE_SUFFIX)' / :225 'add_subdirectory(esmumps)'; cmake/SCOTCHConfig.cmake.in:85 'if(@BUILD_LIBESMUMPS@)' / :87 'include(\"${CMAKE_CURRENT_LIST_DIR}/esmumpsTargets.cmake\")' / :90 'include(\"${CMAKE_CURRENT_LIST_DIR}/ptesmumpsTargets.cmake\")'; CMakeLists.txt:99 'option(BUILD_LIBESMUMPS \"Build EsMUMPS library\" ON)' is never changed when USE_SUFFIX is set (:86-88).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate; its first fix ('@BUILD_LIBESMUMPS@ AND NOT @USE_SUFFIX@') would work but leaves BUILD_LIBESMUMPS lying about what is built, and USE_SUFFIX is unset (not OFF) without a suffix, which configure_package_config_file would substitute as an empty string: 'if(ON AND NOT )' is a syntax error. The OPTIONAL variant hides the problem and leaves SCOTCH_LIBESMUMPS_FOUND=ON (verified at runtime, alt b).",
+  "first_pass_critique": "Correct status and the right idea (one effective value), but source-read only although cmake was available; its preferred patch adds a second variable (BUILD_LIBESMUMPS_EFFECTIVE) instead of fixing BUILD_LIBESMUMPS itself where USE_SUFFIX is decided, and its sketch sets the variable in src/ after the fact. Its remark that the review's fix 'applies to ptesmumps implicitly' is right.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a: decide once in the top-level file",
+    "summary": "Right after option(BUILD_LIBESMUMPS), turn it OFF with a STATUS message when USE_SUFFIX is set; src/CMakeLists.txt then tests BUILD_LIBESMUMPS alone and the config template needs no change.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0006-Bugfix-do-not-reference-EsMUMPS-targets-in-the-CMake.patch",
+    "tested": "7.0.18: 7.0.18: suffixed build+install+consumer as in 'ran'; default patched32/64 builds and ctest 172/172 (7.0.17: Suffixed patched build + install + consumer find_package OK; unsuffixed, BUILD_LIBESMUMPS=OFF and static installs OK (repro/BLD-02/README).)",
+    "tradeoffs": "Shadows the cache option with a normal variable (standard CMake practice; the cache entry still shows ON in a GUI, the status message explains).",
+    "preferred": true,
+    "maintainer_fit": "Keeps the existing @BUILD_LIBESMUMPS@ substitution of the template and the deliberate 'not with suffix' rule (src/CMakeLists.txt:224); one decision point, like option handling elsewhere in CMakeLists.txt (lines 84-88 set USE_SUFFIX from the suffix in the same way)."
+   },
+   {
+    "label": "b: include(... OPTIONAL)",
+    "summary": "Make the two esmumps includes of the template tolerant of missing files.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/BLD-02-b-include-optional.diff",
+    "tested": "Applied to a copy of the pristine suffixed install: consumer configures but reports SCOTCH_LIBESMUMPS_FOUND=ON (alt/TESTS.log, repro/BLD-02/README).",
+    "tradeoffs": "One line, but wrong information exported (LIBESMUMPS_FOUND=ON with no library) and typos in the install layout become silent.",
+    "preferred": false,
+    "maintainer_fit": "He fixes causes, not symptoms (see the 7.0.17 series: no 'ignore the error' fixes)."
+   },
+   {
+    "label": "c: separate effective variable",
+    "summary": "set(BUILD_LIBESMUMPS_EFFECTIVE ON/OFF) in src/CMakeLists.txt and substitute it in the template (first pass's option).",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/BLD-02-c-effective-variable.diff",
+    "tested": "Configured suffixed: generated SCOTCHConfig.cmake has if(OFF) around the esmumps includes (alt/TESTS.log).",
+    "tradeoffs": "Works, but adds a second name for the same notion and leaves BUILD_LIBESMUMPS=ON meaning 'maybe'.",
+    "preferred": false,
+    "maintainer_fit": "Acceptable but less tidy than (a); nothing in the tree uses *_EFFECTIVE variables."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0006-Bugfix-do-not-reference-EsMUMPS-targets-in-the-CMake.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "; no src/check home; a CI matrix entry with SCOTCH_NAME_SUFFIX is BLD-14 (another group). Note that a suffixed CMake build with ENABLE_TESTS=ON does not even link (extra.json PS2-G29-4).",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Not touched by 7.0.18. Patch 0006 rebased (date conflict in the src/CMakeLists.txt header only). 7.0.17 notes:"
+ },
+ {
+  "id": "BLD-06",
+  "our_title": "Open MPI regex needs spaces around 'Open MPI', so --oversubscribe is never added to MPIEXEC_PREFLAGS",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/BLD-06/probe.cmake with the real string 'Open MPI v5.0.7, package: Debian OpenMPI' -> '7.0.17 regex: found_suite=[]', 'Open MPI NOT detected'; the 7.0.18 lines are identical (src/CMakeLists.txt:181-190). Whole tree: base32.cfg.log has no 'Found OpenMPI' and `grep -c -- --oversubscribe base32/src/check/CTestTestfile.cmake` -> 0; patched32: 'Found Open MPI: using ...' and 33.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Lower than the review's Medium: test-only (MPI tests fail on hosts with fewer cores than ranks); the libraries are unaffected.",
+  "location_7_0_18": "src/CMakeLists.txt:181-190",
+  "evidence": "src/CMakeLists.txt:181 '    string(REGEX MATCHALL \"\\\\( Open MPI \\\\)+\" found_suite ${MPI_C_LIBRARY_VERSION_STRING})'; :182 '    if(NOT ${found_suite} STREQUAL \"\")'; :186 '    string(REGEX MATCHALL \"\\\\(Intel\\\\)+\" found_suite ${MPI_C_LIBRARY_VERSION_STRING})'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate, fix line correct.",
+  "first_pass_critique": "Accurate (it even emulated the regex in Python); it did not notice that an empty version string makes string(REGEX MATCHALL) a fatal configure error (shown here, PS-BLD-2).",
+  "extra_instances": [
+   {
+    "location": "src/CMakeLists.txt:186-187 (Intel block, same pattern, works but same unquoted expansion)",
+    "quote": "    string(REGEX MATCHALL \"\\\\(Intel\\\\)+\" found_suite ${MPI_C_LIBRARY_VERSION_STRING})",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "a: if(MPI_C_LIBRARY_VERSION_STRING MATCHES \"Open MPI\")",
+    "summary": "Plain MATCHES test for Open MPI and Intel MPI; drops the regex and found_suite.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0010-Bugfix-detect-Open-MPI-when-configuring-CMake-tests-.patch",
+    "tested": "7.0.18: 7.0.18: patched32 and patched64 CMake builds: make -j3 rc=0, only the pre-existing test_scotch_graph_induce.c -Wstringop-overflow warning (also in base32); ctest 172/172 on both (flock) (7.0.17: See 'ran'; ctest 181/181 with the flag in 34 tests.)",
+    "tradeoffs": "Behaviour change intended: Open MPI hosts now run tests with --oversubscribe. Open MPI 5 still accepts the flag (checked with mpirun 5.0.7).",
+    "preferred": true,
+    "maintainer_fit": "Smallest diff, same style as if(... MATCHES) elsewhere; removes the found_suite temporary he would not want to keep."
+   },
+   {
+    "label": "b: probe the launcher",
+    "summary": "execute_process(${MPIEXEC_EXECUTABLE} --oversubscribe -n 1 cmake -E true) and add the flag when it succeeds.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/BLD-06-b-probe-launcher.diff",
+    "tested": "Configured: '-- MPI launcher accepts --oversubscribe' and 34 tests carry the flag (alt/TESTS.log).",
+    "tradeoffs": "Independent of vendor strings (HPC-X, Open MPI forks) but runs mpiexec at configure time, which can hang or mis-detect on batch systems.",
+    "preferred": false,
+    "maintainer_fit": "Running the MPI launcher at configure time is not something the tree does anywhere."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0010-Bugfix-detect-Open-MPI-when-configuring-CMake-tests-.patch"
+  ],
+  "cleanup_done": "found_suite variable and the two string(REGEX MATCHALL) removed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 49149c10 fixed two other typos of the same file, not this regex. 7.0.17 notes:"
+ },
+ {
+  "id": "BLD-12",
+  "our_title": "Both MeTiS libraries carry the metis.h generation rule; parallel make runs dummysizes twice on it",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "base32 (pristine 7.0.18): rule copies: 'Generate scotch.h' in 8 build.make files (dummysizes, ptdummysizes, scotch, scotcherr, scotcherrexit, ptscotch, ptscotcherr, ptscotcherrexit), 'Generating metis.h' and 'Generating metisf.h' in scotchmetisv3 and scotchmetisv5, 'Copy esmumps.h' in esmumps and ptesmumps. Race loop, 10 x (rm the generated header; make -j3): metis.h generated 2 times in 10/10 runs, metisf.h 2 times in 4/10 (cm/race-base-all.log), esmumps.h 2 times in 6/10 (cm/race-base-esmumps.log). 3 clean pristine builds (configure + make -j3, cm/suffix.out): every header, scotch.h and ptscotch.h included, generated once (the race needs both libraries to be scheduled together, as in the incremental loop), because every other owner depends on dummysizes. Patched32: 10 x -> 1/1/1 (cm/race-patched-all.log).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "As the review: nondeterministic parallel build in CI (make -j16); two dummysizes processes rewrite the same header while the other library may be compiling against it. No corrupted header observed in 10 runs, but nothing prevents it.",
+  "location_7_0_18": "src/libscotchmetis/CMakeLists.txt:56-65,84-85 (foreach 3 5); src/esmumps/CMakeLists.txt:58-61,91,93,141",
+  "evidence": "libscotchmetis/CMakeLists.txt:84-85 '${GENERATED_INCLUDE_DIR}/metis.h / ${GENERATED_INCLUDE_DIR}/metisf.h)' in add_library(scotchmetisv${version} ...) for version 3 and 5, no add_dependencies left; esmumps/CMakeLists.txt:91 '${GENERATED_INCLUDE_DIR}/esmumps.h)' in esmumps_headers, used by add_library(esmumps ...) :93 and add_library(ptesmumps ...) :141.",
+  "upstream_change": "635741dd Bugfix: enable parallel build with older Bison versions [report A. Lindsay]: removes every *_h / parser_*_c custom target and lists the generated files as target sources instead",
+  "upstream_fix_review": {
+   "commit": "635741dd",
+   "verdict": "incomplete",
+   "details": "Right for its own report: parser_yy.c/parser_ly.h/parser_ll.c are now produced by the scotch target only (src/libscotch/CMakeLists.txt:107-140; one build.make holds the Bison rule), and scotch.h/ptscotch.h are safe because dummysizes/ptdummysizes list them (:52,:55) and every other owner depends on (pt)dummysizes through 'DEPENDS dummysizes' (3 clean -j3 builds: one 'Generate scotch.h' each). But the same removal left two independent owners for metis.h/metisf.h (libscotchmetis/CMakeLists.txt:84-85, foreach 3 5) and esmumps.h (esmumps/CMakeLists.txt:91,93,141), against the add_custom_command rule that an output used by several targets must be driven by one custom target: metis.h is generated twice in 10/10 parallel runs, and metisf.h, which 7.0.17 serialized through metisf_h, now twice in 4/10 (new: PS3-G29-1). Not a build failure in 20 runs here (dummysizes writes a few KB), but two writers on one file can leave a truncated header to a concurrent compiler.",
+   "compared_with_ours": "Our 7.0.17 commit added the missing metis_h dependency next to the existing metisf_h; that context no longer exists. Rewritten for 7.0.18: one custom target per directory (metis_h for both MeTiS headers, esmumps_h) that both libraries of each pair depend on; it keeps his removal of the parser and scotch.h targets. His version is better for the parser and scotch.h (fewer targets); ours is needed for the two pairs."
+  },
+  "review_accuracy": "Accurate; the Makefile-generator mechanism is exactly what the generated build.make files show. Its fix line mentions parmetis_h, which is only a consistency fix (one consumer), and 'drop the generated header from per-target sources', which is optional once the dependency exists.",
+  "first_pass_critique": "Right status and preferred option, and right that parmetis.h is not racy. Source-read although it could have run the Makefile generator; its note that option 2 'needs GENERATED set' is moot (the property is already set at :53). Missed the .NOTPARALLEL trap, which makes a naive reproduction report 'no race'.",
+  "extra_instances": [
+   {
+    "location": "src/libscotchmetis/CMakeLists.txt:62-65,85",
+    "quote": "add_custom_command(OUTPUT ${GENERATED_INCLUDE_DIR}/metisf.h ... ; ${GENERATED_INCLUDE_DIR}/metisf.h) in both MeTiS libraries (metisf_h target removed by 635741dd)",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/esmumps/CMakeLists.txt:58-61,91,93,141",
+    "quote": "esmumps.h output listed by esmumps and ptesmumps (esmumps_h removed by 635741dd; ptesmumps already raced with it in 7.0.17)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "a: one custom target per directory drives the shared headers (shipped)",
+    "summary": "add_custom_target(metis_h DEPENDS metis.h metisf.h) + add_dependencies(scotchmetisv${version} metis_h); add_custom_target(esmumps_h DEPENDS esmumps.h) + add_dependencies on esmumps and ptesmumps.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0007-Bugfix-generate-the-headers-shared-by-two-libraries-.patch",
+    "tested": "7.0.18: race loop 10 x make -j3 -> each header generated once (was 2 in 10/10, 4/10, 6/10); patched32/64 ctest 172/172",
+    "tradeoffs": "Re-adds two of the targets 635741dd removed; the generation rule stays in each library's build.make but is never out of date when they run.",
+    "preferred": true,
+    "maintainer_fit": "The pattern the CMake documentation of add_custom_command requires; the targets have the names he used until 7.0.17."
+   },
+   {
+    "label": "b: one library owns each header, the other depends on it",
+    "summary": "List metis.h/metisf.h only in scotchmetisv3 and add_dependencies(scotchmetisv5 scotchmetisv3); same for esmumps/ptesmumps.",
+    "diff_file": "",
+    "tested": "untested: not written",
+    "tradeoffs": "Creates an artificial order between two unrelated libraries and breaks if v3 is ever made optional.",
+    "preferred": false,
+    "maintainer_fit": "Fits his 'no custom target' direction but is a hack."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0007-Bugfix-generate-the-headers-shared-by-two-libraries-.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Still present and widened by 635741dd (metisf.h now unserialized; esmumps.h also). 7.0.17 patch 0007 no longer applies (its context, the *_h targets, is gone) and is rewritten; subject changed accordingly. 7.0.17 notes:"
+ },
+ {
+  "id": "BLD-13",
+  "our_title": "cmake_minimum_required(3.10) while NAME_WLE, LibLZMA::LibLZMA (3.14) and cmake -E cat (3.18) are used",
+  "status": "still-present",
+  "method": "partly-run",
+  "ran": "7.0.18: CMakeLists.txt:44 'cmake_minimum_required(VERSION 3.10)', README.md:70, h_c.tex:19 unchanged; src/check/CMakeLists.txt:69 NAME_WLE (3.14), :288 'cmake -E cat' (3.18), src/libscotch/CMakeLists.txt:565 LibLZMA::LibLZMA (3.14) still used. Patched32/64 configure, build and ctest 172/172 with the 3.18 floor (CMake 3.28.3 here).",
+  "read_only": "behaviour on CMake 3.10-3.17 (no such cmake here); version facts from the 7.0.17 audit (cmake built-in docs)",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Lower than the review's Medium: an old CMake fails at configure time with a clear error (unknown NAME_WLE / LibLZMA::LibLZMA target), so nothing wrong is built; the cost is a false promise in README.md, h_c.tex and the top-level file.",
+  "location_7_0_18": "CMakeLists.txt:44; README.md:70; doc/src/handson/h_c.tex:19; src/check/CMakeLists.txt:69,288; src/libscotch/CMakeLists.txt:565",
+  "evidence": "CMakeLists.txt:44 'cmake_minimum_required(VERSION 3.10)'; README.md:70 '* With CMake, using version 3.10 or higher:'; doc/src/handson/h_c.tex:19 '  possibly CMake, version at least~3.10;'; src/check/CMakeLists.txt:69 '  get_filename_component(file_we ${src} NAME_WLE)'; :289 '  COMMAND ${CMAKE_COMMAND} -E cat ...'; src/libscotch/CMakeLists.txt:570 '  target_link_libraries(scotch PRIVATE LibLZMA::LibLZMA)'; ci/test_cmake.sh:10 'ctest ... --output-junit' (3.21, so the maintainers' CI runners have >= 3.21).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate; it misses LibLZMA::LibLZMA (3.14) and BZip2::BZip2 (3.12), which bind the library build itself (not only the tests) to >= 3.14, and the doc/src/handson/h_c.tex mention.",
+  "first_pass_critique": "Right, and it did spot LibLZMA::LibLZMA; it missed BZip2::BZip2 (3.12) and the hands-on doc. Its option 3 sketch for '-E cat' was never written; a working one is alt b here (cmake -P script, since shell 'cat' is not portable to NMake).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/CMakeLists.txt:565",
+    "quote": "  target_link_libraries(scotch PRIVATE BZip2::BZip2)",
+    "covered_by_patch": true
+   },
+   {
+    "location": "doc/src/handson/h_c.tex:19",
+    "quote": "  possibly CMake, version at least~3.10;",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "a: require 3.18 and say so",
+    "summary": "cmake_minimum_required(VERSION 3.18); README.md and doc/src/handson/h_c.tex updated.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0008-Bugfix-require-the-CMake-version-that-the-build-file.patch",
+    "tested": "7.0.18: 7.0.18: patched32 and patched64 CMake builds: make -j3 rc=0, only the pre-existing test_scotch_graph_induce.c -Wstringop-overflow warning (also in base32); ctest 172/172 on both (flock) (7.0.17: Patched 32/64-bit CMake builds and ctest 181/181 under the new policy floor (CMP0074..CMP0104 NEW); no warning.)",
+    "tradeoffs": "Drops CMake 3.10-3.17 hosts (Ubuntu 18.04/20.04, Debian 10); CI runners already need 3.21 for --output-junit. The PDF/PS docs are not regenerated here (the maintainer rebuilds them from the .tex).",
+    "preferred": true,
+    "maintainer_fit": "Truthful and one line; the CMake maintainers (Fuentes/Pruvost/Barthelemy) added NAME_WLE and -E cat without thinking about 3.10, and his CI uses 3.21 features. The version-mark commit 6ad2737 shows he edits CMakeLists.txt and docs together."
+   },
+   {
+    "label": "b: keep a 3.14 floor, replace the 3.18 construct",
+    "summary": "NAME_WLE -> NAME + string(REGEX REPLACE); 'cmake -E cat' -> a cmake -P script cmake/Modules/ConcatFiles.cmake; declare 3.14 (needed by LibLZMA::LibLZMA anyway).",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/BLD-13-b-floor-3.14-replace-constructs.diff",
+    "tested": "Built test_scotch_graph_dump2 and test_scotch_mesh_build_f on a patched copy: graph_dump2 test passes, generated file byte-identical to cat, .f90 generated (repro/BLD-13/README).",
+    "tradeoffs": "Keeps 3.14-3.17 hosts, at the price of a new module file and a regex for what CMake does natively; touches src/check/CMakeLists.txt (G30's file).",
+    "preferred": false,
+    "maintainer_fit": "Possible, but he has no CI on old CMake to keep the promise; more code to carry for hosts that are end-of-life."
+   },
+   {
+    "label": "c: 3.14 for the library, 3.18 only when ENABLE_TESTS",
+    "summary": "Fatal error when ENABLE_TESTS is ON with CMake < 3.18; floor 3.14.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/BLD-13-c-tests-require-3.18.diff",
+    "tested": "Configured OK with 4.4.4 (alt/TESTS.log); the < 3.18 branch not exercised (no such CMake).",
+    "tradeoffs": "Honest split, but two floors to document; ENABLE_TESTS defaults to ON so most users hit 3.18 anyway.",
+    "preferred": false,
+    "maintainer_fit": "Unnecessarily subtle for the gain."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0008-Bugfix-require-the-CMake-version-that-the-build-file.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "README.md:70; doc/src/handson/h_c.tex:19 (PDF not regenerated)",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Not touched by 7.0.18 (635741dd adds no newer CMake feature). 7.0.17 notes: Assumption stated: 'cmake -E cat' introduced in 3.18 (CMake 3.18 release notes), not verifiable from the installed cmake."
+ },
+ {
+  "id": "BLD-24",
+  "our_title": "COMMON_RANDOM_FIXED_SEED, SCOTCH_DETERMINISTIC and FreeBSD macros exported in scotchTargets.cmake",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "base32 export file (src/libscotch/CMakeFiles/Export/*/scotchTargets.cmake): `INTERFACE_COMPILE_DEFINITIONS \"COMMON_RANDOM_FIXED_SEED\"`; patched32: no such line; patched suffixed install + consumer: 'no scotch-internal macros in consumer'.",
+  "read_only": "FreeBSD branch (cpu_set_t=cpuset_t, __BSD_VISIBLE) not executed: no FreeBSD host; in-tree users found by grep (test_scotch_context.c:205,330,361; common_thread.h:84 via common.h).",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "As the review: silent and mostly harmless on Linux (one -D in user builds), a type-renaming macro in user code on FreeBSD.",
+  "location_7_0_18": "src/libscotch/CMakeLists.txt:536-549",
+  "evidence": "src/libscotch/CMakeLists.txt:537 'target_compile_definitions(scotch PUBLIC cpu_set_t=cpuset_t __BSD_VISIBLE)'; :541 'PUBLIC COMMON_RANDOM_FIXED_SEED'; :542 'PUBLIC SCOTCH_DETERMINISTIC'; :545 same as :541.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate on the leak; its fix 'make them PRIVATE' breaks the in-tree test_common_random (shown at runtime) and, on FreeBSD, every in-tree program that includes common.h (cpu_set_t field in common_thread.h).",
+  "first_pass_critique": "Right on all points, including the BUILD_INTERFACE need; source-read only. Nothing to add except the runtime proof of why PRIVATE is wrong.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a: PUBLIC $<BUILD_INTERFACE:...>",
+    "summary": "Wrap each definition in $<BUILD_INTERFACE:>: build-tree targets keep it, export() strips it.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0009-Bugfix-do-not-export-internal-compile-definitions-of.patch",
+    "tested": "7.0.18: 7.0.18: patched32 and patched64 CMake builds: make -j3 rc=0, only the pre-existing test_scotch_graph_induce.c -Wstringop-overflow warning (also in base32); ctest 172/172 on both (flock) (7.0.17: See 'ran': export has no definitions, in-tree flags unchanged, consumer clean, ctest 181/181 (32 and 64-bit).)",
+    "tradeoffs": "Projects that add_subdirectory() Scotch still see the macros (as before); only installed packages change. ptscotch inherits through its PUBLIC link to scotch, as before.",
+    "preferred": true,
+    "maintainer_fit": "The same file already uses $<BUILD_INTERFACE:> / $<INSTALL_INTERFACE:> for include directories (:531-535); three-line change."
+   },
+   {
+    "label": "b: PRIVATE",
+    "summary": "The review's fix.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/BLD-24-b-private-only.diff",
+    "tested": "Shown to break test_common_random (repro/BLD-24/README); not built as a tree.",
+    "tradeoffs": "Breaks in-tree tests and FreeBSD in-tree programs.",
+    "preferred": false,
+    "maintainer_fit": "Would be reverted after the first CI run."
+   },
+   {
+    "label": "c: scotch_internal INTERFACE target",
+    "summary": "Carry the definitions on a non-exported INTERFACE library linked PRIVATE by scotch and by the tests.",
+    "diff_file": "",
+    "tested": "Configured: test_common_random flags.make still has -DCOMMON_RANDOM_FIXED_SEED (alt/TESTS.log); not built; src/scotch tools and esmumps/metis not converted in the diff.",
+    "tradeoffs": "Cleanest separation but touches every consumer in the tree (tools, esmumps, metis, check) and src/check/CMakeLists.txt (G30).",
+    "preferred": false,
+    "maintainer_fit": "Too much churn for three macros; nothing similar in the tree."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0009-Bugfix-do-not-export-internal-compile-definitions-of.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Not touched by 7.0.18; lines moved up by 5 (635741dd). 7.0.17 notes: SCOTCH_METIS_VERSION and SCOTCH_PTSCOTCH stay PUBLIC on the MeTiS targets on purpose: library_metis.h:211-223 selects prototypes with them."
+ },
+ {
+  "id": "BLD-25",
+  "our_title": "Stray brace in the FreeBSD host test and 'integer size' message in the IDXSIZE branch",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/BLD-25/probe18.cmake (the exact 7.0.18 line 67): host FreeBSD -> 'FreeBSD detected', host Linux -> 'not FreeBSD'. `cmake -S <v7.0.18 copy> -B x -DIDXSIZE=48` -> 'Invalid index size value'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "As the review.",
+  "location_7_0_18": "src/CMakeLists.txt:67,131",
+  "evidence": "src/CMakeLists.txt:67 'if(${CMAKE_HOST_SYSTEM_NAME} MATCHES \"^.*FreeBSD.*$\")'; :131 'message(FATAL_ERROR \"Invalid index size value\")'",
+  "upstream_change": "49149c10 Fix typos in src/CMakelists.txt [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "49149c10",
+   "verdict": "correct",
+   "details": "Removes the stray brace (src/CMakeLists.txt:67) and fixes the IDXSIZE message (:131); header date bumped. Both checked by running (probe18.cmake, configure with IDXSIZE=48). Complete: no other copy of either typo in the tree (grep '}}' and 'integer size' in CMake files).",
+   "compared_with_ours": "Ours also simplified the test to if(CMAKE_HOST_SYSTEM_NAME MATCHES \"FreeBSD\") (no double expansion of the value, no redundant '^.*' and '.*$'); his keeps ${...} and the anchors, which is equivalent for every real host name. Equivalent result; ours dropped."
+  },
+  "review_accuracy": "Accurate.",
+  "first_pass_critique": "Accurate; its alternative (CMAKE_SYSTEM_NAME) is kept as alt b here.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a: fix both typos (done upstream, 49149c10)",
+    "summary": "",
+    "diff_file": "",
+    "tested": "7.0.18: probe18.cmake and IDXSIZE=48 configure",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "his commit"
+   },
+   {
+    "label": "b: test the target system",
+    "summary": "if(CMAKE_SYSTEM_NAME STREQUAL \"FreeBSD\") (cross-compilation)",
+    "diff_file": "",
+    "tested": "7.0.17 only; diff no longer applies",
+    "tradeoffs": "behaviour change for cross-compilation",
+    "preferred": false,
+    "maintainer_fit": "decision for the maintainer"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed. Fixed by 49149c10 (verified by running). Our 7.0.17 0010 dropped. 7.0.17 notes:"
+ },
+ {
+  "id": "PS-BLD-2",
+  "our_title": "Unquoted, possibly empty operands around the MPI vendor regex; empty version string is a fatal error",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/BLD-06/probe.cmake (7.0.17 = 7.0.18 lines): OMPI_STRING=\"\" -> 'CMake Error at probe.cmake:3 (string): string sub-command REGEX, mode MATCHALL needs at least 5 arguments total to command.'; the patched form has no error.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Raised from info: with an empty MPI_C_LIBRARY_VERSION_STRING (cross-compilation, try_run disabled) the 7.0.17 code aborts configuration; the empty if() operand itself is tolerated by CMake.",
+  "location_7_0_18": "src/CMakeLists.txt:181-182,186-187",
+  "evidence": "src/CMakeLists.txt:181 '... found_suite ${MPI_C_LIBRARY_VERSION_STRING})' (unquoted argument vanishes when empty); :182 '    if(NOT ${found_suite} STREQUAL \"\")'.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "(new defect; not in the review)",
+  "first_pass_critique": "Right lead, wrong emphasis: the if() with an empty operand is harmless in practice, the string(REGEX) with a vanished argument is the real failure.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a: same commit as BLD-06",
+    "summary": "if(MPI_C_LIBRARY_VERSION_STRING MATCHES ...) handles unset/empty variables.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0010-Bugfix-detect-Open-MPI-when-configuring-CMake-tests-.patch",
+    "tested": "7.0.18: 7.0.18: patched32 and patched64 CMake builds: make -j3 rc=0, only the pre-existing test_scotch_graph_induce.c -Wstringop-overflow warning (also in base32); ctest 172/172 on both (flock) (7.0.17: probe + configure (see BLD-06).)",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "One fix for both."
+   },
+   {
+    "label": "b: quote the expansions, keep the regex style",
+    "summary": "string(REGEX MATCHALL \"Open MPI\" found_suite \"${...}\") and if(NOT \"${found_suite}\" STREQUAL \"\").",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/PS-BLD-2-b-quote-expansion.diff",
+    "tested": "Configured: 'Found OpenMPI' printed (alt/TESTS.log).",
+    "tradeoffs": "Keeps a temporary variable for no reason.",
+    "preferred": false,
+    "maintainer_fit": "More code than (a) for the same effect."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0010-Bugfix-detect-Open-MPI-when-configuring-CMake-tests-.patch"
+  ],
+  "cleanup_done": "see BLD-06",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Same lines as 7.0.17. 7.0.17 notes:"
+ },
+ {
+  "id": "PS2-G29-1",
+  "our_title": "Dead common_error.c compiled into the CMake libScotch, exporting un-prefixed errorPrint/errorPrintW/errorProg",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "`nm -D base32/lib/libscotch.so | grep -E ' T (errorPrint|errorPrintW|errorProg)$'` -> all three defined; patched32 -> none.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/CMakeLists.txt:206; src/libscotch/common_error.c",
+  "evidence": "src/libscotch/CMakeLists.txt:206 '  common_error.c'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a: remove the file and its entry",
+    "summary": "git rm src/libscotch/common_error.c; drop it from SCOTCH_C_SOURCES.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0002-Remove-unused-common_error.c-from-libScotch-report-P.patch",
+    "tested": "7.0.18: 7.0.18: patched32 and patched64 CMake builds: make -j3 rc=0, only the pre-existing test_scotch_graph_induce.c -Wstringop-overflow warning (also in base32); ctest 172/172 on both (flock) (7.0.17: patched builds, nm, ctest 181/181, ci/check_sources.sh rc=0.)",
+    "tradeoffs": "None: the file is referenced nowhere else.",
+    "preferred": true,
+    "maintainer_fit": "He deletes what is unused ('Remove useless structure definition' in the 7.0.17 range)."
+   },
+   {
+    "label": "b: keep the file, drop the CMake entry",
+    "summary": "Only remove the list entry.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/PS2-G29-1-b-keep-common-error-file.diff",
+    "tested": "untested as a tree (subset of a).",
+    "tradeoffs": "Leaves a dead file that the checker script would not flag but IDEs and sonar would.",
+    "preferred": false,
+    "maintainer_fit": "Half a cleanup."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0002-Remove-unused-common_error.c-from-libScotch-report-P.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Not touched by 7.0.18. 7.0.17 notes:"
+ },
+ {
+  "id": "PS2-G29-2",
+  "our_title": "symbol_fax.c compiled standalone by the CMake build of libEsMUMPS, exporting an un-prefixed symbolFax",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "`nm -D base32/lib/libesmumps.so | grep -i ' T .*symbolfax'` -> '_ESMUMPSsymbolFaxGraph' and 'symbolFax'; patched32 -> '_ESMUMPSsymbolFaxGraph' only.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/esmumps/CMakeLists.txt:78-79",
+  "evidence": "src/esmumps/CMakeLists.txt:78-79 '  symbol_fax_graph.c / symbol_fax.c)'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a: remove it from esmumps_src",
+    "summary": "The compiler's dependency scanning tracks the include.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0003-Do-not-compile-symbol_fax.c-on-its-own-in-the-CMake-.patch",
+    "tested": "7.0.18: 7.0.18: patched32 and patched64 CMake builds: make -j3 rc=0, only the pre-existing test_scotch_graph_induce.c -Wstringop-overflow warning (also in base32); ctest 172/172 on both (flock) (7.0.17: patched builds; nm; libesmumps consumer link via SCOTCH::esmumps not tested separately (esmumps has no src/check test).)",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "Mirrors the Makefile exactly."
+   },
+   {
+    "label": "b: mark it HEADER_FILE_ONLY",
+    "summary": "set_source_files_properties(symbol_fax.c PROPERTIES HEADER_FILE_ONLY ON) and keep it listed.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/PS2-G29-2-b-symbol-fax-header-only.diff",
+    "tested": "Configured: 0 'symbol_fax.c.o' rules in esmumps.dir/build.make (alt/TESTS.log).",
+    "tradeoffs": "Keeps the file visible in IDEs at the cost of a property nobody else in the tree uses.",
+    "preferred": false,
+    "maintainer_fit": "Unfamiliar idiom for this tree."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0003-Do-not-compile-symbol_fax.c-on-its-own-in-the-CMake-.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 635741dd/7a5d07b3 touched other lines of the file. 7.0.17 notes:"
+ },
+ {
+  "id": "PS2-G29-3",
+  "our_title": "Misspelt dependency rules in src/libscotch/Makefile (arch_vcpmlt, library_arch_dom -> library_arch.c)",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "7.0.18 Makefile: :799 'arch_vcpmlt$(OBJ) : arch_vcmplt.c', :2170 'library_arch_dom$(OBJ) : library_arch.c'. In a built copy of $INFRA/asan: touch arch_vcmplt.h; make -n scotch -> arch_vcmplt.c recompiled 0 times with the 7.0.18 Makefile, 1 time with the patched one; touch library_arch_dom.c -> '-c library_arch_dom.c'; make scotch with the patched Makefile rc=0, 0 warnings (repro/PS2-G29-3/make18.log). G29+G30 series combine with git am -3; the merged rule reads 'library_arch_dom$(OBJ) : library_arch_dom.c ... graph.h ...'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/Makefile:799,2170",
+  "evidence": "src/libscotch/Makefile:800 'arch_vcpmlt$(OBJ)\\t\\t:\\tarch_vcmplt.c' (phantom target; arch_vcmplt.o only gets the %$(OBJ): %.c pattern rule, :85, so header edits do not rebuild it); :2171 'library_arch_dom$(OBJ)\\t\\t:\\tlibrary_arch.c' (spurious prerequisite; the object is still compiled from library_arch_dom.c because $< of a pattern rule is the pattern's own prerequisite).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a: fix the two names",
+    "summary": "arch_vcmplt$(OBJ) and library_arch_dom.c.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0004-Fix-misspelt-dependency-rules-in-the-Makefile-of-lib.patch",
+    "tested": "7.0.18: 7.0.18: make -n checks and make scotch (0 warnings) as in 'ran' (7.0.17: see 'ran'.)",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "A typo fix; the Makefile dependency rules are hand-maintained (5efb923 adds one by hand)."
+   },
+   {
+    "label": "b: compiler-generated dependencies",
+    "summary": "Add -MMD -MP to the pattern rule and -include *.d, making the hand-written rules redundant (and fix the typos meanwhile).",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G29-cmake-sources-config/PS2-G29-3-b-compiler-generated-deps.diff",
+    "tested": "untested: structural; requires a compiler supporting -MMD (not NMake/pgcc guaranteed).",
+    "tradeoffs": "Would remove 2000 lines of hand-written rules eventually, but is a design decision and portability question for the maintainer.",
+    "preferred": false,
+    "maintainer_fit": "Out of scope for a typo; the maintainer keeps explicit rules for portability."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G29-cmake-sources-config/patches/0004-Fix-misspelt-dependency-rules-in-the-Makefile-of-lib.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Not touched by 7.0.18. 7.0.17 notes:"
+ },
+ {
+  "id": "PS2-G29-4",
+  "our_title": "CMake build with SCOTCH_NAME_SUFFIX and ENABLE_TESTS=ON fails to link test_scotch_mesh_build_f (calls not suffixed)",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "$WORK/cm/suffix.sh: pristine v7.0.18 configured with -DSCOTCH_NAME_SUFFIX=_pys and the default ENABLE_TESTS=ON, make -k -> rc=2, `undefined reference to `scotchfmeshinit_'` and `scotchfmeshbuild_'` when linking test_scotch_mesh_build_f. G30's rebased 0011 fixes it: G30's patched-cm64 build (-DSCOTCH_NAME_SUFFIX=_64, tests on) links and passes ctest (see G30 audit PS2-G30-4).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/check/test_scotch_mesh_build_f.f90.in:71,83",
+  "evidence": "test_scotch_mesh_build_f.f90.in:71 '  call scotchfmeshinit(meshdat, ierr)' and :83 '  call scotchfmeshbuild(meshdat, &' written without the ##SCOTCH_NAME_SUFFIX marker that dummysizes -s rewrites.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "a: write the calls through the name macro",
+    "summary": "Use the dummysizes name-substitution form (as test_libmetis_dual_f.f90.in does) for scotchfmeshinit/scotchfmeshbuild/... in test_scotch_mesh_build_f.f90.in.",
+    "diff_file": "",
+    "tested": "untested: not written (G30's file); the metis template proves the mechanism links under a suffix (test_libmetis_dual_f built in the same run).",
+    "tradeoffs": "None once the macro form is used; the Makefile check (src/check/Makefile:578-582) compiles the same template so it must keep working there.",
+    "preferred": true,
+    "maintainer_fit": "Consistent with the other Fortran template."
+   },
+   {
+    "label": "b: skip Fortran tests when a suffix is set",
+    "summary": "if(USE_SUFFIX) do not add the Fortran tests.",
+    "diff_file": "",
+    "tested": "untested: not written.",
+    "tradeoffs": "Hides the gap; suffixed Fortran API stays untested.",
+    "preferred": false,
+    "maintainer_fit": "He would rather fix the test."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G30-cmake-tests-make-ci/patches/0011-Bugfix-suffix-Scotch-routine-names-in-Fortran-test-t.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Template unchanged in 7.0.18. Fixed by G30's patch 0011 (Fortran template), not by a G29 patch. 7.0.17 notes:"
+ }
+]

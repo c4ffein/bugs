@@ -1,0 +1,36 @@
+fishim: rank 1: failing allocation #0
+(1): ERROR: dgraphGhst: out of memory (1)
+(0): ERROR: vdgraphSeparateDf: cannot compute ghost edge array
+(0): ERROR: vdgraphSeparateBd: cannot separate band graph
+fishim: rank 1: signal 11, backtrace:
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/repro/common/fishim.so(+0x1334)[0x7f4741bed334]
+/lib/x86_64-linux-gnu/libc.so.6(+0x45330)[0x7f4740645330]
+/lib/x86_64-linux-gnu/libc.so.6(+0x1a1ee3)[0x7f47407a1ee3]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(_SCOTCHdgraphGhst2+0x10e7)[0x7f4741949d83]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(_SCOTCHvdgraphSeparateDf+0x175)[0x7f47419f75a4]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(_SCOTCHvdgraphSeparateSt+0xb27)[0x7f4741a07981]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(_SCOTCHvdgraphSeparateBd+0x106d)[0x7f47419f6750]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(_SCOTCHvdgraphSeparateSt+0xb27)[0x7f4741a07981]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(+0x20492e)[0x7f4741a0492e]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(+0x204870)[0x7f4741a04870]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(+0x204870)[0x7f4741a04870]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(+0x204870)[0x7f4741a04870]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(+0x204870)[0x7f4741a04870]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(_SCOTCHvdgraphSeparateMl+0xf2)[0x7f4741a04c4d]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(_SCOTCHvdgraphSeparateSt+0xb27)[0x7f4741a07981]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(+0x1c3a81)[0x7f47419c3a81]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(_SCOTCHhdgraphOrderNd+0x15d)[0x7f47419c541d]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(_SCOTCHhdgraphOrderSt+0x4d2)[0x7f47419c74f5]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(SCOTCH_dgraphOrderComputeList+0xba2)[0x7f47419e7523]
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/../G22-bdgraph/basefi/lib/libptscotch.so(SCOTCH_dgraphOrderCompute+0x110)[0x7f47419e697b]
+./dtest_basefi(+0x2f8c)[0x55ae92431f8c]
+/lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca)[0x7f474062a1ca]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b)[0x7f474062a28b]
+./dtest_basefi(+0x2625)[0x55ae92431625]
+--------------------------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 11 (Segmentation fault).
+--------------------------------------------------------------------------

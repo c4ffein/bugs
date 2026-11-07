@@ -1,0 +1,89 @@
+From dd31f2aff6403e67f2b7743d8328f28d8efe6632 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:54:59 +0000
+Subject: [PATCH 247/248] Bugfix: require CMake 3.18 only when building the
+ tests [report R. Perry]
+
+36daa644 raised the minimum CMake version of the whole build to 3.18
+because "cmake -E cat" is used by the test programs in src/check. The
+libraries and programs only need 3.14 (NAME_WLE in the check directory
+excepted, LibLZMA::LibLZMA), so users of CMake 3.14 to 3.17 who do not
+build the tests were rejected for no reason.
+
+Set the top-level minimum back to 3.14, make src/check/CMakeLists.txt
+stop with an explicit message when CMake is older than 3.18, and adjust
+README.md and the hands-on manual.
+
+Tested: with CMake 4.4.4 and Ninja, configure succeeds with
+-DENABLE_TESTS=ON and OFF. With the guard threshold temporarily set to
+99, -DENABLE_TESTS=ON stops with the new message and
+-DENABLE_TESTS=OFF configures. CMake 3.14 to 3.17 were not available.
+
+Refs: BLD-13
+---
+ CMakeLists.txt           | 2 +-
+ README.md                | 2 +-
+ doc/src/handson/h_c.tex  | 2 +-
+ src/check/CMakeLists.txt | 7 +++++++
+ 4 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4caec7f..7a42d6d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -41,7 +41,7 @@
+ ##                                                        ##
+ ############################################################
+ 
+-cmake_minimum_required(VERSION 3.18)
++cmake_minimum_required(VERSION 3.14)
+ 
+ project(SCOTCH LANGUAGES C)
+ 
+diff --git a/README.md b/README.md
+index ee6a3bf..1c66b04 100644
+--- a/README.md
++++ b/README.md
+@@ -67,7 +67,7 @@ Installation
+ 
+ Two flavors of installation are available:
+ 
+-* With CMake, using version 3.18 or higher:
++* With CMake, using version 3.14 or higher (3.18 or higher to build the tests, see `-DENABLE_TESTS=OFF`):
+ 
+ ```bash
+ mkdir build && cd build && cmake .. && make -j5
+diff --git a/doc/src/handson/h_c.tex b/doc/src/handson/h_c.tex
+index a16b71c..35abb21 100644
+--- a/doc/src/handson/h_c.tex
++++ b/doc/src/handson/h_c.tex
+@@ -16,7 +16,7 @@ In order to compile \scotch, one needs:
+ \item
+   GNU make;
+ \item
+-  possibly CMake, version at least~3.18;
++  possibly CMake, version at least~3.14 (at least~3.18 to build the tests);
+ \item
+   a C compiler that can handle the C99 standard (and is parametrized
+   to do so);
+diff --git a/src/check/CMakeLists.txt b/src/check/CMakeLists.txt
+index 8ba8738..6a16a5c 100644
+--- a/src/check/CMakeLists.txt
++++ b/src/check/CMakeLists.txt
+@@ -47,6 +47,13 @@
+ ##                                                        ##
+ ############################################################
+ 
++# The test programs use "cmake -E cat" (CMake 3.18); the libraries and
++# programs themselves only need the version required by the top-level file
++
++if(CMAKE_VERSION VERSION_LESS 3.18)
++  message(FATAL_ERROR "Building the tests requires CMake 3.18 or higher (found ${CMAKE_VERSION}); configure with -DENABLE_TESTS=OFF to build without them")
++endif()
++
+ # Set directory aliases
+ 
+ set(dat ${CMAKE_CURRENT_SOURCE_DIR}/data)
+-- 
+2.47.3
+

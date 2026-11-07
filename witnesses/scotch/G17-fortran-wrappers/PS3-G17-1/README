@@ -1,0 +1,5 @@
+PS3-G17-1 / f32c0cff review: views.c compares each Fortran view wrapper with its C routine on the same
+8-path graph (mesh 8x1 target, new/old mappings {0..0,7..7}/{7..7,0..0}, overlap partition {0,0,0,-1,1,1,1,1}).
+  gcc -g -fsanitize=address,undefined [-DNEWWRAP] -I$T/include -L$T/lib -Wl,-rpath,$T/lib views.c -lscotch -lscotcherr -lz -lm -lpthread
+Without -DNEWWRAP (pristine 7.0.18): graphpartovlview only. -DNEWWRAP needs our patches 0006/0007.
+decl.c: gcc -c -I<tree>/include decl.c (implicit declaration on pristine)

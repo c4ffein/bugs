@@ -1,0 +1,35 @@
+From 0bf5cd2317d0fc2d39f03f158299c4449172c47a Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:10:09 +0000
+Subject: [PATCH 06/10] Bugfix: do not trap when evaluating a modulus by -1 in
+ strategy conditions [report R. Perry]
+
+Since 13e4dee6, a modulus by zero in a strategy condition is reported
+as an error, but `INTVALMIN % -1` still overflows and raises SIGFPE on
+most architectures, e.g. with `/((0-2147483647-1)%(0-1)=0)?...` when
+`INT` is 32-bit. Since any integer modulo -1 is zero, do not perform
+the division in this case.
+
+Refs: COR-26
+---
+ src/libscotch/parser.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/libscotch/parser.c b/src/libscotch/parser.c
+index e09e98fb..86251bf2 100644
+--- a/src/libscotch/parser.c
++++ b/src/libscotch/parser.c
+@@ -436,7 +436,9 @@ const void * restrict const       dataptr)        /*+ Pointer to data structure
+           o = 1;
+           break;
+         }
+-        evalptr->data.val.valint = testtab[0].data.val.valint % testtab[1].data.val.valint;
++        evalptr->data.val.valint = (testtab[1].data.val.valint == -1) /* Avoid overflow trap for INTVALMIN % -1 */
++                                   ? 0
++                                   : (testtab[0].data.val.valint % testtab[1].data.val.valint);
+       }
+       evalptr->nodeval = testtab[0].nodeval;
+       break;
+-- 
+2.43.0
+

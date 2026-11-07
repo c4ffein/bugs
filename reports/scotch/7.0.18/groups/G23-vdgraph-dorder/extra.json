@@ -1,0 +1,75 @@
+[
+ {
+  "local_id": "PS3-G23-1",
+  "our_title": "59c9a31c bases the uninitialized label pointer of non-root processes in dorderSave",
+  "severity": "low",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "mpirun --oversubscribe -np 3 $INFRA/asan/bin/dgord lbl.grf ord.out -T tre.out (pristine 7.0.18): 'dorder_io.c:144:12: runtime error: applying non-zero offset 18446744073709551612 to null pointer' on both non-root ranks (repro/DMO-02/run_7018_pristine_asan.txt); series: no report, identical output.",
+  "read_only": "dorder_io.c:113-116: only permtab is set to NULL before the root-only allocation, so on non-root processes vlbltax is indeterminate when :144 offsets it (the ASan -O0 stack slot happened to hold 0; -ftrivial-auto-var-init=pattern hides it).",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/dorder_io.c:115, 143-147",
+  "evidence": "dorder_io.c:115 '  permtab       = NULL;' and :144 '   vlbltax -= grafptr->baseval;                  /* Base label array since displacement array is based */' (3-space indent, also :146).",
+  "related_ids": [
+   "DMO-02",
+   "PS2-G23-1"
+  ],
+  "fix_options": [
+   {
+    "label": "A: initialize to NULL and base on the root only",
+    "summary": "in 0003 (with the dorderSaveTree2 fix); also restores the 2-space indent",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0003-Bugfix-base-the-vertex-label-arrays-gathered-by-dist.patch",
+    "tested": "DMO-02 runs, ptcheck 32/64",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "same guard as vdgraph_separate_ml.c:374-379"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0003-Bugfix-base-the-vertex-label-arrays-gathered-by-dist.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "59c9a31c8b",
+   "verdict": "wrong",
+   "details": "Introduced by the fix: the basing line runs on every process, and the non-root pointer was never initialized.",
+   "compared_with_ours": "Our 7.0.17 0005 had 'permtab = vlbltax = NULL' and 'if (vlbltax != NULL)'."
+  }
+ },
+ {
+  "local_id": "PS3-G23-2",
+  "our_title": "2d1b7e39 labels its two new load tests with size messages, one with the sequential name",
+  "severity": "info",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "DMO-12 proof B ($WORK/dbgold, pristine 7.0.18 DEBUG_ALL with the 7.0.17 store): the local-load mismatch prints '(r): ERROR: vgraphCheck: invalid local part sizes' on all 3 ranks (repro/DMO-12/proof_7018.txt).",
+  "read_only": "vdgraph_check.c:106-109 (load sum test with message 'vdgraphCheck: invalid local size sum', identical to the size sum message at :118) and header line 45 'to   : 31 oct 2023'.",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/vdgraph_check.c:45, 108, 246",
+  "evidence": "vdgraph_check.c:108 'errorPrint (\"vdgraphCheck: invalid local size sum\");' (tests complocload) and :246 'errorPrint (\"vgraphCheck: invalid local part sizes\");' (tests complocload).",
+  "related_ids": [
+   "PS2-G23-3",
+   "PS2-G22-4",
+   "DMO-12"
+  ],
+  "fix_options": [
+   {
+    "label": "A: proper messages",
+    "summary": "in 0007 ('invalid local load sum', 'vdgraphCheck: invalid local part loads'; date bumped to 02 nov 2026)",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0007-Bugfix-fix-error-messages-and-free-part-array-on-err.patch",
+    "tested": "DEBUG_ALL builds, proof C",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "trivial"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0007-Bugfix-fix-error-messages-and-free-part-array-on-err.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "2d1b7e3905",
+   "verdict": "incomplete",
+   "details": "Copied messages make a load inconsistency look like a size inconsistency of the sequential routine.",
+   "compared_with_ours": "Our 7.0.17 0003 used 'vdgraphCheck: invalid local part loads'."
+  }
+ }
+]

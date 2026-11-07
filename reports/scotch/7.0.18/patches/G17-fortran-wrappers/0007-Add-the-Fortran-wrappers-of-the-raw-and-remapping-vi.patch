@@ -1,0 +1,141 @@
+From 9f938b9a211c095472c62c3e3c94522a5bf21cc1 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:25:01 +0000
+Subject: [PATCH 7/7] Add the Fortran wrappers of the raw and remapping view
+ routines [report PyScotch]
+
+`SCOTCH_graphMapViewRaw()`, `SCOTCH_graphRemapView()` and
+`SCOTCH_graphRemapViewRaw()` are exported by libScotch, like
+`SCOTCH_graphMapView()` and `SCOTCH_graphPartOvlView()`, but had no
+Fortran counterpart.
+
+Refs: PS3-G17-1
+---
+ src/libscotch/library_graph_map_view_f.c | 107 ++++++++++++++++++++++-
+ 1 file changed, 106 insertions(+), 1 deletion(-)
+
+diff --git a/src/libscotch/library_graph_map_view_f.c b/src/libscotch/library_graph_map_view_f.c
+index 4122bb24..6c168327 100644
+--- a/src/libscotch/library_graph_map_view_f.c
++++ b/src/libscotch/library_graph_map_view_f.c
+@@ -47,7 +47,7 @@
+ /**                # Version 6.0  : from : 20 apr 2018     **/
+ /**                                 to   : 25 apr 2018     **/
+ /**                # Version 7.0  : from : 21 jan 2023     **/
+-/**                                 to   : 14 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -135,3 +135,108 @@ int * const                 revaptr), \
+ 
+   fclose (stream);                                /* This closes filenum too */
+ }
++
++/*
++**
++*/
++
++SCOTCH_FORTRAN (                        \
++GRAPHMAPVIEWRAW, graphmapviewraw, (     \
++const SCOTCH_Graph * const    grafptr,  \
++const SCOTCH_Mapping * const  mappptr,  \
++const int * const             fileptr,  \
++int * const                   revaptr), \
++(grafptr, mappptr, fileptr, revaptr))
++{
++  FILE *              stream;                     /* Stream to build from handle */
++  int                 filenum;                    /* Duplicated handle           */
++
++  if ((filenum = dup (*fileptr)) < 0) {           /* If cannot duplicate file descriptor */
++    errorPrint (STRINGIFY (SCOTCH_NAME_PUBLICFU (GRAPHMAPVIEWRAW)) ": cannot duplicate handle");
++
++    *revaptr = 1;                                 /* Indicate error */
++    return;
++  }
++  if ((stream = fdopen (filenum, "w")) == NULL) { /* Build stream from handle */
++    errorPrint (STRINGIFY (SCOTCH_NAME_PUBLICFU (GRAPHMAPVIEWRAW)) ": cannot open output stream");
++    close      (filenum);
++    *revaptr = 1;
++    return;
++  }
++
++  *revaptr = SCOTCH_graphMapViewRaw (grafptr, mappptr, stream);
++
++  fclose (stream);                                /* This closes filenum too */
++}
++
++/*
++**
++*/
++
++SCOTCH_FORTRAN (                        \
++GRAPHREMAPVIEW, graphremapview, (       \
++const SCOTCH_Graph * const    grafptr,  \
++const SCOTCH_Mapping * const  mappptr,  \
++const SCOTCH_Mapping * const  mapoptr,  \
++const double * const          emraptr,  \
++SCOTCH_Num * const            vmlotab,  \
++const int * const             fileptr,  \
++int * const                   revaptr), \
++(grafptr, mappptr, mapoptr, emraptr, vmlotab, fileptr, revaptr))
++{
++  FILE *              stream;                     /* Stream to build from handle */
++  int                 filenum;                    /* Duplicated handle           */
++
++  if ((filenum = dup (*fileptr)) < 0) {           /* If cannot duplicate file descriptor */
++    errorPrint (STRINGIFY (SCOTCH_NAME_PUBLICFU (GRAPHREMAPVIEW)) ": cannot duplicate handle");
++
++    *revaptr = 1;                                 /* Indicate error */
++    return;
++  }
++  if ((stream = fdopen (filenum, "w")) == NULL) { /* Build stream from handle */
++    errorPrint (STRINGIFY (SCOTCH_NAME_PUBLICFU (GRAPHREMAPVIEW)) ": cannot open output stream");
++    close      (filenum);
++    *revaptr = 1;
++    return;
++  }
++
++  *revaptr = SCOTCH_graphRemapView (grafptr, mappptr, mapoptr, *emraptr, vmlotab, stream);
++
++  fclose (stream);                                /* This closes filenum too */
++}
++
++/*
++**
++*/
++
++SCOTCH_FORTRAN (                        \
++GRAPHREMAPVIEWRAW, graphremapviewraw, ( \
++const SCOTCH_Graph * const    grafptr,  \
++const SCOTCH_Mapping * const  mappptr,  \
++const SCOTCH_Mapping * const  mapoptr,  \
++const double * const          emraptr,  \
++SCOTCH_Num * const            vmlotab,  \
++const int * const             fileptr,  \
++int * const                   revaptr), \
++(grafptr, mappptr, mapoptr, emraptr, vmlotab, fileptr, revaptr))
++{
++  FILE *              stream;                     /* Stream to build from handle */
++  int                 filenum;                    /* Duplicated handle           */
++
++  if ((filenum = dup (*fileptr)) < 0) {           /* If cannot duplicate file descriptor */
++    errorPrint (STRINGIFY (SCOTCH_NAME_PUBLICFU (GRAPHREMAPVIEWRAW)) ": cannot duplicate handle");
++
++    *revaptr = 1;                                 /* Indicate error */
++    return;
++  }
++  if ((stream = fdopen (filenum, "w")) == NULL) { /* Build stream from handle */
++    errorPrint (STRINGIFY (SCOTCH_NAME_PUBLICFU (GRAPHREMAPVIEWRAW)) ": cannot open output stream");
++    close      (filenum);
++    *revaptr = 1;
++    return;
++  }
++
++  *revaptr = SCOTCH_graphRemapViewRaw (grafptr, mappptr, mapoptr, *emraptr, vmlotab, stream);
++
++  fclose (stream);                                /* This closes filenum too */
++}
+-- 
+2.43.0
+

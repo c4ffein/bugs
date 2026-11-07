@@ -1,0 +1,55 @@
+From edb709c90098133e63c0ea12eac40f025008b137 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:53:20 +0000
+Subject: [PATCH 240/248] Bugfix: free the work arrays when adding extended
+ edges fails in `kgraphMapFm()` [report PyScotch]
+
+The three error paths added for the failure of kgraphMapFmPartAdd() and
+kgraphMapFmPartAdd2() freed the vertex hash table and the gain table
+only, leaking the save array, the extended edge array and the imbalance
+arrays.
+
+Tested with an allocation failure injected (scratch-only hook) in
+kgraphMapFmEdgeResize: LeakSanitizer reports the three arrays before
+the change and nothing after.
+---
+ src/libscotch/kgraph_map_fm.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/src/libscotch/kgraph_map_fm.c b/src/libscotch/kgraph_map_fm.c
+index 5ab6440..79bf0b2 100644
+--- a/src/libscotch/kgraph_map_fm.c
++++ b/src/libscotch/kgraph_map_fm.c
+@@ -1140,6 +1140,9 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+       if (kgraphMapFmPartAdd (grafptr, vertnum, hashnum, vexxtab, &edxxtab, &edxxsiz, &edxxnbr, tablptr) != 0) {
+         errorPrint ("kgraphMapFm: cannot add vertex (1)");
+         memFree    (vexxtab);                     /* Free group leader */
++        memFree    (savetab);
++        memFree    (edxxtab);
++        memFree    (comploadmax);                 /* Free group leader */
+         kgraphMapFmTablExit (tablptr);
+         return (1);
+       }
+@@ -1516,6 +1519,9 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+           if (kgraphMapFmPartAdd (grafptr, vertend, vexxend, vexxtab, &edxxtab, &edxxsiz, &edxxnbr, tablptr) != 0) {
+             errorPrint ("kgraphMapFm: cannot add vertex (2)");
+             memFree    (vexxtab);                 /* Free group leader */
++            memFree    (savetab);
++            memFree    (edxxtab);
++            memFree    (comploadmax);             /* Free group leader */
+             kgraphMapFmTablExit (tablptr);
+             return (1);
+           }
+@@ -1658,6 +1664,9 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+           if (kgraphMapFmPartAdd2 (grafptr, vexxtab, vexxend, &edxxtab, &edxxsiz, &edxxnbr, vexxtab[vexxend].domnnum, domnend, edloval, tablptr) != 0) { /* Add new extended edge */
+             errorPrint ("kgraphMapFm: cannot add extended edge");
+             memFree    (vexxtab);                 /* Free group leader */
++            memFree    (savetab);
++            memFree    (edxxtab);
++            memFree    (comploadmax);             /* Free group leader */
+             kgraphMapFmTablExit (tablptr);
+             return (1);
+           }
+-- 
+2.47.3
+

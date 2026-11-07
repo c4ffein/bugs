@@ -1,0 +1,638 @@
+[
+ {
+  "id": "GRA-26",
+  "our_title": "Based multinode pointer computed from NULL in the two ML uncoarsening routines",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18 ASan/UBSan, kit loop (gpart k=2,5,8, -Mr, gmap h3.tgt, gord on m16x16_b1.grf and bump_b1.grf): 8 x 'bgraph_bipart_ml.c:195:35: runtime error: applying non-zero offset 18446744073709551608 to null pointer', 8 x 'kgraph_map_ml.c:239:44: ...'. Patched (0004) 32/64-bit: 0 runtime errors. check_scotch_graph_map, check_prog_gpart (includes the new p2-p2 '-Mr{sep=a}' case), check_prog_gmap, check_scotch_context at 1/4 threads x det 0/1 on 32- and 64-bit trees (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/check.log); 0 warnings on both.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "Formally undefined, harmless on every current compiler; pointer is never dereferenced when NULL (coargrafptr == NULL path returns before). Same as the review.",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_ml.c:195; src/libscotch/kgraph_map_ml.c:239 (callers with NULL: bgraph_bipart_ml.c:329, kgraph_map_ml.c:382)",
+  "evidence": "bgraph_bipart_ml.c:195 `const GraphCoarsenMulti * const coarmulttax = coarmulttab - finegrafptr->s.baseval;`; kgraph_map_ml.c:239 `const GraphCoarsenMulti * restrict const coarmulttax = coarmulttab - finegrafptr->s.baseval;`; bgraph_bipart_ml.c:329 `if (((o = bgraphBipartMlUncoarsen (grafptr, NULL, NULL))        == 0) && /* Finalize graph   */`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate on the two sites; '30+ reports' is the count of occurrences in a test run, not of sites: the tree-wide hunt (gpart/gmap/gord on base-1 graphs, nine check targets) finds only these two sites, both from the NULL call at the finest level.",
+  "first_pass_critique": "Right; it did not settle the convention question. The tree guards at the site with a ternary when a tab may be NULL (library_graph_map.c:260 `vmlotax = (vmlotab != NULL) ? vmlotab - baseval : NULL;`, graph_coarsen.c:607/667, library_dgraph_grow.c:129, gotst.c:220, metis_graph_part_dual.c:222); the newer ML twins vgraph_separate_ml.c:162 and wgraph_part_ml.c avoid the tax altogether by indexing the un-based coarmulttab. Both are his idioms; the ternary is the minimal one for these two routines, which index with based vertex numbers in two loops each.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Guard the two sites with a ternary (recommended)",
+    "summary": "`coarmulttax = (coarmulttab != NULL) ? (coarmulttab - finegrafptr->s.baseval) : NULL;`",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0004-Bugfix-do-not-base-NULL-multinode-array-in-multileve.patch",
+    "tested": "UBSan runs above, check_scotch_graph_map, check_prog_gpart, check_prog_gmap, check_scotch_graph_order, check_scotch_context, check_scotch_graph_part_ovl, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_coarsen all pass with 0 sanitizer reports on the 32-bit and the 64-bit ASan+UBSan builds of the full series (logs $WORK/check_build*_*.log); check_prog_gpart, check_prog_gmap, check_scotch_context and check_scotch_graph_map also pass on a -DSCOTCH_DEBUG_ALL build",
+    "tradeoffs": "Two lines; the tax idiom stays everywhere else where tabs are never NULL.",
+    "preferred": true,
+    "maintainer_fit": "Exactly library_graph_map.c:260 and graph_coarsen.c:607."
+   },
+   {
+    "label": "Index the un-based array, as the vgraph/wgraph twins do",
+    "summary": "Drop coarmulttax and use `coarmulttab[coarvertnum - finebaseval]` in both loops of both routines.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/GRA-26-b-unbased-multinode-indexing.diff",
+    "tested": "untested: compiled only (both files).",
+    "tradeoffs": "Uniform with vgraph_separate_ml.c; four extra subtractions per coarse vertex and a larger diff.",
+    "preferred": false,
+    "maintainer_fit": "His newer style, but he changes old routines minimally."
+   },
+   {
+    "label": "No code change: disable the pointer-overflow check in sanitizer builds",
+    "summary": "-fno-sanitize=pointer-overflow (or a suppression file) for sanitizer CI.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/GRA-26-c-sanitizer-flag.diff",
+    "tested": "untested: no code.",
+    "tradeoffs": "Hides real pointer-overflow bugs too; the tree has no sanitizer configuration to put it in.",
+    "preferred": false,
+    "maintainer_fit": "Not a fix."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0004-Bugfix-do-not-base-NULL-multinode-array-in-multileve.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "; the existing _b1 check cases already exercise the sites under a sanitizer build.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "SEP-04",
+  "our_title": "Genetic crossover draws modulo zero on 2-vertex bipartition graphs",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: './sep04 2' -> 'AddressSanitizer: FPE ... #1 bgraphBipartGaLoop bgraph_bipart_ga.c:239'; 'gpart 4 data/p2-p2.grf /dev/null -vmt -Mr{sep=a}' -> FPE in thread T1 at bgraph_bipart_ga.c:239. Patched (0002) 32/64-bit: 'rc=0 part: 0 0'; check_prog_gpart with the new case passes. check_scotch_graph_map, check_prog_gpart (includes the new p2-p2 '-Mr{sep=a}' case), check_prog_gmap, check_scotch_context at 1/4 threads x det 0/1 on 32- and 64-bit trees (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/check.log); 0 warnings on both.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Any strategy using 'a' crashes the process on the 2-vertex jobs that recursive bipartitioning produces; 'a' is not in the default strategies, otherwise critical. Same as the review.",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_ga.c:239 (guard at :293-294)",
+  "evidence": ":239 `vecridx = 1 + contextIntRandVal (grafptr->contptr, vertnbr - 2); /* Crossing-over preserves at least one vertex in each segment */`; :293 `if (grafptr->s.vertnbr < 2)                     /* If less than two vertices, no crossing-over possible and nothing relevant to do */`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Right status, method and options; it did not add the regression test (natural home: one gpart line on data/p2-p2.grf in check_prog_gpart + CMake gpart_5) nor notice that pop=0 overflows the heap on the same guard line (PS2-G09-1).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/bgraph_bipart_ga.c:143-151, :170 (pop=0: zero-sized deme, memCpy before the array)",
+    "quote": "const Gnum demenbr = DEMENBR (popunbr, thrdnbr); ... memCpy (demetab + demesiz - vertnbr, grafptr->parttax + baseval, vertnbr * sizeof (GraphPart));",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Raise the guard to three vertices and add the test (recommended)",
+    "summary": "`if (grafptr->s.vertnbr < 3) return (0);` -- the crossing-over point needs vertnbr - 2 >= 1; add `gpart 4 data/p2-p2.grf ... -Mr{sep=a}` to check_prog_gpart and its CMake twin.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0002-Bugfix-do-not-run-genetic-algorithm-on-graphs-of-two.patch",
+    "tested": "sep04 2 and gpart on p2-p2.grf as in 'ran'; check_scotch_graph_map, check_prog_gpart, check_prog_gmap, check_scotch_graph_order, check_scotch_context, check_scotch_graph_part_ovl, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_coarsen all pass with 0 sanitizer reports on the 32-bit and the 64-bit ASan+UBSan builds of the full series (logs $WORK/check_build*_*.log); check_prog_gpart, check_prog_gmap, check_scotch_context and check_scotch_graph_map also pass on a -DSCOTCH_DEBUG_ALL build",
+    "tradeoffs": "GA is a no-op on 2-vertex graphs, like on 0/1-vertex ones; the following methods of the strategy handle them.",
+    "preferred": true,
+    "maintainer_fit": "Same guard, corrected bound; the comment already says 'no crossing-over possible'. He adds one-line check_prog_* cases for regressions (e.g. 2bcd53c for tests)."
+   },
+   {
+    "label": "Keep GA on 2 vertices with a fixed crossing-over point",
+    "summary": "`vecridx = (vertnbr > 2) ? (1 + contextIntRandVal (..., vertnbr - 2)) : 1;`",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/SEP-04-b-clamp-crossover-point.diff",
+    "tested": "untested: compiled only.",
+    "tradeoffs": "Explores the four labelings of a 2-vertex graph at negligible cost; a ternary in the hot loop; still allocates and runs all generations for nothing.",
+    "preferred": false,
+    "maintainer_fit": "He prefers early returns on degenerate sizes (the existing guard) to special cases inside loops."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0002-Bugfix-do-not-run-genetic-algorithm-on-graphs-of-two.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/Makefile check_prog_gpart and src/check/CMakeLists.txt gpart_5: `gpart 4 data/p2-p2.grf $(TMPDIR)/p2-p2_k4.map -vmt '-Mr{sep=a}'` (crashes on pristine, passes on the series)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "SEP-05",
+  "our_title": "Diffusion anchor injection now adds the reduced per-thread contribution (7.0.17)",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/common/mapgrid on pristine 7.0.18, ST='r{sep=g{pass=2}b{bnd=d{pass=40},org=d{pass=40},width=3}}', 20x20 grid, 8 parts: 1, 4 and 8 threads -> hash=2650381151034940689, the 7.0.17 value.",
+  "read_only": "That the reduction root (thrdlst) is the only thread executing the anchor runs (vancnnd == vertnnd for other threads, so they break at :376-377) and that threadReduce() delivers the sum to thrdtab[thrdlst] (common_thread.c:443-481, both variants): read, not instrumented.",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Agrees with the review: every mapping with external gains ran the diffusion with twice the injection and no coupling term; fixed upstream.",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_df.c:380 (reduction at :367-372)",
+  "evidence": "7.0.17 :380: `vancval = loopptr->vanctab[vertnum - vancnnd] + loopptr->thrdtab[thrdnum].vanctab[vertnum - vancnnd]; /* Load variable with anchor value */`; :371: `threadReduce (descptr, &loopptr->thrdtab[thrdnum], sizeof (BgraphBipartDfThread), (ThreadReduceFunc) bgraphBipartDfReduceVanc, thrdlst, NULL);`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Status and location right, but 'source-read' only; it did not check that the fix is complete (no twin: bdgraph_bipart_df.c, vgraph_separate_df.c and kgraph_map_df.c have no per-thread anchor reduction) nor that the value read is the reduced one; both verified here (grep of vanctab[ over src/libscotch, run above).",
+  "extra_instances": [],
+  "fix_options": [],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed. Fixed in 7.0.17 (f37f70d); file unchanged, no regression."
+ },
+ {
+  "id": "SEP-09",
+  "our_title": "FM probes and double-frees its hash table after a failed resize",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Debug ASan build of pristine 7.0.18 (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/dbg, -DSCOTCH_DEBUG_ALL), partgrid 30 1 2 'r{sep=h{pass=1}f{move=200,pass=-1,bal=0.1}}', LD_PRELOAD failnth.so: the realloc index moved (7.0.17: 16) to FAIL_REALLOC_NTH=8,9,10 -> 'bgraphBipartFmResize: out of memory', 'bgraphBipartFm: out of memory (2)', 'AddressSanitizer: heap-use-after-free'. Patched debug tree (dbgp): same two errors, then 'kgraphMapRbPart2: cannot bipartition graph', rc=1, no sanitizer report.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Needs an allocation failure during a hash-table growth; then use-after-free and double free. Same as the review.",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_fm.c:598-606 (final free at :849)",
+  "evidence": ":599-603 `if (bgraphBipartFmResize (...) != 0) {\\n                errorPrint (\"bgraphBipartFm: out of memory (2)\");\\n                memFree    (hashtab);             /* Free group leader */\\n                bgraphBipartFmTablExit (tablptr);\\n              }` then :604 `for (hashnum = (vertend * BGRAPHBIPARTFMHASHPRIME) & hashmsk; hashtab[hashnum].vertnum != ~0; ...`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Right; it did not check the twins: kgraph_map_fm.c:1098-1102 and :1474-1478 already `return (1)` after the same clean-up, vgraph_separate_fm.c:588-591 returns 1 (leaking, but no use-after-free), wgraph_part_fm.c uses `goto fail`; so only this site is affected.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/vgraph_separate_fm.c:588-591",
+    "quote": "if (vgraphSeparateFmResize (...) != 0) {\\n          errorPrint (\"vgraphSeparateFm: out of memory (2)\");\\n          return (1);\\n        }   (returns without freeing hashtab/gain table: leak on this error path only, no UAF; not in this group's files)",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Return right after the clean-up (recommended)",
+    "summary": "`return (1);` after bgraphBipartFmTablExit(), as kgraphMapFm() does at :1102 and :1478.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0001-Bugfix-return-from-bgraphBipartFm-when-hash-table-re.patch",
+    "tested": "Injection as in 'ran'; check_scotch_graph_map, check_prog_gpart, check_prog_gmap, check_scotch_graph_order, check_scotch_context, check_scotch_graph_part_ovl, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_coarsen all pass with 0 sanitizer reports on the 32-bit and the 64-bit ASan+UBSan builds of the full series (logs $WORK/check_build*_*.log); check_prog_gpart, check_prog_gmap, check_scotch_context and check_scotch_graph_map also pass on a -DSCOTCH_DEBUG_ALL build",
+    "tradeoffs": "One line; the debug-only internal-error returns of the routine still skip the clean-up, as everywhere in the file.",
+    "preferred": true,
+    "maintainer_fit": "Identical to his kgraph_map_fm.c error path."
+   },
+   {
+    "label": "Single clean-up label",
+    "summary": "Introduce `o` and a `fail:` label before the final free/exit, used by the resize failure (and usable by the debug returns).",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/SEP-09-b-single-cleanup-label.diff",
+    "tested": "untested: compiled only.",
+    "tradeoffs": "Also fixes the leak of the debug-only paths if they are converted; a bigger diff in a long routine for a path he does not care about.",
+    "preferred": false,
+    "maintainer_fit": "He uses `goto fail` in newer code (wgraph_part_fm.c) but keeps old routines minimal."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0001-Bugfix-return-from-bgraphBipartFm-when-hash-table-re.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "; needs an allocation failure, no natural home in src/check.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "SEP-10",
+  "our_title": "bgraphZero() adds the fixed load of part 0 to compload0, unlike init, cost and checker",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine debug tree (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/dbg): fixgrid 'r{sep=g{pass=3}z}' 12 2 -> 'bgraphCheck: invalid part load', 'bgraphBipartZr: inconsistent graph data'; same for 'r{sep=h{pass=3}z}' and 'r{sep=m{vert=20,low=z,asc=f{move=80}}}'. Patched debug tree: rc=0 part[0]=0 part[last]=1 for all three.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "With fixed vertices, any strategy that applies 'z' after a non-zero partition fails in debug builds; in release builds the wrong compload0dlt (too high by vfixload[0]) is seen only by the next method and all of them (GG, FM, DF, ML) recompute it before using it except for FM's initial balance test. Same as the review.",
+  "location_7_0_18": "src/libscotch/bgraph.c:246-249 (bgraphZero); checker src/libscotch/bgraph_check.c:182; init src/libscotch/bgraph.c:159-161",
+  "evidence": "bgraph.c:246 `compload0 = grafptr->s.velosum + grafptr->vfixload[0];` vs bgraph.c:161 `grafptr->compload0     = grafptr->s.velosum;` and bgraph_check.c:182 `if ((grafptr->s.velosum - cpl1sum) != grafptr->compload0) {`; bgraph.c:159 `grafptr->compload0avg  = (Gnum) (((double) (grafptr->s.velosum + vfixload0 + vfixload1) * (double) domnwght0) / (double) (domnwght0 + domnwght1)) - vfixload0;`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate (and its fix line `compload0 = grafptr->s.velosum` is the right one, provided compload0dlt is derived from it)",
+  "first_pass_critique": "Right, and it found bgraphSwal() (PS-SEP-5). Its harness was an internal-API program; here the defect is shown through the public API with user strategies, and the convention is documented in bgraph.h, which it did not do.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/bgraph.c:225-227 (bgraphSwal)",
+    "quote": "comploadsum = grafptr->s.velosum + grafptr->vfixload[0] + grafptr->vfixload[1]; /* Overall load sum, including fixed vertex loads */\\n  grafptr->compload0    =   comploadsum - grafptr->compload0;",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Free-vertex loads only, in both routines, convention documented (recommended)",
+    "summary": "bgraphZero(): compload0 = velosum, compload0dlt = velosum - compload0avg (as bgraphInit2); bgraphSwal(): complement with velosum instead of velosum + vfixload[0] + vfixload[1]; bgraph.h field comments state that compload0avg/compload0/compsize0 exclude fixed vertices. The checker already enforces exactly this (bgraph_check.c:104 and :182), so no checker change is needed.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0005-Bugfix-do-not-account-for-fixed-vertex-loads-in-bgra.patch",
+    "tested": "Debug-build runs above; check_scotch_graph_map, check_prog_gpart, check_prog_gmap, check_scotch_graph_order, check_scotch_context, check_scotch_graph_part_ovl, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_coarsen all pass with 0 sanitizer reports on the 32-bit and the 64-bit ASan+UBSan builds of the full series (logs $WORK/check_build*_*.log); check_prog_gpart, check_prog_gmap, check_scotch_context and check_scotch_graph_map also pass on a -DSCOTCH_DEBUG_ALL build",
+    "tradeoffs": "Behaviour change only when vfixload[0] != 0 (fixed-vertex mapping), where the imbalance after a zeroing becomes right.",
+    "preferred": true,
+    "maintainer_fit": "bgraphInit2(), bgraphCost(), bgraphBipartDf():520, bgraphBipartFm():291-298 and kgraph_map_rb_part.c:264 all use velosum for the free part and add the fixed loads only when computing tolerances; the one convention the tree supports."
+   },
+   {
+    "label": "Fix bgraphZero() only (the review's line)",
+    "summary": "Drop vfixload[0] from bgraphZero() and leave bgraphSwal() as is.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/SEP-10-b-zero-only.diff",
+    "tested": "untested: compiled only.",
+    "tradeoffs": "Fixes every reachable case (bgraphSwal() has no caller) but leaves a routine with the wrong convention in the file.",
+    "preferred": false,
+    "maintainer_fit": "He would fix both while there, or delete bgraphSwal() (see PS-SEP-5)."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0005-Bugfix-do-not-account-for-fixed-vertex-loads-in-bgra.patch"
+  ],
+  "cleanup_done": "Local variables `compload0` (bgraphZero) and `comploadsum` (bgraphSwal) removed.",
+  "test_added": "; src/check never runs 'z' after a non-zero partition with fixed vertices and the failure is debug-only; a one-line gmap case would need a fixed-vertex mapping file, which the tools do not take.",
+  "docs_updated": "src/libscotch/bgraph.h field comments (convention)",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "SEP-12",
+  "our_title": "Genetic threads overwrite the shared sort table while others read parents; shared RNG",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18 TSan (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan), partgrid 20 4 2 'r{sep=a{pass=8,pop=32}}' 3: 36 and 33 reports (bgraph_bipart_ga.c:205/:241/:242, memcpy of parents, common_integer.c:433-438 shared generator). TSan tree with G08+G09 series (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/tsanp): 0 reports for 'r{sep=a{...}}' and 'r{sep=h{pass=3}a{...}}', 2 runs each.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Memory-safe (a parent pointer may point to the partner's new deme, never to freed memory) but a genuine data race and thread-timing-dependent results. Same as the review. On this box the pristine result did not actually vary between runs (threads are effectively serialised on these small graphs), which is why only TSan shows it.",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_ga.c:177, :190-206 (cost loop writes sorttab), :235-249 (offspring loop reads sorttab/parents), :251-253 (deme swap with no barrier)",
+  "evidence": ":205 `sorttab[sortnum].parttab = parttab;` in the cost loop of generation g+1 while :241 `memCpy (parttab, sorttab[matetab[sortnum]].parttab, vecridx);` of generation g may still run in another thread; no threadBarrier between :249 and :251; :177 `randval = contextIntRandVal2 (grafptr->contptr);`, :239 and :246 draw from the shared `grafptr->contptr`.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Right status and evidence. Its diff spawned contexts inside an extra brace block with a local thrdnum and left the eight dead fields of BgraphBipartGaThread (never used in 7.0.17) next to the new one; it did not handle the deterministic option, which G08 established for bgraphBipartGg() (PS2-G08-1) and which the user asked to mirror here.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Barrier after the offspring loop + pre-spawned local random contexts (recommended)",
+    "summary": "threadBarrier after the offspring loop; each worker thread uses an IntRandContext spawned by the launcher with intRandSpawn() before contextThreadLaunch(), thread 0 keeps the context generator (exactly G08's bgraphBipartGg() idiom, patches 0002/0003 of G08); the thread block keeps only randdat since its other fields were never used.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0006-Bugfix-synchronize-threads-and-use-local-pseudo-rand.patch",
+    "tested": "TSan 0 reports (3 runs), results reproducible run to run; check_scotch_graph_map, check_prog_gpart, check_prog_gmap, check_scotch_graph_order, check_scotch_context, check_scotch_graph_part_ovl, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_coarsen all pass with 0 sanitizer reports on the 32-bit and the 64-bit ASan+UBSan builds of the full series (logs $WORK/check_build*_*.log); check_prog_gpart, check_prog_gmap, check_scotch_context and check_scotch_graph_map also pass on a -DSCOTCH_DEBUG_ALL build",
+    "tradeoffs": "GA results change (different random streams per thread) but were timing-dependent before. One more barrier per generation. BgraphBipartGaThread loses 8 unused Gnum fields and gains one IntRandContext.",
+    "preferred": true,
+    "maintainer_fit": "Mirrors his bgraph_bipart_gg.c (contdat/contptr, intRandSpawn, thread 0 on the caller's context) and graph_match.c; the dead fields were copy-pasted from bgraph_bipart_df.h."
+   },
+   {
+    "label": "Thread 0 draws every random value in its sequential sections",
+    "summary": "Keep the single generator: the launcher draws the whole initial population into a shared array, thread 0 draws crossing-over and mutation points for the generation while it builds the mating permutation; workers only read; plus the same barrier.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/SEP-12-b-thread0-draws-all-random-values.diff",
+    "tested": "untested: compiled only.",
+    "tradeoffs": "Thread-timing independent and partly thread-count independent, but serialises all random draws (O(pop * vertnbr) bits), needs three shared arrays and copies the initial population twice.",
+    "preferred": false,
+    "maintainer_fit": "Against his memory-affinity design (private demes allocated by each thread) and his spawn idiom; unlikely."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0006-Bugfix-synchronize-threads-and-use-local-pseudo-rand.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0007-Bugfix-honor-deterministic-option-in-bgraphBipartGa-.patch"
+  ],
+  "cleanup_done": "Removed the never-used fields fronnnd, compload1, compsize1, commloadextn, commloadintn, commgainextn, veexsum, veexsum1 of BgraphBipartGaThread (copied from the diffusion block; git grep shows no reader).",
+  "test_added": "; a '1 thread == N threads with the deterministic option' test (natural home test_scotch_context.c) is blocked by PS2-G08-2 (kgraph_map_rb_part.c splits the random stream regardless of the option), as G08 reported.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "SEP-14",
+  "our_title": "Diffusion threads desynchronise on allocation failure or overflow; errors never reported",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18 ASan, mapgrid 20 4 8 'r{sep=g{pass=2}b{bnd=d{pass=40}f{move=10},org=f{move=10},width=3}}', FAIL_MALLOC_NTH scan 114-142 (same indices as 7.0.17): N=120-123 -> 'bgraphBipartDfLoop: out of memory' then 'bgraph_bipart_df.c:523:93: runtime error: signed integer overflow: -1094795586 + -1094795586'; N=138,140,141 -> 'AddressSanitizer: stack-use-after-return'; N=139 -> 'requested allocation size 0xfffffffdf5f5f71c'. Patched (0009) 32/64-bit, N=120-123,138-141: 'bgraphBipartDfLoop: out of memory / bgraphBipartBd: cannot bipartition band graph / kgraphMapRbMap: cannot bipartition job', rc=1, 0 sanitizer reports.",
+  "read_only": "The NaN-injection cases (mkinject.sh, cases A-G) were not rebuilt: bgraph_bipart_df.c is byte-identical to 7.0.17.",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Needs an allocation failure or a float overflow (never seen on ordinary inputs); then use-after-return, garbage results returned as success, or a hang. Same as the review.",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_df.c:207-213 (goto skip), :275-284 (skip barrier and check), :356-362 (NaN branch), :387-394 (per-pass check), :519-525 (results read without any abort check)",
+  "evidence": ":211-212 `loopptr->abrtval = 1;\\n    goto skip;` (jumps over the threadReduce at :260); :360-361 `loopptr->abrtval = 1;                   /* Threads need to halt                      */\\n          vertnum = vancnnt;                      /* Skip regular computations but synchronize */` followed by :364 `difntax[vertnum] = diffval * ielstax[vertnum];`; :519 `grafptr->fronnbr      = loopdat.thrdtab[thrdlst].fronnnd[0]; /* Get data after scan-reduction */` with no test of loopdat.abrtval.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate on the store/read past the run and on the skipped reduction (the for-loop increment leaves vertnum == vancnnt + 1, so the `vertnum == vancnnd` block is skipped) and on abrtval never being checked. The hang is real but its mechanism is not 'skips threadReduce while others wait' alone: a desynchronised thread returns to threadWaitBarrier(), which shares the barrier counter, so the usual outcome is a worker re-running the routine on freed data (stack-use-after-return) and a hang when the flag is observed late at the post-allocation check. The review's fix ('leave the loop before the store, still reach the reduction, return 1 when abrtval != 0') would turn the graceful overflow roll-back into an error and leaves the allocation-failure `goto skip` barrier mismatch and the flag races.",
+  "first_pass_critique": "Wrong on the reduction: it claimed the NaN path 'still executes the if (vertnum == vancnnd) block' because vertnum = vancnnt == vancnnd; it forgot the for-loop increment. Its evidence (a) ran on a call without external gains, so it could not see the skipped reduction. Its preferred diff keeps the shared flag and the `if (abrtval != 0) return` after the second barrier, so a fast thread's overflow in pass 1 still makes a slow thread return early (the hang reproduced here in nan_C_trace.log); it also keeps the per-pass race. Its (a) OOB claim and (b) garbage-return claim are right.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/bgraph_bipart_df.c:387-394",
+    "quote": "threadBarrier (descptr);\\n#endif ...\\n    if (loopptr->abrtval == 1) {                  /* If all threads need to abort       */",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/kgraph_map_df.c:222-231 and :528-534 (owned by group G13)",
+    "quote": "loopptr->abrtval = 1;                         /* We will leave during the first iteration         */\\n    goto fail;  ... fail: ;  ... threadBarrier (descptr); ... if (loopptr->abrtval == 1) break;",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Barrier after allocation, overflow pass stamped per thread, error returned (recommended)",
+    "summary": "Allocation failure sets the shared flag and all threads meet at a barrier right after the allocation (as bgraphBipartGa() does), then return together; the shared flag is only written before barriers, so its tests are race-free, and bgraphBipartDf() returns 1 when it is set. On overflow the thread stores the last value of its run in place (vertnum = vancnnt - 1) so no index goes out of range and the anchor reduction is still executed, and records the pass number in its thread block; after the per-pass barrier every thread aborts if some block carries the current pass number, so a faster thread that already overflowed in the next pass cannot be mistaken for the current one.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0009-Bugfix-synchronize-threads-on-allocation-failure-and.patch",
+    "tested": "Fault injection and NaN injection as in 'ran' (c); normal runs bit-identical to pristine with 1/4/8 threads, 32- and 64-bit; check_scotch_graph_map, check_prog_gpart, check_prog_gmap, check_scotch_graph_order, check_scotch_context, check_scotch_graph_part_ovl, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_coarsen all pass with 0 sanitizer reports on the 32-bit and the 64-bit ASan+UBSan builds of the full series (logs $WORK/check_build*_*.log); check_prog_gpart, check_prog_gmap, check_scotch_context and check_scotch_graph_map also pass on a -DSCOTCH_DEBUG_ALL build; BGRAPHBIPARTDFNOTHREAD variant compiles with -Wall.",
+    "tradeoffs": "One more barrier per call and a thrdnbr-sized scan per pass (negligible). Thread block grows by one INT. Overflow keeps returning 0 with the last valid state (unchanged behaviour); allocation failure now returns 1 instead of garbage.",
+    "preferred": true,
+    "maintainer_fit": "Same shape as his own bgraph_bipart_ga.c:151-163 (allocate, barrier, test flag, free and return) and as the review asked for the error return; the pass stamp is the cheapest way to make the per-pass test race-free without doubling barriers; his kgraph_map_df.c has the same race, so he will want one idiom for both."
+   },
+   {
+    "label": "Shared flag read between two barriers per pass",
+    "summary": "Keep a single shared abort flag (1 = overflow, 2 = error) but read it into a local between two consecutive barriers after each pass, so that no thread can change it while others test it; same allocation barrier and error return as above.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/SEP-14-b-shared-flag-two-barriers.diff",
+    "tested": "untested: compiled only (gcc, ASan flags, 0 warnings); not run.",
+    "tradeoffs": "Simpler to read, but doubles the number of barriers per pass (40 passes by default, called once per bipartitioning job) and still relies on the magic values 1 and 2.",
+    "preferred": false,
+    "maintainer_fit": "He avoids extra barriers in hot loops (see the single barrier per pass in kgraph_map_df.c); less likely."
+   },
+   {
+    "label": "Minimal: review's fix",
+    "summary": "Store the last value in place on overflow and return 1 from bgraphBipartDf() whenever abrtval != 0; nothing else.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/SEP-14-c-minimal-review-fix.diff",
+    "tested": "untested: compiled only.",
+    "tradeoffs": "Fixes the OOB store and the garbage return, but turns the graceful overflow roll-back into a failed job, and leaves the allocation-failure barrier mismatch (goto skip) and both flag races, i.e. the hang and the stack-use-after-return remain.",
+    "preferred": false,
+    "maintainer_fit": "Would not pass his own debug runs: an overflow would now abort the whole mapping."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0009-Bugfix-synchronize-threads-on-allocation-failure-and.patch"
+  ],
+  "cleanup_done": "`skip:` label and the `if (ielstax != NULL)` test at the second check removed (both unreachable now); `loopptr->thrdtab[thrdnum]` accesses replaced by the new `thrdptr` local; loop routine header comment updated (it said it returned 0/!0).",
+  "test_added": "; no natural home: needs a forced allocation failure or a float overflow, neither of which src/check can provoke.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "PS-SEP-5",
+  "our_title": "bgraphSwal() complements part loads with the fixed loads included",
+  "status": "still-present",
+  "method": "partly-run",
+  "ran": "Same runs as SEP-10 for the convention; bgraphSwal() itself has no caller in 7.0.17 (`git grep bgraphSwal src/` finds only bgraph.c, bgraph.h and module.h), so it cannot be reached from any API or strategy; the patched routine was compiled in all builds.",
+  "read_only": "bgraphSwal() is unreachable (no caller); bgraph.c byte-identical to 7.0.17; the shared fix 0005 was run through SEP-10.",
+  "why_not_run": "No caller exists; exercising it would need an internal-API harness that proves nothing a user can hit.",
+  "severity": "low",
+  "severity_note": "Latent (dead code); fixed in the same commit as SEP-10 because it is the same convention error.",
+  "location_7_0_18": "src/libscotch/bgraph.c:213-231",
+  "evidence": ":225-227 `comploadsum = grafptr->s.velosum + grafptr->vfixload[0] + grafptr->vfixload[1]; /* Overall load sum, including fixed vertex loads */\\n  grafptr->compload0    =   comploadsum - grafptr->compload0;\\n  grafptr->compload0dlt =   comploadsum - grafptr->compload0dlt - 2 * grafptr->compload0avg;`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (first-pass finding); the first pass's description is accurate",
+  "first_pass_critique": "Accurate; its own harness result (compload0 = 8 after init with 5,3) matches the arithmetic.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Use the free-vertex loads only (recommended, in patch 0005)",
+    "summary": "`grafptr->compload0 = grafptr->s.velosum - grafptr->compload0; compload0dlt = velosum - compload0dlt - 2 * compload0avg;` (same formula as bgraph_bipart_fm.c:722).",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0005-Bugfix-do-not-account-for-fixed-vertex-loads-in-bgra.patch",
+    "tested": "Compiled in all builds; convention runs of SEP-10.",
+    "tradeoffs": "Keeps the helper for future use.",
+    "preferred": true,
+    "maintainer_fit": "One commit for one convention error in two routines of the same file."
+   },
+   {
+    "label": "Remove the unused routine",
+    "summary": "Delete bgraphSwal(), its prototype in bgraph.h and its rename entry in module.h.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/PS-SEP-5-b-remove-bgraphSwal.diff",
+    "tested": "untested: compiled only (bgraph.c).",
+    "tradeoffs": "Less code to keep consistent; loses an API-shaped helper he may have kept on purpose.",
+    "preferred": false,
+    "maintainer_fit": "He removes dead definitions (a5ee23b 'Remove useless structure definition'), so this is plausible too; his call."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0005-Bugfix-do-not-account-for-fixed-vertex-loads-in-bgra.patch"
+  ],
+  "cleanup_done": "`comploadsum` local removed.",
+  "test_added": "; unreachable code.",
+  "docs_updated": "src/libscotch/bgraph.h",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "PS2-G09-1",
+  "our_title": "Genetic algorithm with pop=0 writes before its zero-sized deme array",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: './sep04 16 r{sep=a{pass=5,pop=0}}' -> 'heap-buffer-overflow ... memcpy ... #1 bgraphBipartGaLoop bgraph_bipart_ga.c:170'. Patched (0003) 32/64-bit: rc=0.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_ga.c:143-151 (demenbr = 0, demesiz = 0, memAlloc (0)), :170 (memCpy to demetab + demesiz - vertnbr); parameter accepted without bounds at bgraph_bipart_st.c:181-184",
+  "evidence": ":67 `#define DEMENBR(p,t) ((((p) + (2 * (t)) - 1) / (2 * (t))) * 2)` gives 0 for p = 0; :170 `memCpy (demetab + demesiz - vertnbr, grafptr->parttax + baseval, vertnbr * sizeof (GraphPart));`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Return early when there is no individual (recommended)",
+    "summary": "Extend the SEP-04 guard: `(paraptr->popunbr < 1)` -> return (0).",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0003-Bugfix-do-not-run-genetic-algorithm-with-an-empty-po.patch",
+    "tested": "Run above; check_scotch_graph_map, check_prog_gpart, check_prog_gmap, check_scotch_graph_order, check_scotch_context, check_scotch_graph_part_ovl, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_coarsen pass with 0 sanitizer reports on the 32-bit and 64-bit ASan+UBSan builds of the series",
+    "tradeoffs": "Strategy 'a{pop=0}' becomes a no-op instead of corrupting the heap; negative values too.",
+    "preferred": true,
+    "maintainer_fit": "Same guard idiom as the line above it; he does not add range checks to the strategy parameter tables."
+   },
+   {
+    "label": "Clamp the population to one individual",
+    "summary": "`DEMENBR (MAX (paraptr->popunbr, 1), thrdnbr)`.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/PS2-G09-1-b-clamp-population.diff",
+    "tested": "untested: compiled only.",
+    "tradeoffs": "Runs a pointless two-individual GA instead of returning.",
+    "preferred": false,
+    "maintainer_fit": "Less in his style than an early return."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0003-Bugfix-do-not-run-genetic-algorithm-with-an-empty-po.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "PS2-G09-2",
+  "our_title": "Genetic champion never replaces an imbalanced current partition; 'a' alone is a no-op",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: './sep04 16 r{sep=a{pass=50,pop=64}}' -> 'rc=0 part: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0' (never leaves the zero partition). Patched (0008): 32-bit 'part: 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0', 64-bit balanced as well.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_ga.c:203 (individual cost with penalty) vs :257-259 (current solution compared without penalty)",
+  "evidence": ":203 `sorttab[sortnum].cmloval = ((cpl0val >= compload0min) && (cpl0val <= compload0max)) ? cmloval : (cmloval + cmloadj);` but :257 `if ((loopptr->sorttab[0].cmloval < grafptr->commload) || /* If most fit offspring has lower cost than current solution */` -- with all vertices in part 0, commload = 0 and no balanced individual can have a negative cut.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Penalize the current solution the same way (recommended)",
+    "summary": "Compute `cmloval = balanced ? commload : commload + cmloadj` for the current partition and compare the champion to it.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0008-Bugfix-penalize-imbalance-of-current-solution-when-s.patch",
+    "tested": "Runs above; check_scotch_graph_map, check_prog_gpart, check_prog_gmap, check_scotch_graph_order, check_scotch_context, check_scotch_graph_part_ovl, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_coarsen pass with 0 sanitizer reports on the 32-bit and 64-bit ASan+UBSan builds of the series",
+    "tradeoffs": "Strategies using 'a' from a zero partition now change the partition (intended); from a balanced start nothing changes.",
+    "preferred": true,
+    "maintainer_fit": "Makes the comparison consistent with his own cost definition three lines above; minimal."
+   },
+   {
+    "label": "Always take the champion when the current solution is imbalanced",
+    "summary": "Add `(compload0 < compload0min || compload0 > compload0max) ||` to the test.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/PS2-G09-2-b-always-replace-imbalanced-solution.diff",
+    "tested": "untested: compiled only.",
+    "tradeoffs": "Could replace a slightly imbalanced good partition by an imbalanced champion of worse cut (the champion itself may be penalized).",
+    "preferred": false,
+    "maintainer_fit": "Less principled than reusing the cost formula."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0008-Bugfix-penalize-imbalance-of-current-solution-when-s.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "PS2-G09-3",
+  "our_title": "Genetic algorithm ignores the deterministic context option (results depend on thread count)",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "partgrid 20 <thr> 2 'r{sep=a{pass=20,pop=32}}' 5, DET=1: patched 32-bit thr=1/2/4 all hash=4156740609988307832 (same as 7.0.17), 64-bit all 14719511851567636975; DET=0 patched thr=1/2/4 -> 13280898761731060139 / 14463540158980418461 / 13280898761731060139 (thread-count dependent without the option). Pristine shows one hash at every thread count only because GA never leaves the zero partition (PS2-G09-2 masks it); the shared-generator race is visible in TSan (SEP-12).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_ga.c:286 (thrdnbr = contextThreadNbr), :143-147 (per-thread demes)",
+  "evidence": ":286 `const int                 thrdnbr = contextThreadNbr (grafptr->contptr);` with no `contextValuesGetInt (..., CONTEXTOPTIONNUMDETERMINISTIC, ...)` as in graph_match.c:205",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Only thread 0 works when the option is set (recommended)",
+    "summary": "Read the option in bgraphBipartGa(), store the number of working threads in the loop data, idle threads return at once, thread 0 skips the barriers (it must not touch the context barrier alone while the idle threads sit in threadWaitBarrier(), which shares the counter).",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0007-Bugfix-honor-deterministic-option-in-bgraphBipartGa-.patch",
+    "tested": "Runs above; TSan DET=1 run has no GA report; check_scotch_graph_map, check_prog_gpart, check_prog_gmap, check_scotch_graph_order, check_scotch_context, check_scotch_graph_part_ovl, check_prog_gpart_overlap, check_prog_gpart_remap, check_scotch_graph_coarsen pass with 0 sanitizer reports on the 32-bit and 64-bit ASan+UBSan builds of the series",
+    "tradeoffs": "Five `if (thrdnbr > 1)` guards around barriers; deterministic runs lose the parallelism of the method, as in graphMatch().",
+    "preferred": true,
+    "maintainer_fit": "Same decision as graphMatchInit() (graph_match.c:205-225) and as G08's bgraphBipartGg() patch; the user asked for one idiom."
+   },
+   {
+    "label": "Draw all random values sequentially (SEP-12 option B)",
+    "summary": "Thread-count independence through sequential draws; the per-thread deme sizes would still depend on thrdnbr.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/PS2-G09-3-b-sequential-random-draws.diff",
+    "tested": "untested: compiled only.",
+    "tradeoffs": "Not actually thread-count independent without also fixing DEMENBR; serialises the draws.",
+    "preferred": false,
+    "maintainer_fit": "Unlikely, see SEP-12."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0007-Bugfix-honor-deterministic-option-in-bgraphBipartGa-.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ },
+ {
+  "id": "PS2-G09-4",
+  "our_title": "k-way diffusion twin: abort paths skip two barriers and the per-pass abort test races (kgraph_map_df.c, group G13)",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "repro/PS2-kgraph-df/kdf 12 4 3 (isolated heavy vertex that gets its own part, k-way band diffusion strategy): rc=0, no hang -- the velsmsk == 0 path was not reached from the public API in this experiment.",
+  "read_only": "kgraph_map_df.c:222-231: `if (velsmsk == 0) { loopptr->abrtval = 1; goto fail; }` and the sorttab allocation failure `goto fail` jump to the `fail:` label at :528 inside the pass loop, i.e. past the barriers at :257 and :288 that the other threads execute before testing the flag at :291; the jumping thread then performs one barrier (:530) and returns, so barrier counts differ by one between threads (same class as SEP-14's `goto skip`). Also :528-534 tests the shared flag right after a single barrier, so a fast thread overflowing in the next pass can make a slow thread break one pass early (same race as bgraph_bipart_df.c:387-394).",
+  "why_not_run": "As in 7.0.17: the abort path (velsmsk == 0) was not reachable from the public API in the kdf probe; file unchanged.",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/kgraph_map_df.c:222-231, :291-294, :425-431, :513-519, :528-534",
+  "evidence": ":222-225 `if (velsmsk == 0) {                             /* If graph is too small to have any usable anchors */\\n    loopptr->abrtval = 1;                         /* We will leave during the first iteration         */\\n    goto fail;\\n  }`; :528 `fail: ;                                           /* If overflow occured, resume here */` (inside the `for (passnum ...)` loop body); :533 `if (loopptr->abrtval == 1)                    /* If all threads need to abort */`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Keep barrier counts equal on abort (sketch for G13)",
+    "summary": "On velsmsk == 0 or allocation failure, set the flag and fall through to the two barriers like the other threads, then return at the existing :291 test (flag only written before barriers there); the per-pass race would need the pass-stamp idiom of patch 0009.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/PS2-G09-4-kgraph_map_df-abort-sync.diff",
+    "tested": "untested: compiled only (kgraph_map_df.c, 0 warnings); not run; the per-pass race part is not in the diff.",
+    "tradeoffs": "Minimal; leaves the NaN `goto fail` path (which jumps to the end of the current pass, with correct barrier count) and the per-pass race as is.",
+    "preferred": true,
+    "maintainer_fit": "Same shape as his :291 test; to be merged by G13 with the pass-stamp idiom if he takes patch 0009."
+   },
+   {
+    "label": "Pass-stamped overflow + allocation barrier, as in patch 0009",
+    "summary": "Port the bgraph_bipart_df.c design: per-thread pass stamp for overflow, shared flag only for errors, tested after a barrier.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0009-Bugfix-synchronize-threads-on-allocation-failure-and.patch",
+    "tested": "Tested for bgraph_bipart_df.c only.",
+    "tradeoffs": "One idiom for both diffusion routines.",
+    "preferred": false,
+    "maintainer_fit": "He will want the two routines alike; G13's call."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. kgraph_map_df.c byte-identical between v7.0.17 and v7.0.18; alt diff still applies."
+ },
+ {
+  "id": "PS2-G09-5",
+  "our_title": "Diffusion abort flag written by a fast thread is read by slower threads for an earlier phase",
+  "status": "still-present",
+  "method": "partly-run",
+  "ran": "Allocation-failure part: see SEP-14 (fixed by 0009 on 7.0.18).",
+  "read_only": "The late-reader abort-flag scenario (NaN injection, mktrace.sh) was not rebuilt; file byte-identical to 7.0.17.",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_df.c:275-284 and :387-394 (one shared `abrtval` for allocation failure, debug error and overflow)",
+  "evidence": ":280 `if (loopptr->abrtval == 1) {                    /* If any process decided to quit */` executed by each thread after being released from the barrier at :277, while :360 `loopptr->abrtval = 1;` may already have been executed by a thread that entered the pass loop.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (PyScotch finding).",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Errors in the shared flag (written only before barriers), overflow stamped per thread with the pass number (recommended, in patch 0009)",
+    "summary": "See SEP-14.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0009-Bugfix-synchronize-threads-on-allocation-failure-and.patch",
+    "tested": "See SEP-14.",
+    "tradeoffs": "See SEP-14.",
+    "preferred": true,
+    "maintainer_fit": "See SEP-14."
+   },
+   {
+    "label": "Two barriers around every flag read",
+    "summary": "See alt SEP-14-b.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G09-bgraph-df-ga-fm/SEP-14-b-shared-flag-two-barriers.diff",
+    "tested": "untested: compiled only.",
+    "tradeoffs": "Doubles barriers per pass.",
+    "preferred": false,
+    "maintainer_fit": "Less likely."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G09-bgraph-df-ga-fm/patches/0009-Bugfix-synchronize-threads-on-allocation-failure-and.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No upstream source change: the group's library files are byte-identical between v7.0.17 and v7.0.18 (only src/check/Makefile and CMakeLists.txt changed, by 635741dd/0d878bdd); the 9 commits apply unchanged (git am -3, no conflict)."
+ }
+]

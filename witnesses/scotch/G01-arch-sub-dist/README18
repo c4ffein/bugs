@@ -1,0 +1,12 @@
+G01 kits adapted to 7.0.18 (copied from PYS/upstream/repro/G01-arch-sub-dist; 7.0.17 README kept as README).
+Changes: PS2-G01-1/run.sh points to INFRA/v7.0.18/src/check/data/m4x4.grf.
+New:
+  common/subapi2.c   SCOTCH_archSub() on cmplt 4 with the terminals given as arguments, then ALWAYS SCOTCH_archExit()
+  new/*.tgt, new/run.sh <libdir>   7.0.18-specific cases (double free of ecaf094, uninitialized inner Arch,
+                     NULL archDistArchFree of d4b6f997, flag inheritance of dist)
+  alloc/sweep_plain.sh <plain-libdir> <tgt> [max]   malloc-failure sweep on a NON-sanitized build
+                     (failmalloc.so does not interpose under ASan); reports runs that died on a signal
+Build: sh common/build.sh <tree>; gcc ... common/subapi2.c (same flags as build.sh);
+       plain harness: gcc -O0 -g -I<plain>/include -o common/archload_plain common/archload.c -L<plain>/lib -lscotch -lscotcherr -lm -lpthread -lz
+       plain trees: copy of INFRA/v7.0.18 with Makefile.inc from INFRA/asan minus -fsanitize, 'make libscotch'
+Transcript: RESULTS18.txt (pristine INFRA/asan/lib, then patched WORK/build/lib, then sweeps).

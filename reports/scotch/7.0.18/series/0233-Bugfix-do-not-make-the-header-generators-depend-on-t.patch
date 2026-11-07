@@ -1,0 +1,44 @@
+From 4ec144eae4e30df7fb15a624d0612d0debf3041c Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:49:45 +0000
+Subject: [PATCH 233/248] Bugfix: do not make the header generators depend on
+ the headers they generate
+
+635741dd listed scotch.h and ptscotch.h among the sources of dummysizes
+and ptdummysizes, i.e. of the very executables that generate them. The
+Unix Makefiles generator accepts the cycle, Ninja rejects it:
+
+  ninja: error: dependency cycle: src/libscotch/dummysizes ->
+  dummysizes.c.o -> cmake_object_order_depends_target_dummysizes ->
+  src/include/scotch.h -> src/libscotch/dummysizes
+
+dummysizes needs no generated header. ptdummysizes needs scotch.h to
+exist (that is what the removed add_dependencies(ptdummysizes scotch_h)
+guaranteed), and scotch.h only depends on dummysizes, so there is no
+cycle there.
+
+Tested with Ninja and Unix Makefiles, with and without PT-Scotch.
+---
+ src/libscotch/CMakeLists.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/libscotch/CMakeLists.txt b/src/libscotch/CMakeLists.txt
+index 286d9e8..6f44717 100644
+--- a/src/libscotch/CMakeLists.txt
++++ b/src/libscotch/CMakeLists.txt
+@@ -49,10 +49,10 @@
+ #  dummysizes  #
+ ################
+ 
+-add_executable(dummysizes dummysizes.c ${GENERATED_INCLUDE_DIR}/scotch.h)
++add_executable(dummysizes dummysizes.c)
+ set_target_properties(dummysizes PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+ if(BUILD_PTSCOTCH)
+-  add_executable(ptdummysizes dummysizes.c ${GENERATED_INCLUDE_DIR}/ptscotch.h)
++  add_executable(ptdummysizes dummysizes.c ${GENERATED_INCLUDE_DIR}/scotch.h)
+   set_target_properties(ptdummysizes PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+   target_link_libraries(ptdummysizes PRIVATE MPI::MPI_C)
+   set_target_properties(ptdummysizes PROPERTIES
+-- 
+2.47.3
+

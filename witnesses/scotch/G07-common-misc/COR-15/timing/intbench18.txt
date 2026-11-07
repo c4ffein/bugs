@@ -1,0 +1,6 @@
+7.0.17: 11244005 integers, sum 10118265741000 intLoad CPU best of 5: 0.359 s 
+7.0.18: 11244005 integers, sum 10118265741000 intLoad CPU best of 5: 0.358 s 
+7.0.17: 11244005 integers, sum 10118265741000 intLoad CPU best of 5: 0.361 s 
+7.0.18: 11244005 integers, sum 10118265741000 intLoad CPU best of 5: 0.357 s 
+7.0.17: 11244005 integers, sum 10118265741000 intLoad CPU best of 5: 0.365 s 
+7.0.18: 11244005 integers, sum 10118265741000 intLoad CPU best of 5: 0.358 s 

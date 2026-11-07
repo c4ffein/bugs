@@ -1,0 +1,91 @@
+From e3bd39685b5839e1f566234f58357bd78fa22eae Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:37:28 +0000
+Subject: [PATCH 07/10] Bugfix: generate the headers shared by two libraries
+ once in CMake [report R. Perry]
+
+"metis.h" and "metisf.h" are source files of both "scotchmetisv3"
+and "scotchmetisv5", and "esmumps.h" of both "esmumps" and
+"ptesmumps". With the Makefile generator, each of these libraries
+carries its own copy of the generation rule and, since nothing
+orders the two libraries of a pair, a parallel build runs the same
+command twice, concurrently, on the same output file. Since the
+removal of the "metisf_h" target, this also happens for "metisf.h".
+
+Drive the generation of these headers by one custom target per
+directory, on which both libraries of the pair depend, as CMake
+requires for custom command outputs used by several targets.
+
+Refs: BLD-12
+---
+ src/esmumps/CMakeLists.txt        | 8 ++++++++
+ src/libscotchmetis/CMakeLists.txt | 6 +++++-
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/esmumps/CMakeLists.txt b/src/esmumps/CMakeLists.txt
+index 87ef2c78..afacd5cd 100644
+--- a/src/esmumps/CMakeLists.txt
++++ b/src/esmumps/CMakeLists.txt
+@@ -60,6 +60,10 @@ add_custom_command(OUTPUT ${GENERATED_INCLUDE_DIR}/esmumps.h
+   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/library.h
+   COMMENT "Copy esmumps.h to include directory")
+ 
++# Copy esmumps.h once for both libraries
++add_custom_target(esmumps_h
++  DEPENDS "${GENERATED_INCLUDE_DIR}/esmumps.h")
++
+ # libEsMUMPS
+ set(esmumps_src
+   dof.c
+@@ -92,6 +96,8 @@ set(esmumps_headers
+ add_library(esmumps ${esmumps_src} ${esmumps_headers})
+ add_library(SCOTCH::esmumps ALIAS esmumps)
+ 
++add_dependencies(esmumps esmumps_h)
++
+ set_target_properties(esmumps PROPERTIES PUBLIC_HEADER "${GENERATED_INCLUDE_DIR}/esmumps.h")
+ set_target_properties(esmumps PROPERTIES VERSION ${SCOTCH_VERSION_LONG}
+   SOVERSION ${SCOTCH_VERSION}.${SCOTCH_RELEASE})
+@@ -140,6 +146,8 @@ if(BUILD_PTSCOTCH)
+   add_library(ptesmumps ${esmumps_src} ${esmumps_headers})
+   add_library(SCOTCH::ptesmumps ALIAS ptesmumps)
+ 
++  add_dependencies(ptesmumps esmumps_h)
++
+   if(APPLE)
+     set_target_properties(ptesmumps PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+   endif()
+diff --git a/src/libscotchmetis/CMakeLists.txt b/src/libscotchmetis/CMakeLists.txt
+index ff23f094..fb197538 100644
+--- a/src/libscotchmetis/CMakeLists.txt
++++ b/src/libscotchmetis/CMakeLists.txt
+@@ -41,7 +41,7 @@
+ ##   DATES      : # Version 6.0  : from : 01 sep 2014     ##
+ ##                                 to     01 sep 2021     ##
+ ##                # Version 7.0  : from : 01 sep 2021     ##
+-##                                 to     18 dec 2025     ##
++##                                 to     02 nov 2026     ##
+ ##                                                        ##
+ ############################################################
+ 
+@@ -64,6 +64,9 @@ add_custom_command(OUTPUT ${GENERATED_INCLUDE_DIR}/metisf.h
+   DEPENDS library_metis_f.h
+   COMMENT "Generating metisf.h")
+ 
++# Generate metis.h and metisf.h once for both libraries
++add_custom_target(metis_h
++  DEPENDS "${GENERATED_INCLUDE_DIR}/metis.h" "${GENERATED_INCLUDE_DIR}/metisf.h")
+ 
+ # libScotchMeTiS
+ foreach(version 3 5)
+@@ -103,6 +106,7 @@ foreach(version 3 5)
+     target_link_libraries(scotchmetisv${version} PRIVATE ${LIBSCOTCHERR})
+   endif()
+ 
++  add_dependencies(scotchmetisv${version} metis_h)
+   if(INSTALL_METIS_HEADERS)
+     set_target_properties(scotchmetisv${version} PROPERTIES PUBLIC_HEADER "${GENERATED_INCLUDE_DIR}/metis.h;${GENERATED_INCLUDE_DIR}/metisf.h")
+   endif()
+-- 
+2.43.0
+

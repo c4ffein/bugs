@@ -1,0 +1,56 @@
+######## pristinefi
+== DGR-05 buildfi np4 fail r3
+nth=0 exit=0 :: 1 (3): r1 build rc=1;1 ERROR: dgraphBuild2: out of memory;1 r0 build rc=1;1 r2 build rc=1;1 r3 build rc=1;
+nth=1 exit=0 :: 1 r0 build rc=0;1 r0 check rc=0;1 r1 build rc=0;1 r1 check rc=0;1 r2 build rc=0;1 r2 check rc=0;1 r3 build rc=0;1 r3 check rc=0;
+== DGR-06 inducefi np3 fail r2 base1
+nth=0 exit=0 :: 1 (2): ERROR: dgraphInduce2: out of memory (1);1 r0 induce rc=1;1 r1 induce rc=1;1 r2 induce rc=1;
+nth=1 exit=0 :: 1 (2): ERROR: dgraphInduce2: out of memory (2);1 r0 induce rc=1;1 r1 induce rc=1;1 r2 induce rc=1;
+nth=2 exit=0 :: 1 (2): ERROR: dgraphInduce2: out of memory (3);1 r0 induce rc=1;1 r1 induce rc=1;1 r2 induce rc=1;
+nth=3 exit=124 :: HANG; 1 (2): ERROR: dgraphHaloSync2: out of memory;1 (2): ERROR: dgraphInduce2: cannot perform halo exchange;1 r2 induce rc=1;
+nth=4 exit=0 :: 1 dgraph.c:140:7: runtime error: applying non-zero offset to non-null pointer 0xfffffffffffffffc produced null pointer;1 dgraph_check.c:438:7: runtime error: applying non-zero offset to non-null pointer 0xfffffffffffffffc produced null pointer;1 dgraph_induce.c:240:28: runtime error: applying non-zero offset 18446744073709551612 to null pointer;1 dgraph_induce.c:241:19: runtime error: pointer index expression with base 0xfffffffffffffffc overflowed to 0x00000000000c;1 r0 check rc=0;1 r0 induce rc=0;1 r1 check rc=0;1 r1 induce rc=0;1 r2 check rc=0;1 r2 induce rc=0;
+== DGR-08 ghstfi np3 fail r2
+nth=0 exit=139 :: 1 (2): ERROR: dgraphGhst: out of memory (1);1 fishim: rank 2: signal 11, backtrace:;1 mpirun noticed that process rank 2 with PID 0 on node vm exited on signal 11 (Segmentation fault).;1 r0 exit done;1 r0 ghst rc=1;1 r1 exit done;1 r1 ghst rc=1;
+nth=1 exit=139 :: 1 (2): ERROR: dgraphGhst: out of memory (2);1 fishim: rank 2: signal 11, backtrace:;1 mpirun noticed that process rank 2 with PID 0 on node vm exited on signal 11 (Segmentation fault).;1 r0 exit done;1 r0 ghst rc=1;1 r1 exit done;1 r1 ghst rc=1;
+nth=2 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 ghst rc=0;1 r1 check rc=0;1 r1 exit done;1 r1 ghst rc=0;1 r2 check rc=0;1 r2 exit done;1 r2 ghst rc=0;
+== DGR-18/PS2-G19-1/2 grid3dfi np1
+nth=0 exit=0 :: 1 (0): ERROR: dgraphBuildGrid3D: out of memory (1);1 r0 exit done;1 r0 grid3d rc=1;
+nth=1 exit=0 :: 1 (0): ERROR: dgraphBuildGrid3D: out of memory (2);1 r0 exit done;1 r0 grid3d rc=1;
+nth=2 exit=0 :: 1 (0): ERROR: dgraphBuild2: out of memory;1 r0 exit done;1 r0 grid3d rc=1;
+nth=3 exit=0 :: 1 (0): ERROR: dgraphBuild3: out of memory;1 r0 exit done;1 r0 grid3d rc=1;
+nth=4 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 grid3d rc=0;
+nth=5 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 grid3d rc=0;
+== DGR-18/PS2-G19-1/2 grid3dfi np2 fail r1
+nth=0 exit=124 :: HANG; 1 (1): ERROR: dgraphBuildGrid3D: out of memory (1);1 r1 exit done;1 r1 grid3d rc=1;
+nth=1 exit=124 :: HANG; 1 (1): ERROR: dgraphBuildGrid3D: out of memory (2);1 mpirun: Forwarding signal 18 to job;1 r1 exit done;1 r1 grid3d rc=1;
+nth=2 exit=0 :: 1 (1): ERROR: dgraphBuild2: out of memory;1 r0 exit done;1 r0 grid3d rc=1;1 r1 exit done;1 r1 grid3d rc=1;
+nth=3 exit=137 :: HANG; 1 (1): ERROR: dgraphBuild3: out of memory;1 mpirun: Forwarding signal 18 to job;1 r1 exit done;1 r1 grid3d rc=1;
+nth=4 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 grid3d rc=0;1 r1 check rc=0;1 r1 exit done;1 r1 grid3d rc=0;
+nth=5 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 grid3d rc=0;1 r1 check rc=0;1 r1 exit done;1 r1 grid3d rc=0;
+######## buildfi
+== DGR-05 buildfi np4 fail r3
+nth=0 exit=0 :: 1 (3): ERROR: dgraphBuild2: out of memory;1 r0 build rc=1;1 r1 build rc=1;1 r2 build rc=1;1 r3 build rc=1;
+nth=1 exit=0 :: 1 r0 build rc=0;1 r0 check rc=0;1 r1 build rc=0;1 r1 check rc=0;1 r2 build rc=0;1 r2 check rc=0;1 r3 build rc=0;1 r3 check rc=0;
+== DGR-06 inducefi np3 fail r2 base1
+nth=0 exit=0 :: 1 (2): ERROR: dgraphInduce2: out of memory (1);1 r0 induce rc=1;1 r1 induce rc=1;1 r2 induce rc=1;
+nth=1 exit=0 :: 1 (2): ERROR: dgraphInduce2: out of memory (2);1 r0 induce rc=1;1 r1 induce rc=1;1 r2 induce rc=1;
+nth=2 exit=0 :: 1 (2): ERROR: dgraphInduce2: out of memory (3);1 r0 induce rc=1;1 r1 induce rc=1;1 r2 induce rc=1;
+nth=3 exit=124 :: HANG; 1 (2): ERROR: dgraphHaloSync2: out of memory;1 (2): ERROR: dgraphInduce2: cannot perform halo exchange;1 r2 induce rc=1;
+nth=4 exit=0 :: 1 r0 check rc=0;1 r0 induce rc=0;1 r1 check rc=0;1 r1 induce rc=0;1 r2 check rc=0;1 r2 induce rc=0;
+== DGR-08 ghstfi np3 fail r2
+nth=0 exit=0 :: 1 (2): ERROR: dgraphGhst: out of memory (1);1 r0 exit done;1 r0 ghst rc=1;1 r1 exit done;1 r1 ghst rc=1;1 r2 exit done;1 r2 ghst rc=1;
+nth=1 exit=0 :: 1 (2): ERROR: dgraphGhst: out of memory (2);1 r0 exit done;1 r0 ghst rc=1;1 r1 exit done;1 r1 ghst rc=1;1 r2 exit done;1 r2 ghst rc=1;
+nth=2 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 ghst rc=0;1 r1 check rc=0;1 r1 exit done;1 r1 ghst rc=0;1 r2 check rc=0;1 r2 exit done;1 r2 ghst rc=0;
+== DGR-18/PS2-G19-1/2 grid3dfi np1
+nth=0 exit=0 :: 1 (0): ERROR: dgraphBuildGrid3D: out of memory (1);1 r0 exit done;1 r0 grid3d rc=1;
+nth=1 exit=0 :: 1 (0): ERROR: dgraphBuildGrid3D: out of memory (2);1 r0 exit done;1 r0 grid3d rc=1;
+nth=2 exit=0 :: 1 (0): ERROR: dgraphBuild2: out of memory;1 r0 exit done;1 r0 grid3d rc=1;
+nth=3 exit=0 :: 1 (0): ERROR: dgraphBuild3: out of memory;1 r0 exit done;1 r0 grid3d rc=1;
+nth=4 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 grid3d rc=0;
+nth=5 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 grid3d rc=0;
+== DGR-18/PS2-G19-1/2 grid3dfi np2 fail r1
+nth=0 exit=0 :: 1 (1): ERROR: dgraphBuildGrid3D: out of memory (1);1 r0 exit done;1 r0 grid3d rc=1;1 r1 exit done;1 r1 grid3d rc=1;
+nth=1 exit=0 :: 1 (1): ERROR: dgraphBuildGrid3D: out of memory (2);1 r0 exit done;1 r0 grid3d rc=1;1 r1 exit done;1 r1 grid3d rc=1;
+nth=2 exit=0 :: 1 (1): ERROR: dgraphBuild2: out of memory;1 r0 exit done;1 r0 grid3d rc=1;1 r1 exit done;1 r1 grid3d rc=1;
+nth=3 exit=0 :: 1 (1): ERROR: dgraphBuild3: out of memory;1 r0 exit done;1 r0 grid3d rc=1;1 r1 exit done;1 r1 grid3d rc=1;
+nth=4 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 grid3d rc=0;1 r1 check rc=0;1 r1 exit done;1 r1 grid3d rc=0;
+nth=5 exit=0 :: 1 r0 check rc=0;1 r0 exit done;1 r0 grid3d rc=0;1 r1 check rc=0;1 r1 exit done;1 r1 grid3d rc=0;

@@ -1,0 +1,24 @@
+######## asan
+DGR-03 dgload badprop np2: rc=1       1 (0): ERROR: dgraphLoadCent: bad input (1);      1 r0: rc=1 check=-1 rc2=-1;      1 r1: rc=1 check=-1 rc2=-1;
+DGR-03 dgload negprop np2: rc=1       1 (0): ERROR: dgraphLoadCent: bad input (1);      1 r0: rc=1 check=-1 rc2=-1;      1 r1: rc=1 check=-1 rc2=-1;
+DGR-03 dgload negvert np2: rc=124 
+DGR-03 dgload negedge np2: rc=0       1 r0: rc=0 check=0 rc2=-1;      1 r1: rc=0 check=0 rc2=-1;
+DGR-03 dgload badend np2: rc=1       1 (0): (1): ERROR: dgraphCheck: arc data do not match;      1 ERROR: dgraphCheck: arc data do not match;      1 r0: rc=0 check=1 rc2=-1;      1 r1: rc=0 check=1 rc2=-1;
+DGR-03 dgload short np2: rc=1       1 (0): ERROR: dgraphLoadCent: bad input (1);      1 r0: rc=1 check=-1 rc2=-1;      1 r1: rc=1 check=-1 rc2=-1;
+valid bump np3: rc=0       1 r0: rc=0 check=0 rc2=-1;      1 r1: rc=0 check=0 rc2=-1;      1 r2: rc=0 check=0 rc2=-1;
+valid small3 -d np3: rc=0       1 r0: rc=0 check=0 rc2=-1;      1 r1: rc=0 check=0 rc2=-1;      1 r2: rc=0 check=0 rc2=-1;
+DGR-16 dmload badsum np1: rc=1       1 (0): ERROR: dmeshLoadAdm: inconsistent distributed mesh headers;      1 r0: load rc=1 dual rc=-1 check=-1;
+dmload good.adm np1: rc=0       1 r0: load rc=0 dual rc=0 check=0;
+dmload ship001 np4: rc=0       1 r0: load rc=0 dual rc=0 check=0;      1 r1: load rc=0 dual rc=0 check=0;      1 r2: load rc=0 dual rc=0 check=0;      1 r3: load rc=0 dual rc=0 check=0;
+######## build
+DGR-03 dgload badprop np2: rc=1       1 (0): ERROR: dgraphLoadCent: bad input (1);      1 r0: rc=1 check=-1 rc2=-1;      1 r1: rc=1 check=-1 rc2=-1;
+DGR-03 dgload negprop np2: rc=1       1 (0): ERROR: dgraphLoadCent: bad input (1);      1 r0: rc=1 check=-1 rc2=-1;      1 r1: rc=1 check=-1 rc2=-1;
+DGR-03 dgload negvert np2: rc=1       1 (0): ERROR: dgraphLoadCent: bad input (1);      1 r0: rc=1 check=-1 rc2=-1;      1 r1: rc=1 check=-1 rc2=-1;
+DGR-03 dgload negedge np2: rc=1       1 (0): ERROR: dgraphLoadCent: bad input (1);      1 r0: rc=1 check=-1 rc2=-1;      1 r1: rc=1 check=-1 rc2=-1;
+DGR-03 dgload badend np2: rc=1       1 (0): ERROR: dgraphLoadCent: invalid arc end number;      1 r0: rc=1 check=-1 rc2=-1;      1 r1: rc=1 check=-1 rc2=-1;
+DGR-03 dgload short np2: rc=1       1 (0): ERROR: dgraphLoadCent: bad input (1);      1 r0: rc=1 check=-1 rc2=-1;      1 r1: rc=1 check=-1 rc2=-1;
+valid bump np3: rc=0       1 r0: rc=0 check=0 rc2=-1;      1 r1: rc=0 check=0 rc2=-1;      1 r2: rc=0 check=0 rc2=-1;
+valid small3 -d np3: rc=0       1 r0: rc=0 check=0 rc2=-1;      1 r1: rc=0 check=0 rc2=-1;      1 r2: rc=0 check=0 rc2=-1;
+DGR-16 dmload badsum np1: rc=1       1 (0): ERROR: dmeshLoadAdm: inconsistent distributed mesh headers;      1 r0: load rc=1 dual rc=-1 check=-1;
+dmload good.adm np1: rc=0       1 r0: load rc=0 dual rc=0 check=0;
+dmload ship001 np4: rc=0       1 r0: load rc=0 dual rc=0 check=0;      1 r1: load rc=0 dual rc=0 check=0;      1 r2: load rc=0 dual rc=0 check=0;      1 r3: load rc=0 dual rc=0 check=0;

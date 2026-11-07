@@ -1,0 +1,49 @@
+From cfd72d2687182e060894c73dc51c3e44383e5df7 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 09:15:29 +0000
+Subject: [PATCH 7/9] Bugfix: validate row indices and column pointers in
+ Harwell-Boeing loader [report R. Perry]
+
+The row index check added by 0ef275a0 to `graphGeomLoadHabo()` accepted
+an index equal to vertnnd, one past the last vertex, which was then
+stored as an edge end. Reject it.
+
+Also, only the last column pointer was checked. An intermediate pointer
+greater than the number of non-zeros made the pattern loop write past
+the end of habnzrtab, and a decreasing one made it skip non-zeros.
+Check that column pointers are within bounds and non-decreasing, as
+the mesh loader does for its element pointers.
+
+Refs: GRA-11, PS2-G14-1
+---
+ src/libscotch/graph_io_habo.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/libscotch/graph_io_habo.c b/src/libscotch/graph_io_habo.c
+index 72085520..9d92aa0b 100644
+--- a/src/libscotch/graph_io_habo.c
++++ b/src/libscotch/graph_io_habo.c
+@@ -238,6 +238,11 @@ fail:
+       graphFree  (grafptr);
+       return (1);
+     }
++    if ((habcolval < 1) || (habcolval > ((Gnum) habnzrnbr + 1)) || /* Column pointers must be within bounds and non-decreasing */
++        ((habcolnum > 0) && (habcolval < habcoltab[habcolnum - 1]))) {
++      errorPrint ("graphGeomLoadHabo: bad input (10)");
++      goto fail;
++    }
+     habcoltab[habcolnum] = habcolval;
+   }
+   if (habcoltab[habcolnbr] != (Gnum) habnzrnbr + 1) {
+@@ -273,7 +278,7 @@ fail:
+         errorPrint ("graphGeomLoadHabo: bad input (8)");
+         goto fail;
+       }
+-      if (habnzrval < grafptr->baseval || habnzrval > grafptr->vertnnd) {
++      if ((habnzrval < grafptr->baseval) || (habnzrval >= grafptr->vertnnd)) { /* Row index must be a valid vertex number (also rejects blank fields) */
+         errorPrint ("graphGeomLoadHabo: bad input (9)");
+         goto fail;
+       }
+-- 
+2.43.0
+

@@ -1,0 +1,12 @@
+PS3-G13-2 follow-up -- leaks in the kgraphMapFm error paths
+=========================================================
+fmleak.c runs kgraphMapFm on a 16x16 grid split in two halves (non-empty frontier), then frees graph, arch, kgraph,
+so that LeakSanitizer reports only what kgraphMapFm leaked. Needs a libscotch built with a scratch-only hook (not
+part of any patch): in kgraphMapFmEdgeResize,
+  static int g13cnt = 0;  /* file scope */
+  if (((getenv ("G13FAIL") != NULL) && (++ g13cnt == atoi (getenv ("G13FAIL")))) || ((edxxtmp = memRealloc (...)) == NULL)) {
+and in release builds the initial size forced small: `edxxsiz = 2 * grafptr->fronnbr + 1;`.
+  sh ../common/cc.sh <tree> fmleak fmleak.c ; ASAN_OPTIONS=detect_leaks=1 G13FAIL=1 ./fmleak 16
+  without the follow-up: "SUMMARY: AddressSanitizer: 69740 byte(s) leaked in 5 allocation(s)" (baseline 5124/2 with G13FAIL unset)
+  with it             : 5124 byte(s) in 2 allocations (== baseline: harness-owned, not kgraphMapFm's)
+The internal error returns of kgraphMapFm (about thirty) still leak; fixing them needs a fail: label refactor.

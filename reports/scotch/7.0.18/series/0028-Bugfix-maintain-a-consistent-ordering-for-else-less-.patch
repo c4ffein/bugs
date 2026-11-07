@@ -1,0 +1,48 @@
+From d46b9048a01dc0260f119fe0ee28be58a41ff89e Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 12:55:35 +0000
+Subject: [PATCH 028/232] Bugfix: maintain a consistent ordering for else-less
+ false conditions [report R. Perry]
+
+Since 8609a5cb, a conditional sequential graph ordering strategy with
+no else branch, such as `/(vert>1000)?s;`, applies the default
+ordering method when its condition is false, instead of leaving the
+ordering permutation unset. The distributed graph and mesh ordering
+dispatchers had the same defect: apply `hdgraphOrderSi()` and
+`hmeshOrderSi()` in this case too.
+
+Refs: GRA-06
+---
+ src/libscotch/hdgraph_order_st.c | 2 ++
+ src/libscotch/hmesh_order_st.c   | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/src/libscotch/hdgraph_order_st.c b/src/libscotch/hdgraph_order_st.c
+index 79ee5ae5..aebb281f 100644
+--- a/src/libscotch/hdgraph_order_st.c
++++ b/src/libscotch/hdgraph_order_st.c
+@@ -199,6 +199,8 @@ const Strat * restrict const  straptr)            /*+ Graph ordering strategy +*
+         else {                                    /* Else if expression is false                              */
+           if (straptr->data.conddat.stratab[1] != NULL)  /* And if there is an else statement                 */
+             o = hdgraphOrderSt (grafptr, cblkptr, straptr->data.conddat.stratab[1]); /* Apply second strategy */
++          else
++            o = hdgraphOrderSi (grafptr, cblkptr); /* Apply default ordering strategy                         */
+         }
+       }
+       break;
+diff --git a/src/libscotch/hmesh_order_st.c b/src/libscotch/hmesh_order_st.c
+index 19746adc..63e1914e 100644
+--- a/src/libscotch/hmesh_order_st.c
++++ b/src/libscotch/hmesh_order_st.c
+@@ -273,6 +273,8 @@ const Strat * restrict const    straptr)          /*+ Mesh ordering strategy
+         else {                                    /* Else if expression is false             */
+           if (straptr->data.conddat.stratab[1] != NULL) /* And if there is an else statement */
+             o = hmeshOrderSt (meshptr, ordeptr, ordenum, cblkptr, straptr->data.conddat.stratab[1]); /* Apply second strategy */
++          else
++            o = hmeshOrderSi (meshptr, ordeptr, ordenum, cblkptr); /* Apply default ordering strategy */
+         }
+       }
+       break;
+-- 
+2.43.0
+

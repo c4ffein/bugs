@@ -1,0 +1,88 @@
+######## pristine INFRA/asan
+[gmap COR-07/m4x4.grf COR-07/meshx0.tgt /dev/null] rc=1 | ERROR: archMeshXArchLoad: bad input (1) 
+[gmap COR-07/m4x4.grf COR-07/torusx0.tgt /dev/null] rc=1 | ERROR: archMeshXArchLoad: bad input (1) 
+[atst COR-21/m2.tgt] rc=1 | runtime error: signed integer overflow: 65536 * 65536 cannot be represented in type 'int' ERROR: archMesh2ArchLoad: invalid architecture size 
+[atst COR-21/m3.tgt] rc=1 | runtime error: signed integer overflow: 4000000 * 2000 cannot be represented in type 'int' ERROR: archMesh3ArchLoad: invalid architecture size 
+[atst COR-21/mx.tgt] rc=1 | runtime error: signed integer overflow: 65536 * 65536 cannot be represented in type 'int' ERROR: archMeshXArchLoad: invalid architecture size 
+[atst COR-21/t2.tgt] rc=1 | runtime error: signed integer overflow: 65536 * 65536 cannot be represented in type 'int' ERROR: archMesh2ArchLoad: invalid architecture size 
+[atst COR-21/tx.tgt] rc=1 | runtime error: signed integer overflow: 4000000 * 2000 cannot be represented in type 'int' ERROR: archMeshXArchLoad: invalid architecture size 
+[atst COR-21/cw.tgt] rc=0 | runtime error: signed integer overflow: 2000000000 + 2000000000 cannot be represented in type 'int' runtime error: signed integer overflow: -294967296 - 2000000000 cannot be represented in type 'int' 
+[atst COR-21/cws.tgt] rc=0 | runtime error: signed integer overflow: 2000000000 + 2000000000 cannot be represented in type 'int' runtime error: signed integer overflow: -294967296 - 2000000000 cannot be represented in type 'int' 
+[atst COR-21/d0big.tgt] rc=1 | runtime error: signed integer overflow: 69999 * 70000 cannot be represented in type 'int' ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-21/d1big.tgt] rc=1 | runtime error: signed integer overflow: 69999 * 70000 cannot be represented in type 'int' ERROR: archDecoArchLoad: bad input (5) 
+[atst new/m2b.tgt] rc=1 | runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' 
+[atst new/m3b.tgt] rc=1 | runtime error: signed integer overflow: 1000000 * 3000 cannot be represented in type 'int' ERROR: archMesh3ArchLoad: invalid architecture size 
+[atst new/mxb.tgt] rc=1 | runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' 
+[atst new/t2b.tgt] rc=1 | runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' 
+[atst new/cwb.tgt] rc=0 | runtime error: signed integer overflow: 2000000000 + 1000000000 cannot be represented in type 'int' runtime error: signed integer overflow: -1294967296 - 1000000000 cannot be represented in type 'int' 
+[atst PS-COR-1/anc.tgt] rc=1 | AddressSanitizer: heap-buffer-overflow on address 0x507000000154 at pc 0x7fb8466d369a bp 0x7ffc93d39940 sp 0x7ffc93d39930 arch_deco.c:206 in _SCOTCHarchDecoArchBuild2 
+[atst COR-16/bad1.tgt] rc=1 | AddressSanitizer: heap-buffer-overflow on address 0x506000000078 at pc 0x7fe14e6d6c7c bp 0x7ffd586085e0 sp 0x7ffd586085d0 arch_deco.c:512 in _SCOTCHarchDecoDomSize 
+[atst COR-16/dup0.tgt] rc=0 | A	Terminals	nbr=1 
+[atst COR-16/num0.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/wbig.tgt] rc=0 | runtime error: signed integer overflow: 2000000000 + 2000000000 cannot be represented in type 'int' A	Terminals	nbr=2 
+[atst COR-16/wneg.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/w0.tgt] rc=0 | A	Terminals	nbr=2 
+[atst COR-16/zero0.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (4) 
+[atst COR-16/ok0.tgt] rc=0 | A	Terminals	nbr=2 
+[atst COR-16/ok1.tgt] rc=0 | A	Terminals	nbr=2 
+[gmap COR-07/m4x4.grf COR-16/bad1.tgt /dev/null] rc=1 | AddressSanitizer: heap-buffer-overflow on address 0x5060000000cc at pc 0x7fcd55cd73b5 bp 0x7ffe25faeb40 sp 0x7ffe25faeb30 arch_deco.c:538 in _SCOTCHarchDecoDomDist 
+[new/torusapi_asan t2 0 5] rc=0 | ret=0 size=0 
+[new/torusapi_asan t3 2 0 3] rc=0 | ret=1 
+[new/torusapi_asan tx 0 4] rc=0 | ret=0 size=1 
+[new/torusapi_asan tx 2 0 4] rc=0 | ret=0 size=0 
+[new/torusapi_asan mx 2 0 4] rc=0 | ret=0 size=0 
+[new/torusapi_asan m2 100000 50000] rc=0 | runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' 
+[new/torusapi_asan t2 100000 50000] rc=0 | runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' runtime error: signed integer overflow: 100000 * 50000 cannot be represented in type 'int' 
+[new/torusapi_asan tx 2 4 4] rc=0 | ret=0 size=16 
+######## patched WORK/build
+[gmap COR-07/m4x4.grf COR-07/meshx0.tgt /dev/null] rc=1 | ERROR: archMeshXArchLoad: bad input (1) 
+[gmap COR-07/m4x4.grf COR-07/torusx0.tgt /dev/null] rc=1 | ERROR: archMeshXArchLoad: bad input (1) 
+[atst COR-21/m2.tgt] rc=1 | ERROR: archMesh2ArchLoad: invalid architecture size 
+[atst COR-21/m3.tgt] rc=1 | ERROR: archMesh3ArchLoad: invalid architecture size 
+[atst COR-21/mx.tgt] rc=1 | ERROR: archMeshXArchLoad: invalid architecture size 
+[atst COR-21/t2.tgt] rc=1 | ERROR: archMesh2ArchLoad: invalid architecture size 
+[atst COR-21/tx.tgt] rc=1 | ERROR: archMeshXArchLoad: invalid architecture size 
+[atst COR-21/cw.tgt] rc=1 | ERROR: archCmpltwArchLoad2: bad input (3) 
+[atst COR-21/cws.tgt] rc=1 | ERROR: archCmpltwArchLoad2: bad input (3) 
+[atst COR-21/d0big.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (2) 
+[atst COR-21/d1big.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (2) 
+[atst new/m2b.tgt] rc=1 | ERROR: archMesh2ArchLoad: invalid architecture size 
+[atst new/m3b.tgt] rc=1 | ERROR: archMesh3ArchLoad: invalid architecture size 
+[atst new/mxb.tgt] rc=1 | ERROR: archMeshXArchLoad: invalid architecture size 
+[atst new/t2b.tgt] rc=1 | ERROR: archMesh2ArchLoad: invalid architecture size 
+[atst new/cwb.tgt] rc=1 | ERROR: archCmpltwArchLoad2: bad input (3) 
+[atst PS-COR-1/anc.tgt] rc=1 | ERROR: archDecoArchBuild2: terminal domain is not a leaf 
+[atst COR-16/bad1.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (7) 
+[atst COR-16/dup0.tgt] rc=1 | ERROR: archDecoArchBuild2: bad terminal count 
+[atst COR-16/num0.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/wbig.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/wneg.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (3) 
+[atst COR-16/w0.tgt] rc=0 | A	Terminals	nbr=2 
+[atst COR-16/zero0.tgt] rc=1 | ERROR: archDecoArchLoad: bad input (4) 
+[atst COR-16/ok0.tgt] rc=0 | A	Terminals	nbr=2 
+[atst COR-16/ok1.tgt] rc=0 | A	Terminals	nbr=2 
+[gmap COR-07/m4x4.grf COR-16/bad1.tgt /dev/null] rc=1 | ERROR: archDecoArchLoad: bad input (7) 
+[new/torusapi_build t2 0 5] rc=0 | ret=1 
+[new/torusapi_build t3 2 0 3] rc=0 | ret=1 
+[new/torusapi_build tx 0 4] rc=0 | ret=1 
+[new/torusapi_build tx 2 0 4] rc=0 | ret=1 
+[new/torusapi_build mx 2 0 4] rc=0 | ret=1 
+[new/torusapi_build m2 100000 50000] rc=0 | ret=1 
+[new/torusapi_build t2 100000 50000] rc=0 | ret=1 
+[new/torusapi_build tx 2 4 4] rc=0 | ret=0 size=16 
+######## dummysizes (COR-20/run18.sh)
+== /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/dummysizes
+two-char names: rc=0 out2.h lines=384
+one-char names: rc=0 o NOT created stdout lines=0
+no argument: rc=0
+dummysizes: ERROR: line too long
+2046-char line: rc=1
+dummysizes: ERROR: line too long
+2047-char line: rc=0
+== /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G03-arch-mesh-deco-misc/build/src/libscotch/dummysizes
+two-char names: rc=0 out2.h lines=384
+one-char names: rc=0 o created, 384 lines stdout lines=0
+no argument: rc=0
+2046-char line: rc=0
+dummysizes: ERROR: line too long
+2047-char line: rc=0

@@ -1,0 +1,30 @@
+From b0ec156b37bc99957b87357bf37184423aa98565 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Tue, 13 Oct 2026 20:50:41 +0000
+Subject: [PATCH] Use the name suffix in the mesh exit call of the Fortran mesh
+ build test
+
+The exit call added by "Bugfix: release the mesh and its arrays in the
+Fortran mesh build test program" was written without the
+SCOTCH_NAME_SUFFIX token that every other call of the test carries, so
+the test does not link in suffixed builds.
+---
+ src/check/test_scotch_mesh_build_f.f90.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/check/test_scotch_mesh_build_f.f90.in b/src/check/test_scotch_mesh_build_f.f90.in
+index 5b7591d0..0e32208c 100644
+--- a/src/check/test_scotch_mesh_build_f.f90.in
++++ b/src/check/test_scotch_mesh_build_f.f90.in
+@@ -99,7 +99,7 @@ program test_scotch_mesh_build
+     call exit_c (1)
+   end if
+ 
+-  call scotchfmeshexit(meshdat)
++  call scotchfmeshexit##SCOTCH_NAME_SUFFIX(meshdat)
+ 
+   deallocate (edgetab)
+   deallocate (verttab)
+-- 
+2.43.0
+

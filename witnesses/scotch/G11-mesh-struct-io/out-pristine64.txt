@@ -1,0 +1,154 @@
+--- SEP-07 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/mcv w_ef.msh /tmp/g11w_ef.out -is -os
+same_ef
+--- SEP-07 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/mcv w_nf.msh /tmp/g11w_nf.out -is -os
+same_nf
+--- SEP-08 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/hbload hb_ok.mtx
+ERROR: meshCheck: invalid element vertex load sum
+load=0 check=1
+1
+2	3	8
+4	1	000
+1	1
+2	1	2
+1	2
+--- SEP-08 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/hbload hb_badvar.mtx
+=================================================================
+==9505==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x506000000060 at pc 0x7f76f8b22ad8 bp 0x7ffc9e578050 sp 0x7ffc9e578040
+READ of size 8 at 0x506000000060 thread T0
+    #0 0x7f76f8b22ad7 in _SCOTCHmeshGeomLoadHabo /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/mesh_io_habo.c:242
+    #1 0x7f76f8aeb239 in SCOTCH_meshGeomLoadHabo /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/library_mesh_io_habo.c:82
+    #2 0x55c03a7455d6 in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/SEP-08/hbload.c:10
+    #3 0x7f76f782a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #4 0x7f76f782a28a in __libc_start_main_impl ../csu/libc-start.c:360
+--- SEP-08 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/hbload hb_badptr2.mtx
+mesh_io_habo.c:282:40: runtime error: pointer index expression with base 0x506000000018 overflowed to 0xf5f64655f5f5f608
+    #0 0x7f277e52350a in _SCOTCHmeshGeomLoadHabo /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/mesh_io_habo.c:282
+    #1 0x7f277e4eb239 in SCOTCH_meshGeomLoadHabo /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/library_mesh_io_habo.c:82
+    #2 0x5640c7c605d6 in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/SEP-08/hbload.c:10
+    #3 0x7f277d22a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #4 0x7f277d22a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #5 0x5640c7c602e4 in _start (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/hbload+0x22e4) (BuildId: 0129d17d4f6279ab81263c81ad19ee6f18f59ad4)
+
+--- SEP-08 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/hbload hb_badptr.mtx
+ERROR: meshGeomLoadHabo: bad input (8)
+load=1 check=-1
+--- fuzz /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/mcv before/crashes/c0355.rsa /dev/null -ib -os
+mesh_io_habo.c:228:31: runtime error: signed integer overflow: 1181876555555555561 * 10 cannot be represented in type 'long int'
+    #0 0x7f345af2279f in _SCOTCHmeshGeomLoadHabo /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/mesh_io_habo.c:228
+    #1 0x7f345aeeb239 in SCOTCH_meshGeomLoadHabo /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/library_mesh_io_habo.c:82
+    #2 0x562f81194dab in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/scotch/mcv.c:178
+    #3 0x7f3459c2a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #4 0x7f3459c2a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #5 0x562f81193384 in _start (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/mcv+0x4384) (BuildId: 1b9dbe60573bf907e011c0f3bfa02af318629ee5)
+
+--- SEP-16 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/geoload m16u.msh m16u.xyz
+ERROR: meshGeomLoadScot: vertex geometry data not found (0)
+
+=================================================================
+==12010==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 200 byte(s) in 1 object(s) allocated from:
+    #0 0x7fcca08fd9c7 in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:69
+    #1 0x7fcc9fd73303 in _SCOTCHmemAllocGroup /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/common_memory.c:508
+--- SEP-21 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/hmeshmesh
+ERROR: meshCheck: invalid number of isolated element vertices
+hmeshCheck=0
+hmeshMesh=0 meshCheck=1 velmnbr=3 velmbas=3 vnodnbr=3 edgenbr=8
+--- SEP-23 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/base
+=================================================================
+==12051==ERROR: AddressSanitizer: global-buffer-overflow on address 0x55bfd4f21078 at pc 0x7f3dd950039a bp 0x7fff4c50a060 sp 0x7fff4c50a050
+READ of size 8 at 0x55bfd4f21078 thread T0
+    #0 0x7f3dd9500399 in _SCOTCHmeshCheck /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/mesh_check.c:199
+    #1 0x55bfd4f1d597 in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/SEP-23/base.c:22
+    #2 0x7f3dd822a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #3 0x7f3dd822a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #4 0x55bfd4f1d344 in _start (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/base+0x3344) (BuildId: b1bb6eb121ab4ed3c3182997dafe6c11a1bc4d0a)
+--- API-06 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/bound 2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/scotch/src/check/data/small2.msh
+
+=================================================================
+==12084==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 408 byte(s) in 1 object(s) allocated from:
+    #0 0x7f25b52fd9c7 in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:69
+    #1 0x7f25b4773303 in _SCOTCHmemAllocGroup /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/common_memory.c:508
+    #2 0x7f25b491ad2c in _SCOTCHmeshLoad /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/mesh_io.c:159
+--- API-06 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/bound 3 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/scotch/src/check/data/small2.msh
+meshExit(container) done; underlying check=0
+--- API-08 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/fhabo ../SEP-08/hb_ok.mtx
+mesh_io_habo.c:94:21: runtime error: null pointer passed as argument 1, which is declared to never be null
+    #0 0x7fbe62920a98 in _SCOTCHmeshGeomLoadHabo /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/mesh_io_habo.c:94
+    #1 0x7fbe628eb239 in SCOTCH_meshGeomLoadHabo /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/library_mesh_io_habo.c:82
+    #2 0x7fbe628eb711 in SCOTCHFMESHGEOMLOADHABO /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/library_mesh_io_habo_f.c:115
+    #3 0x7fbe628eb2ed in scotchfmeshgeomloadhabo_ /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/library_mesh_io_habo_f.c:72
+    #4 0x555a0340363f in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/API-08/fhabo.c:12
+    #5 0x7fbe6162a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #6 0x7fbe6162a28a in __libc_start_main_impl ../csu/libc-start.c:360
+--- API-12 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/bound 0 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/scotch/src/check/data/small2.msh
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==12234==ERROR: AddressSanitizer: SEGV on unknown address 0x7f63c20f8060 (pc 0x7f634539a092 bp 0x7ffe4bae22c0 sp 0x7ffe4bae2270 T0)
+==12234==The signal is caused by a READ memory access.
+    #0 0x7f634539a092 in _SCOTCHgraphDumpArray /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/graph_dump.c:164
+    #1 0x7f634539a623 in _SCOTCHgraphDumpArrays /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/graph_dump.c:201
+    #2 0x7f63454c4a16 in SCOTCH_graphDump /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/library_graph_dump.c:89
+    #3 0x55ca5b9d08ee in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/API-12/bound.c:17
+--- API-12 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/bound 1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/scotch/src/check/data/small2.msh
+
+=================================================================
+==12274==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 584 byte(s) in 1 object(s) allocated from:
+    #0 0x7efeeecfd9c7 in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:69
+    #1 0x7efeee30cb8f in _SCOTCHmeshGraphNodal /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/mesh_graph.c:139
+    #2 0x7efeee2ead95 in SCOTCH_meshGraph /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/library_mesh_graph.c:83
+--- PS-SEP-1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/mtst m16_lbl.msh
+=================================================================
+==12314==ERROR: AddressSanitizer: attempting free on address which was not malloc()-ed: 0x511000000078 in thread T0
+    #0 0x7f7014cfc4d8 in free ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:52
+    #1 0x7f70142faa12 in _SCOTCHmeshFree /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/mesh.c:132
+    #2 0x7f70142fa0bd in _SCOTCHmeshExit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/mesh.c:88
+    #3 0x7f70142e191f in SCOTCH_meshExit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/library_mesh.c:133
+    #4 0x55998850d68f in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/scotch/mtst.c:167
+    #5 0x7f701302a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+--- hmeshExit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/hexit
+=================================================================
+==12340==ERROR: AddressSanitizer: attempting free on address which was not malloc()-ed: 0x5060000000a0 in thread T0
+    #0 0x7fa16a6fc4d8 in free ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:52
+    #1 0x7fa169c0d639 in _SCOTCHhmeshExit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hmesh.c:76
+    #2 0x5651cd9fa915 in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/hmeshExit/hexit.c:22
+    #3 0x7fa168a2a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #4 0x7fa168a2a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #5 0x5651cd9fa264 in _start (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/hexit+0x2264) (BuildId: c3bfa8379741c14db1241e9e9b9d9808354ebd29)
+--- meshLoad /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/gmk_msh bad_edge_hi.msh /dev/null
+gmk_msh: ERROR: meshCheck: invalid edge array (1)
+--- meshLoad /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/mord bad_edge_hi.msh /dev/null
+=================================================================
+==12368==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x519000000b00 at pc 0x7f6f715ccc79 bp 0x7fff10acc740 sp 0x7fff10acc730
+READ of size 8 at 0x519000000b00 thread T0
+    #0 0x7f6f715ccc78 in _SCOTCHhallOrderHdR2Halmd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hall_order_hd.c:710
+    #1 0x7f6f716019d3 in _SCOTCHhgraphOrderHd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hgraph_order_hd.c:143
+    #2 0x7f6f7160d14a in _SCOTCHhgraphOrderSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hgraph_order_st.c:312
+    #3 0x7f6f7162878b in _SCOTCHhmeshOrderGr /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hmesh_order_gr.c:93
+    #4 0x7f6f71637d7d in _SCOTCHhmeshOrderSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hmesh_order_st.c:290
+--- meshLoad /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/mord bad_edge_neg.msh /dev/null
+=================================================================
+==12393==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x519000000558 at pc 0x7f0facfcc4c9 bp 0x7ffec63eb2d0 sp 0x7ffec63eb2c0
+READ of size 8 at 0x519000000558 thread T0
+    #0 0x7f0facfcc4c8 in _SCOTCHhallOrderHdR2Halmd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hall_order_hd.c:686
+    #1 0x7f0fad0019d3 in _SCOTCHhgraphOrderHd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hgraph_order_hd.c:143
+    #2 0x7f0fad00d14a in _SCOTCHhgraphOrderSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hgraph_order_st.c:312
+    #3 0x7f0fad02878b in _SCOTCHhmeshOrderGr /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hmesh_order_gr.c:93
+    #4 0x7f0fad037d7d in _SCOTCHhmeshOrderSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/src/libscotch/hmesh_order_st.c:290
+--- meshLoad /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/gmk_msh bad_edge_huge.msh /dev/null
+gmk_msh: ERROR: meshCheck: invalid edge array (1)
+--- meshLoad /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan64/bin/gmk_msh bad_degr_neg.msh /dev/null
+gmk_msh: ERROR: meshLoad: invalid arc count (2)
+--- meshLoad /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G11-mesh-struct-io/repro/bin-pristine64/loadbase /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/v7.0.18/src/check/data/small2.msh 1
+ERROR: meshCheck: element vertices must not be connected together
+load=0 check=1
+1
+6	7	36
+1	7	000
+3	0	1	2
+3	0	1	5
+3	1	5	4

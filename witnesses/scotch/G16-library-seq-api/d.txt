@@ -1,0 +1,20 @@
+M	Processors 4/4 (1)
+M	Target min=7	max=7	avg=7	dlt=0	maxavg=1
+M	Neighbors min=3	max=3	sum=12
+M	CommDilat=0.541667	(13)
+M	CommExpan=0.355932	(21)
+M	CommCutSz=0.355932	(21)
+M	CommDelta=0.657106
+M	CommLoad[0]=0.644068
+M	CommLoad[1]=0.355932
+M	PartDiam	min=2	max=4	avg=2.750000
+---
+M	Processors 4/4 (1)
+M	Target min=7	max=7	avg=7	dlt=0	maxavg=1
+M	Neighbors min=3	max=3	sum=12
+M	CommDilat=0.541667	(13)
+M	CommExpan=0.355932	(21)
+M	CommCutSz=0.355932	(21)
+M	CommDelta=0.657106
+M	CommLoad[0]=0.644068
+M	CommLoad[1]=0.355932

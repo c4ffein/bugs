@@ -1,0 +1,65 @@
+From 54cbcfc7c0d46ef4feb12ac700d223ec025cfaa1 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:36:35 +0000
+Subject: [PATCH 010/232] Bugfix: check permutation sizes of labeled tree-leaf
+ architectures properly [report R. Perry]
+
+The loop of `archLtleafArchLoad()` that checks that the permutation
+size matches a level boundary read the size of level -1, before the
+array, when it did not. Also, `SCOTCH_archLtleaf()` did not perform
+this check, nor did it reject non-positive permutation sizes, so that
+permutations that did not span whole subtrees were accepted, and later
+caused out-of-bounds reads when mapping.
+
+Refs: COR-06, API-10
+---
+ src/libscotch/arch_tleaf.c   |  4 ++--
+ src/libscotch/library_arch.c | 17 +++++++++++++++++
+ 2 files changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/src/libscotch/arch_tleaf.c b/src/libscotch/arch_tleaf.c
+index 810dc72b..d9738aca 100644
+--- a/src/libscotch/arch_tleaf.c
++++ b/src/libscotch/arch_tleaf.c
+@@ -703,8 +703,8 @@ FILE * restrict const       stream)
+     Anum                sizeval;
+ 
+     for (levlnum = archptr->levlnbr - 1, sizeval = archptr->sizetab[levlnum];
+-         sizeval != archptr->permnbr; levlnum --, sizeval *= archptr->sizetab[levlnum]) {
+-      if (levlnum < 0) {
++         sizeval != archptr->permnbr; sizeval *= archptr->sizetab[levlnum]) {
++      if (-- levlnum < 0) {                       /* Check level number before using it */
+         errorPrint ("archLtleafArchLoad: permutation size does not match level boundaries");
+         return (1);
+       }
+diff --git a/src/libscotch/library_arch.c b/src/libscotch/library_arch.c
+index 01fb0364..8e780c63 100644
+--- a/src/libscotch/library_arch.c
++++ b/src/libscotch/library_arch.c
+@@ -614,6 +614,23 @@ const SCOTCH_Num * const    permtab)              /*+ Permutation array
+   tgtarchdatptr       = (ArchTleaf *) (void *) (&tgtarchptr->data);
+   tgtarchptr->clasptr = archClass ("ltleaf");     /* Override class */
+ 
++  if (permnbr < 1) {
++    errorPrint (STRINGIFY (SCOTCH_archLtleaf) ": invalid number of permutation indices");
++    goto fail;
++  }
++  if (permnbr != 1) {                             /* Valid empty permutation is of size 1 */
++    Anum                levlnum;
++    Anum                sizeval;
++
++    for (levlnum = tgtarchdatptr->levlnbr - 1, sizeval = tgtarchdatptr->sizetab[levlnum];
++         sizeval != permnbr; sizeval *= tgtarchdatptr->sizetab[levlnum]) {
++      if (-- levlnum < 0) {
++        errorPrint (STRINGIFY (SCOTCH_archLtleaf) ": permutation size does not match level boundaries");
++        goto fail;
++      }
++    }
++  }
++
+   if ((tgtarchdatptr->permtab = memAlloc (permnbr * 2 * sizeof (Anum))) == NULL) { /* TRICK: space for peritab too */
+     errorPrint (STRINGIFY (SCOTCH_archLtleaf) ": out of memory");
+ fail:
+-- 
+2.43.0
+

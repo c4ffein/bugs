@@ -1,0 +1,43 @@
+From 2ec541459c9b2df160e117163a4e4727ee3afd08 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:23:37 +0000
+Subject: [PATCH 115/232] Bugfix: release the mesh and its arrays in the
+ Fortran mesh build test program [report PyScotch]
+
+"test_scotch_mesh_build_f.f90" built a mesh but never called
+scotchfmeshexit, and never deallocated the "verttab" and "edgetab"
+arrays it allocated, unlike "test_libmetis_dual_f.f90". The program
+therefore fails as soon as it is run under LeakSanitizer. Release
+the mesh and the arrays before the end of the program.
+
+Refs: PS2-G17-7
+---
+ src/check/test_scotch_mesh_build_f.f90.in | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/check/test_scotch_mesh_build_f.f90.in b/src/check/test_scotch_mesh_build_f.f90.in
+index 757a5211..f8df62eb 100644
+--- a/src/check/test_scotch_mesh_build_f.f90.in
++++ b/src/check/test_scotch_mesh_build_f.f90.in
+@@ -39,7 +39,7 @@
+ !*                the mesh building routine.              **
+ !*                                                        **
+ !*   DATES      : # Version 7.0  : from : 24 jan 2026     **
+-!*                                 to     24 jan 2026     **
++!*                                 to     02 nov 2026     **
+ !*                                                        **
+ !234567*****************************************************
+ 
+@@ -99,4 +99,9 @@ program test_scotch_mesh_build
+     call exit_c (1)
+   end if
+ 
++  call scotchfmeshexit(meshdat)
++
++  deallocate (edgetab)
++  deallocate (verttab)
++
+ end program test_scotch_mesh_build
+-- 
+2.43.0
+

@@ -1,0 +1,512 @@
+[
+ {
+  "id": "API-03",
+  "our_title": "Map view renumbers parts into a private index array; user array and distances intact",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/repro/API-16/remap_p18 0 (pristine 7.0.18, 32-bit ASan): 'CommDilat= got: 1.000000 (7) ok', part arrays unchanged (explicit check). Also covered by src/check/test_scotch_graph_map_view (patch 0008) on the patched tree, bases 0/1, 32/64-bit.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "agrees with the review (silently wrong dilation/expansion for any non-trivial target plus corruption of the caller's array) but it is fixed",
+  "location_7_0_18": "src/libscotch/library_graph_map_view.c:291 (parttax un-based, read-only), 296-300 (pidxtax), 468-469 (archDomTerm on parttax)",
+  "evidence": "'parttax = lmapptr->parttab; /* Use un-based array */' ... 'pidxtax[domntab[vertidx].peri] = mapnbr;' ... 'archDomTerm (archptr, &domnorg, parttax[vertnum]);'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; the fix line ('renumber into private memory and keep the original parts for distance calculations') is exactly what d604eb1 does",
+  "first_pass_critique": "Status and evidence right. It did not check completeness: the Raw variants and SCOTCH_graphRemapView all go through graphMapView2 so they are covered; the Fortran wrappers only forward. What d604eb1 left behind is the remap loop (API-16/PS-API-1, which the first pass filed separately) and a side effect it made live: with parttax no longer renumbered, the '~0' tests at 462/466 now work, but the sorted domain loop still stops at a -1 label (PS2-G16-1, new).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/library_graph_map_view.c:302-320 (7.0.17)",
+    "quote": "for (vertidx = 0; domntab[vertidx].labl != ARCHDOMNOTTERM; vertidx ++)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Upstream d604eb1: private part index array (shipped in 7.0.17)",
+    "summary": "Renumber into pidxtax, keep parttax read-only and un-based until the comm loop, compute distances on original part numbers.",
+    "diff_file": "",
+    "tested": "repro/API-16 on 7.0.17, test_scotch_graph_map_view (part arrays checked after both views)",
+    "tradeoffs": "One more vertnbr-sized array in the group allocation.",
+    "preferred": true,
+    "maintainer_fit": "It is his own commit."
+   },
+   {
+    "label": "B. Restore the user array after use (7.0.16 alternative)",
+    "summary": "Keep the in-place renumbering but write the original labels back from domntab before returning, and compute distances from domntab labels.",
+    "diff_file": "",
+    "tested": "untested: against 7.0.16, superseded by d604eb1; shown for the record only (it would still compute distances on renumbered parts unless the comm loop is also changed)",
+    "tradeoffs": "No extra memory, but the caller's array is modified during the call and distances remain wrong unless more is changed.",
+    "preferred": false,
+    "maintainer_fit": "Rejected by the maintainer de facto."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_scotch_graph_map_view.c (patch 0009) checks that parttab and parotab are unchanged after SCOTCH_graphMapView/RemapView and that CommDilat is 1.000000 (7) on the 8-path/mesh 8x1 case",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed. No regression: 9e015dfe and a09f3249 touch neighbouring lines but keep pidxtax/parttax split."
+ },
+ {
+  "id": "API-14",
+  "our_title": "Single-vertex components still count as distance one in part pseudo-diameters",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "cd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/repro; sh build.sh $INFRA/asan _p18; API-14/diam_p18 (and _p18_64): 4 of 7 cases now ok; 'path2 base0, {0,1} (diam 0,0) got: min=1 max=1 avg=1.000000 expected: min=0 ... FAIL', 'path2 base1 ... got: min=1 ... FAIL', 'path4 base0, {0,1,0,1} got: min=2 max=2 expected: min=1 FAIL'. Shipped data, SCOTCH_PTHREAD_NUMBER=1: gmap small1.grf m11x13.tgt -vm 'PartDiam min=1 max=1' (7.0.18) vs 'min=0 max=0' (patched); gpart 9 bump_b100000.grf now 'min=41 max=61 avg=47.333333' on 7.0.18 (base fixed). Patched (0001): all 7 ok, 32/64-bit; test_scotch_graph_map_view one-to-one case 'PartDiam min=0 max=0'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "diagnostic output only, but every PartDiam ever printed is wrong by one and base-N graphs print zero; agrees with the review",
+  "location_7_0_18": "src/libscotch/library_graph_map_view.c:125 (distmax = 0), 136 (connval = distmax ++)",
+  "evidence": "'distmax = 0; /* Start distances from zero */' then 'connval = distmax ++; /* Start from previous distance */': distmax is 1 before the BFS, so a component whose farthest vertex is at distance 0 returns 1.",
+  "upstream_change": "a09f32492d Bugfix: compute connected components, distances and diameters properly [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "a09f32492d",
+   "verdict": "incomplete",
+   "details": "Correct: vertnbr -> vertnnd bound (library_graph_map_view.c:129,133), first component now starts at distance 0, and the -1 return of graphMapView3 is now tested with memFree(domntab) and return (1) (lines 541-546), which is complete since domntab is the group leader. Wrong: 'connval = distmax ++' (line 136) post-increments distmax before the BFS, so distmax is a floor of connval + 1: a single-vertex component reports 1 instead of 0 (every part of a one-vertex-per-part mapping, small1/m11x13 prints 'PartDiam min=1 max=1'), and the chaining of disconnected components is inconsistent (component of diameter 0 adds 1, of diameter d>=1 adds d, with no gap between components). 32/64-bit identical.",
+   "compared_with_ours": "Ours (7.0.17 0001) started distmax at -1 and kept 'connval = ++ distmax', giving 0 for singletons and chaining components as if joined by one edge; it also documented the return values of graphMapView3. His error-path check is equivalent to ours (he adds an errorPrint, slightly better). Ours is better on the arithmetic; the rebased 0001 keeps his error path and only changes the two distmax lines plus the header comment."
+  },
+  "review_accuracy": "accurate; its fix line (compare with vertnnd, start at 0, handle -1) is what the patch does. The review does not say what a disconnected part should report; the existing code chains components (sum of diameters plus one per extra component) and the patch keeps that, only removing the constant offset.",
+  "first_pass_critique": "Right on status and evidence. Its preferred diff keeps counting from one and subtracts one at the return with a clamp ('(distmax > 0) ? (distmax - 1) : 0'), which hides the off-by-one rather than removing it and makes the error code collide with a legitimate value only by accident; it also bundled an unrelated API-22 hunk (graphPartOvlView return) into the same sketch. The preferred patch here starts distmax at -1 so that 'connval = ++ distmax' is zero for the first component, and checks the -1 return in the caller.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/library_graph_map_view.c:136",
+    "quote": "connval = distmax ++;                         /* Start from previous distance */",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Start distmax at -1, pre-increment (rebased 0001)",
+    "summary": "distmax = -1; connval = ++ distmax: first component from 0, each next one from one past the previous diameter (components linked by an edge); doc of return values.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0001-Bugfix-compute-pseudo-diameters-of-single-vertex-com.patch",
+    "tested": "repro API-14 7/7 ok 32/64-bit; check_scotch_graph_map_view (new one-to-one case), check_scotch_graph_map, check_prog_gmap/gpart/gpart_remap/gpart_overlap 32/64-bit",
+    "tradeoffs": "Same numbers as our 7.0.17 patch. vs 7.0.18: single-vertex parts 1 -> 0; parts with k>1 components +1 per extra component where some component has diameter >= 1 (gpart 32 bump_imbal_32 -ro bump_old.map: 'min=16 max=40 avg=26.812500' -> 'min=16 max=41 avg=27.000000').",
+    "preferred": true,
+    "maintainer_fit": "Two-line change in his loop; keeps his error handling."
+   },
+   {
+    "label": "B. Keep his chaining, drop the post-increment",
+    "summary": "connval = distmax: components chained without gap (sum of diameters); singletons 0.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/alt/API-14-b-chain-without-gap.diff",
+    "tested": "read only (one-line change; not built)",
+    "tradeoffs": "Smallest diff; but a part made of isolated vertices reports 0, same as a single vertex, so disconnection becomes invisible.",
+    "preferred": false,
+    "maintainer_fit": "Matches his comment 'Start from previous distance' literally."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0001-Bugfix-compute-pseudo-diameters-of-single-vertex-com.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0008-Add-test-for-SCOTCH_graphMapView-and-SCOTCH_graphRem.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_scotch_graph_map_view.c (patch 0008): new one-vertex-per-processor view, 'PartDiam min=0 max=0 avg=0.000000' (7.0.18 prints min=1)",
+  "docs_updated": "graphMapView3 header comment (return values)",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed (a09f3249 fixed the vertnnd bound, the first-component offset and the -1 propagation, but introduced a +1 floor for zero-diameter components). Upstream also changed printed PartDiam values: gmap bump/h3 45/55/49.75 -> 44/54/48.75 and gpart bump k9 42/54/47.78 -> 41/53/46.78 (same as our patch); with 0001 small1/m11x13 1 -> 0 and the remap case above change in addition."
+ },
+ {
+  "id": "API-16",
+  "our_title": "Remap view migration domains: new domain now taken from the new mapping",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/repro/API-16/remap_p18 0 (7.0.18 32-bit ASan): 'AvgMigrDist= got: 7.000000 expected: 7.000000 ok'; gpart 32 bump_imbal_32.grf -rodata/bump_old.map -vm 'AvgMigrDist=1.000000'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "silently meaningless statistic; agrees with the review",
+  "location_7_0_18": "src/libscotch/library_graph_map_view.c:490-492",
+  "evidence": "'archDomTerm (archptr, &domnorg, parttax[vertnum]); /* Get terminal domains */ archDomTerm (archptr, &domnold, parotax[vertnum]);'",
+  "upstream_change": "9e015dfefb Bugfix: compute mapping distance from proper domain [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "9e015dfefb",
+   "verdict": "incomplete",
+   "details": "The one-line change (domnorg from parttax[vertnum], library_graph_map_view.c:490) is correct and is exactly our 7.0.17 hunk. It leaves the sibling defect in the same five lines: parotax (line 272) is still the un-based user array, indexed with based vertex numbers at 488-491, so base-1 graphs read one cell past the old mapping (PS-API-1, ASan stack-buffer-overflow at library_graph_map_view.c:486 with remap_p18 1).",
+   "compared_with_ours": "Our 7.0.17 0002 did both hunks (domnorg and parotax basing) plus a test (AvgMigrDist=7, bases 0/1). His covers API-16 only; the remainder is rebased 0002 (PS-API-1) and the test 0008."
+  },
+  "review_accuracy": "accurate; since d604eb1 parttax holds original part numbers at that point, so 'domnorg from parttax[vertnum]' is now the right fix (it would have been wrong on 7.0.16, where parttax was renumbered)",
+  "first_pass_critique": "Correct status, evidence and preferred fix; it also found the base-1 overflow (PS-API-1). Its second option (precomputed ArchDom arrays) is not a real alternative; the structural alternative given here folds the migration loop into the existing vertex loop instead.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Upstream 9e015dfe (shipped)",
+    "summary": "domnorg from parttax.",
+    "diff_file": "",
+    "tested": "repro API-16 base 0",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "his commit"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0008-Add-test-for-SCOTCH_graphMapView-and-SCOTCH_graphRem.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "test_scotch_graph_map_view (0008) checks AvgMigrDist=7.000000",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (9e015dfe). The base-1 crash is PS-API-1, still present."
+ },
+ {
+  "id": "API-18",
+  "our_title": "Distributed CommDelta now uses arcs over edge sums: twice the sequential value",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "ASAN_OPTIONS=detect_leaks=0 mpirun --oversubscribe -np 1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/repro/API-18/dview_p18 m4x4_b1_ev.grf k4.tgt: sequential 'M CommDelta=0.657106', distributed 'M CommDelta=1.314211'; -np 3 bump.grf k9.tgt: sequential 'CommDelta=1.000000', distributed 'CommDelta=2.000000' (7.0.17 printed 1.000000 for unweighted graphs). Patched (0006+0007): outputs identical line for line, m4x4_b1_ev/k4 np 1,2,3; bump/k9 np 3 64-bit 'CommDelta=1.000000' on both.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "diagnostic output, wrong only for weighted graphs; agrees with the review",
+  "location_7_0_18": "src/libscotch/library_dgraph_map_view.c:145-148",
+  "evidence": "': ((double) cmexsum * (double) grafptr->edgeglbnbr) / ((double) cmlosum * (double) cmdisum));' while CommDilat two lines above divides by '(grafptr->edgeglbnbr / 2)': cmlosum/cmdisum/cmexsum from SCOTCH_dgraphMapStat count each edge once, edgeglbnbr counts arcs.",
+  "upstream_change": "27f4193c38 Bugfix: compute distributed mapping delta from proper values [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "27f4193c38",
+   "verdict": "wrong",
+   "details": "He applied the review's formula verbatim, which our 7.0.17 audit had already flagged as off by a factor two: the distributed sums are edge-once (CommDilat at library_dgraph_map_view.c:135 divides by edgeglbnbr / 2) but edgeglbnbr counts arcs. Result: the weighted case moved from 0.406780 to 1.314211 (right value 0.657106), and the unweighted case, which was right in 7.0.17 (1.000000), is now 2.000000: a regression for every dgmap -v user (filed as PS3-G16-1). 32/64-bit identical.",
+   "compared_with_ours": "Our 7.0.17 0007 used '(grafptr->edgeglbnbr / 2)', the same expression as the CommDilat line, and was verified line-for-line against SCOTCH_graphMapView. Ours is right; the rebased 0006 changes only that factor on top of his formula."
+  },
+  "review_accuracy": "diagnosis accurate; its formula '(cmexsum * edgeglbnbr) / (cmlosum * cmdisum)' is off by a factor two (dgraphMapStat returns edge-once sums, edgeglbnbr counts arcs): it would print 1.314212 here",
+  "first_pass_critique": "Right, including the factor-two correction of the review. Its diff is a correct double-precision formula; the patch writes it with '(grafptr->edgeglbnbr / 2)' exactly as the CommDilat line ten lines above already does, so the three lines share one convention. The first pass did not build the gmap-vs-dgmap differential the user asked for.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Divide edgeglbnbr by two (rebased 0006)",
+    "summary": "'(double) (grafptr->edgeglbnbr / 2)' in his formula, as in the CommDilat line.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0006-Bugfix-count-edges-not-arcs-in-communication-delta-o.patch",
+    "tested": "dview differential np 1/2/3 (identical to sequential), bump/k9 np3 64-bit, check_prog_dgpart, check_prog_dgtst 32/64-bit",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "One-token change in his line, same idiom as line 135."
+   },
+   {
+    "label": "B. Literal 2.0 in doubles",
+    "summary": "(cmexsum * edgeglbnbr) / (cmlosum * cmdisum * 2.0).",
+    "diff_file": "",
+    "tested": "7.0.17 only",
+    "tradeoffs": "equivalent",
+    "preferred": false,
+    "maintainer_fit": "less consistent with line 135"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0006-Bugfix-count-edges-not-arcs-in-communication-delta-o.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0007-Make-SCOTCH_dgraphMapView-output-format-identical-to.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (value changed, still wrong by a factor two, and now wrong for unweighted graphs too). No src/check home: check_prog_dgpart does not compare against gpart; repro kit is the differential."
+ },
+ {
+  "id": "API-19",
+  "our_title": "Edge load sum now counts edges once in both stat routines",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/repro/API-19/stat_p18 and stat_p18_64: 'no loads: edlosum=3', 'unit loads: edlosum=3', 'loads 2,5,3: edlosum=10 avg=3.33333' ok; mpirun -np 1/2/3 dstat_p18: same; gtst m4x4_b1_ev.grf: 'Edge load min=1 max=7 sum=59' under 'Edge nbr=24'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "documented API output inconsistent by a factor two; agrees with the review",
+  "location_7_0_18": "src/libscotch/library_graph.c:498-500; src/libscotch/library_dgraph_stat.c:249-250",
+  "evidence": "'edlosum /= 2; /* Count edges, not arcs */' and 'edloglbsum /= 2; /* Count edges, not arcs */' after the averages.",
+  "upstream_change": "5a711ca523 Bugfix: compute weighted edge load sum like the unweighted one [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "5a711ca523",
+   "verdict": "correct",
+   "details": "Halves the weighted arc sum after the average in SCOTCH_graphStat (library_graph.c:500) and SCOTCH_dgraphStat (library_dgraph_stat.c:250): this is the edge convention (our option A), consistent with the unweighted branches and the manual. Both twins done; average and variance unchanged; 32/64-bit verified. Not done: the manuals still say only 'the sum of all edge loads' (kept as doc commit 0004), the never-assigned DgraphStatData.edlosum (PS2-G16-2) remains, and library_dgraph_stat.c header date was not bumped (still 08 oct 2025, cosmetic).",
+   "compared_with_ours": "Same code as our 7.0.17 0004 hunk for hunk (ours also clarified the doc). Decision 'edge-load sum convention' is now settled by upstream: edge convention. PyScotch assertions that change (weighted graphs only, value halves): tests/pyscotch_base/test_interop.py:65 (14 -> 7), :181 (4 -> 2), :246 (4 -> 2), :314 (10 -> 5), :357 (8 -> 4); tests/pyscotch_base/test_graph.py:144 ((1,3,12) -> (1,3,6)); tests/hypothesis/test_graph_properties.py:356 (2 * sum(edge_weights) -> sum(edge_weights), and the comment above it). Unweighted ones (test_graph_advanced.py:59,71, hypothesis unit-weight branch) unchanged. Scotch's own printed output: gtst/dgtst 'Edge load ... sum=' halves for weighted graphs (m4x4_b1_ev 118 -> 59)."
+  },
+  "review_accuracy": "accurate on the inconsistency; it leaves the convention open",
+  "first_pass_critique": "Right on status and evidence; it preferred the arc convention on the strength of the internal Graph.edlosum field, i.e. the opposite of what the user manual and gtst's own 'Edge nbr' line support, and it did not touch the doc. Its alternative also mis-stated that edloavg would need a change (it does not: the average is the same over arcs and over edges). It also left the never-assigned DgraphStatData.edlosum field alone (PS2-G16-2).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/library_dgraph_stat.h:60 / library_dgraph_stat.c:105",
+    "quote": "inout->edlosum += in->edlosum;  (field never assigned)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Upstream 5a711ca5 (shipped) + doc clarification (0004)",
+    "summary": "Edge convention; manuals say each edge is counted once.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0004-Document-edge-load-sum-of-SCOTCH_graphStat-and-SCOTC.patch",
+    "tested": "repro API-19, check_prog_gtst/dgtst 32/64",
+    "tradeoffs": "none beyond the behaviour change already shipped",
+    "preferred": true,
+    "maintainer_fit": "doc-only commit"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0004-Document-edge-load-sum-of-SCOTCH_graphStat-and-SCOTC.patch"
+  ],
+  "cleanup_done": "DgraphStatData.edlosum removed in 0005 (PS2-G16-2)",
+  "test_added": "",
+  "docs_updated": "doc/src/scotch/s_l.tex, doc/src/ptscotch/p_l.tex (0004)",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (5a711ca5, edge convention). PyScotch must update the seven weighted-graph assertions listed in upstream_fix_review."
+ },
+ {
+  "id": "API-21",
+  "our_title": "Mapping loader no longer reads past the sorted mapping array",
+  "status": "fixed",
+  "method": "partly-run",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/repro/API-21/tabload_p18 and tabload_p18_64: 'parttab = 5 -1 -1 -1 expected: 5 -1 -1 -1 ok'.",
+  "read_only": "the split-allocation ASan proof (split/) was not rebuilt: the bound is now checked right after the increment at library_graph_map_io.c:171-173, so mappsorttab[mappfilenbr] is never read",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "one-cell over-read inside the same allocation (harmless with unique labels), wrong part only with duplicate graph labels, which graphCheck does not reject; agrees with the review",
+  "location_7_0_18": "src/libscotch/library_graph_map_io.c:164-176",
+  "evidence": "'((Anum *) parttab)[vertsorttab[vertsortnum].num] = mappsorttab[mappfilenum].num; mappfilenum ++; if (mappfilenum >= mappfilenbr) goto skip;'",
+  "upstream_change": "199fa86105 Bugfix: do not read past array end [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "199fa86105",
+   "verdict": "correct",
+   "details": "After a match, the index is incremented and tested against mappfilenbr before the next while (library_graph_map_io.c:170-174), so the cell past the array is never read; duplicate graph labels now get -1 for the second vertex, as with our patch. Note a stray empty line before the closing brace at line 175 (cosmetic). The only other merge loops (graph_io_scot.c:189, mesh_io_scot.c:185) were already bounded. Fortran wrapper only forwards.",
+   "compared_with_ours": "Ours bounded the search inside the while and removed the goto/skip label; his keeps the goto and duplicates the end test. Equivalent behaviour; his is the smaller diff to his own code. Ours dropped."
+  },
+  "review_accuracy": "accurate; 'duplicate labels' means duplicate graph vertex labels (duplicate mapping labels are rejected at 137-143)",
+  "first_pass_critique": "Right on status, mechanism and the ASan subtlety. Its preferred fix (extra term in the for condition) works but keeps the goto/label; the maintainer's own merge loops bound the index inside the while and test it after (graph_io_scot.c:188-191, mesh_io_scot.c:185), which is what the patch does and lets the 'skip' label go.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/graph_io_scot.c:189, mesh_io_scot.c:185",
+    "quote": "while ((coornum < coornbr) && (coorsorttab[coornum].labl < vertsorttab[vertnum].labl))",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Upstream 199fa861 (shipped)",
+    "summary": "Test end of mapping data after the match.",
+    "diff_file": "",
+    "tested": "repro API-21 32/64",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "his"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (199fa861). Our 0006 dropped."
+ },
+ {
+  "id": "PS-API-1",
+  "our_title": "Old part array indexed with based vertex numbers without being based",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/repro/API-16/remap_p18 1 (base 1, 7.0.18 32-bit ASan): '==ERROR: AddressSanitizer: stack-buffer-overflow ... READ of size 4 #0 graphMapView2 library_graph_map_view.c:486 #1 SCOTCH_graphRemapView library_graph_map_view.c:647'. Patched (0002): no report, AvgMigrDist=7.000000, 32/64-bit; test_scotch_graph_map_view 1 passes.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "out-of-bounds read of the caller's array via a public API routine (gmap -ro on any base-1 graph); no write, diagnostic routine, hence medium not high",
+  "location_7_0_18": "src/libscotch/library_graph_map_view.c:272, 486-491",
+  "evidence": "'parotax = lmaoptr->parttab;' (no '- grafptr->baseval') while 'parttax -= grafptr->baseval;' (457) and 'vmlotax = (Gnum *) vmlotab - grafptr->baseval;' (280).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (found by the first pass)",
+  "first_pass_critique": "Correct; the preferred one-liner is what the patch does.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Base the old array once (rebased 0002)",
+    "summary": "parotax = lmaoptr->parttab - grafptr->baseval.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0002-Bugfix-base-old-part-array-in-SCOTCH_graphRemapView-.patch",
+    "tested": "repro API-16 base 1 32/64, check_scotch_graph_map_view, check_prog_gpart_remap",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "'tax = tab - baseval' idiom, as vmlotax eight lines below"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0002-Bugfix-base-old-part-array-in-SCOTCH_graphRemapView-.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0008-Add-test-for-SCOTCH_graphMapView-and-SCOTCH_graphRem.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "test_scotch_graph_map_view run with base 1 (0008)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (9e015dfe fixed the API-16 half of our 0002 only). Patch shrunk to the one-line basing; subject changed accordingly."
+ },
+ {
+  "id": "PS-API-7",
+  "our_title": "Distributed histogram division by cmlosum is guarded implicitly by cdstmax",
+  "status": "not-a-bug",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "library_dgraph_map_view.c:150-153 and library_dgraph_map_stat.c:379-383",
+  "why_not_run": "unchanged by 7.0.18 (only line 148 of the file was touched by 27f4193c); cmlosum == 0 with cdstmax >= 0 is unreachable, as established in 7.0.17",
+  "severity": "info",
+  "severity_note": "lower than the first pass's 'low': the division is never reached with a zero divisor",
+  "location_7_0_18": "src/libscotch/library_dgraph_map_view.c:150-153",
+  "evidence": "'for (cdstnum = 0; cdstnum <= cdstmax; cdstnum ++) ... (double) cdsttab[cdstnum] / (double) cmlosum'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review (first pass finding)",
+  "first_pass_critique": "Wrong: labelled still-present/low on a source read without checking how cdstmax is derived; the same structure exists in the sequential view it compared against.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. No change (recommended)",
+    "summary": "Leave as is.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "He does not add guards for unreachable conditions outside SCOTCH_DEBUG blocks."
+   },
+   {
+    "label": "B. Guard anyway",
+    "summary": "'(cmlosum == 0) ? 0.0 : ...' in the histogram line.",
+    "diff_file": "",
+    "tested": "compiles (mpicc)",
+    "tradeoffs": "Dead test.",
+    "preferred": false,
+    "maintainer_fit": "Noise."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: not-a-bug -> 7.0.18 status: not-a-bug (no regression; code identical)."
+ },
+ {
+  "id": "PS2-G16-1",
+  "our_title": "One unmapped vertex zeroes load, neighbor and diameter statistics of sequential map view",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "LD_LIBRARY_PATH=$INFRA/asan/lib $INFRA/asan/bin/gmtst m4x4.grf k2.tgt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/repro/PS2-G16-1/partial.map: 'M Processors 0/2 (0)', 'M Target min=0 max=0 avg=0 dlt=0 maxavg=0', 'M Neighbors min=0 max=0 sum=0', 'M PartDiam min=0 max=0 avg=0.000000'. Patched (0003): 'M Processors 2/2 (1)', 'M Target min=7 max=8 avg=7.5', 'M Neighbors min=1 max=1 sum=2'. test_scotch_graph_map_view built against pristine 7.0.18 fails: 'got \"0/8 (0)\", expected \"2/8 (0.25)\"'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_graph_map_view.c:302-309, 317, 333, 383, 387",
+  "evidence": "'for (vertidx = 0; domntab[vertidx].labl != ARCHDOMNOTTERM; vertidx ++)' after 'intSort2asc2 (domntab, grafptr->vertnbr);' with -1 parts sorted first; 'nghbtab[0] = -2;'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Mapped vertices only in domntab; ~0 sentinel in nghbtab (0003, applies unchanged)",
+    "summary": "as 7.0.17",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0003-Bugfix-do-not-account-for-unmapped-vertices-in-SCOTC.patch",
+    "tested": "repro partial.map, test_scotch_graph_map_view 0/1, check_scotch_graph_map, check_prog_gmap/gpart/gpart_remap/gpart_overlap 32/64",
+    "tradeoffs": "partial mappings: statistics become meaningful; full mappings unchanged",
+    "preferred": true,
+    "maintainer_fit": "mirrors SCOTCH_dgraphMapStat's unmapped-vertex handling"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0003-Bugfix-do-not-account-for-unmapped-vertices-in-SCOTC.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0008-Add-test-for-SCOTCH_graphMapView-and-SCOTCH_graphRem.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "test_scotch_graph_map_view third view (partial mapping)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (not touched upstream). Patch applied as is with git am -3 (date context only)."
+ },
+ {
+  "id": "PS2-G16-2",
+  "our_title": "DgraphStatData.edlosum is reduced across processes but never assigned",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "library_dgraph_stat.c and .h in 7.0.18",
+  "why_not_run": "dead field, no output depends on it; no MemorySanitizer on this box. Patched build: dstat repro 1-3 procs and check_prog_dgtst pass (32/64).",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_dgraph_stat.h:60; src/libscotch/library_dgraph_stat.c:68, 105",
+  "evidence": "'Gnum edlosum;' in DgraphStatData; 'inout->edlosum += in->edlosum;'; 'dgraphstatblentab[2] = { 7, 3 }'; never assigned.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Remove the field and its reduction (0005)",
+    "summary": "as 7.0.17",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0005-Remove-unused-field-from-DgraphStatData-structure.patch",
+    "tested": "dstat 1-3 procs, check_prog_dgtst 32/64",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "cleanup like his a5ee23b"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0005-Remove-unused-field-from-DgraphStatData-structure.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 5a711ca5 edited the same function without removing it. Header: the .h last block is 5.0, so per STYLE only its date is bumped (our 7.0.17 patch had added a 7.0 block; removed)."
+ },
+ {
+  "id": "PS2-G16-3",
+  "our_title": "Distributed map view labels and spacing differ from the sequential view",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "mpirun -np 1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/repro/API-18/dview_p18 m4x4_b1_ev.grf k4.tgt: sequential 'M Processors 4/4 (1)' / 'M CommLoad[0]=0.644068', distributed 'M Processors 4/4(1)' / 'M Cmlosum[0]=0.644068'. Patched (0007): identical.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_dgraph_map_view.c:116, 151",
+  "evidence": "'\"M\\tProcessors \" GNUMSTRING \"/\" GNUMSTRING \"(%g)\\n\"' and '\"M\\tCmlosum[\" ANUMSTRING \"]=%f\\n\"'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Align the distributed format on the sequential one (patch, separate commit)",
+    "summary": "Rename the histogram label to CommLoad and add the space, so that gmap -v and dgmap -v are comparable line for line.",
+    "diff_file": "",
+    "tested": "dview differential identical line for line on 5 graph/target/process-count combinations; check_prog_dgpart.",
+    "tradeoffs": "Output-format change: any script grepping 'Cmlosum[' breaks. Kept as its own commit so it can be dropped.",
+    "preferred": true,
+    "maintainer_fit": "Plausible but his call; the sequential naming predates the distributed one."
+   },
+   {
+    "label": "B. Leave the labels as they are",
+    "summary": "No change; document the difference.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "gmap -v and dgmap -v stay textually different.",
+    "preferred": false,
+    "maintainer_fit": "If he considers 'Cmlosum' a public label."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G16-library-seq-api/patches/0007-Make-SCOTCH_dgraphMapView-output-format-identical-to.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Kept as a separate droppable commit."
+ }
+]

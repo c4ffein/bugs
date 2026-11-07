@@ -1,0 +1,90 @@
+From 7886f73c93c2d9dc615582626fd0d06c7d91cc93 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:15:07 +0000
+Subject: [PATCH 003/232] Bugfix: complete loading and freeing of "dist"
+ architectures [report R. Perry]
+
+`archDistArchFree()` freed the sub-architecture without checking that
+it had been loaded, so that any malformed "dist" target file, e.g. one
+with a missing multiplicator value or with an invalid sub-architecture,
+dereferenced a NULL pointer. Also, the sub-architecture was loaded into
+an uninitialized body, which nested "sub" and "dist" architectures
+freed on error, and a loaded "dist" architecture did not inherit the
+flags of its sub-architecture, as `archDistArchBuild()` does, so that,
+e.g., a "dist" of a variable-sized architecture was handled as a
+fixed-size one by the mapping routines.
+
+This patch fixes these issues, makes the loader reject non-positive
+multiplicator values, as `kgraphInit()` does in debug mode, and makes
+`archDistArchBuild()` clear the `ARCHFREE` flag of the original
+architecture, which it does not own.
+
+Refs: COR-05
+---
+ src/libscotch/arch_dist.c | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/src/libscotch/arch_dist.c b/src/libscotch/arch_dist.c
+index d0d98a4c..bd015af7 100644
+--- a/src/libscotch/arch_dist.c
++++ b/src/libscotch/arch_dist.c
+@@ -43,7 +43,7 @@
+ /**   DATES      : # Version 6.0  : from : 14 feb 2011     **/
+ /**                                 to   : 30 jun 2014     **/
+ /**                # Version 7.0  : from : 18 feb 2018     **/
+-/**                                 to   : 13 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /**   NOTES      : # This pseudo-architecture is used by   **/
+ /**                  graph repartitioning routines to      **/
+@@ -93,7 +93,8 @@ FILE * restrict const       stream)
+   }
+ #endif /* SCOTCH_DEBUG_ARCH1 */
+ 
+-  if (intLoad (stream, &archptr->crloval) != 1) {
++  if ((intLoad (stream, &archptr->crloval) != 1) ||
++      (archptr->crloval < 1)) {
+     errorPrint ("archDistArchLoad: bad input (1)");
+     return (1);
+   }
+@@ -102,6 +103,7 @@ FILE * restrict const       stream)
+     errorPrint ("archDistArchLoad: out of memory");
+     return (1);
+   }
++  archInit (dstarchptr);                          /* Sub-architecture can be freed even if not loaded */
+ 
+   if (archLoad (dstarchptr, stream) != 0) {       /* Load sub-architecture */
+     errorPrint ("archDistArchLoad: bad input (2)");
+@@ -109,6 +111,7 @@ FILE * restrict const       stream)
+     return (1);
+   }
+   archptr->archptr = dstarchptr;
++  archArch (archptr)->flagval |= dstarchptr->flagval & ~ARCHFREE; /* Inherit flags of sub-architecture, as archDistArchBuild() does */
+ 
+   return (0);
+ }
+@@ -159,8 +162,10 @@ ArchDist * const            archptr)
+ #endif /* SCOTCH_DEBUG_ARCH1 */
+ 
+   if ((archArch (archptr)->flagval & ARCHFREE) != 0) { /* If sub-architecture needs to be freed too */
+-    archFree (archptr->archptr);
+-    memFree  (archptr->archptr);
++    if (archptr->archptr != NULL) {
++      archFree (archptr->archptr);
++      memFree  (archptr->archptr);
++    }
+   }
+ 
+   return (0);
+@@ -183,7 +188,7 @@ const Anum                  crloval)
+ 
+   archInit (archptr);                             /* Initialize architecture body */
+   archptr->clasptr = archClass ("dist");          /* Set architecture class       */
+-  archptr->flagval = orgarchptr->flagval;         /* Set architecture flag        */
++  archptr->flagval = orgarchptr->flagval & ~ARCHFREE; /* Set architecture flag; original architecture is not owned */
+   archdataptr = (ArchDist *) (void *) &archptr->data;
+   archdataptr->archptr = orgarchptr;
+   archdataptr->crloval = crloval;
+-- 
+2.43.0
+

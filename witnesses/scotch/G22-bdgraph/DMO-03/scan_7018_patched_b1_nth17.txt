@@ -1,0 +1,1 @@
+nth=17 exit=1 :: 1 (1): ERROR: bdgraphBipartSq: out of memory (1);1 fishim: rank 1: failing allocation #17;1 rank 0: ret=1 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1;1 rank 1: ret=1 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1;1 rank 2: ret=1 load0=15606 dlt=7803 size0=15606 comm=0 gainextn=0 fron=0 bal=1 balcalc=1;

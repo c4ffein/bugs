@@ -1,0 +1,494 @@
+[
+ {
+  "id": "COR-08",
+  "our_title": "Forked (de)compression children inherit sibling pipe ends; exit() flushes father's stdio",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Fork-mode ASan build of pristine 7.0.18 ($WORK/buildnp0 = asan CFLAGS minus -DCOMMON_PTHREAD* / -DSCOTCH_PTHREAD*), ASAN_OPTIONS=detect_leaks=0, in $WORK/run08: 'timeout 20 gpart 4 bump_b1.grf o1.map.gz' -> rc=0; 'gpart 4 bump_b1.grf o2.map.gz o2.log.gz' -> rc=124 (hang); './stdio_dup_np0 d1.gz d1.txt > log1.txt' -> HEADER printed 2 times; './stdio_dup_np0 d2.gz d3.gz' -> rc=124; patched test_common_file_compress with 3 files against pristine lib -> rc=124. Patched fork-mode build ($WORK/buildnp): gpart 2 files rc=0 (valid .gz), HEADER once, stdio_dup 2 gz rc=0 ('one'/'two'), 3-file test rc=0, check_common_file_compress passes (detect_leaks=1); pthread-mode build: check_common_file_compress passes (32 and 64 bit).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Hang and duplicated output, but only in builds without pthreads (all shipped Makefile.inc define COMMON_PTHREAD) and only in the tools (the library API takes FILE*); same as the review.",
+  "location_7_0_18": "src/libscotch/common_file_compress.c:255-261; common_file_decompress.c:232-238; common_file.c:296-301",
+  "evidence": "common_file_compress.c:255 'case 0 :                                      /* We are the son process    */' ... :258 'exit (EXIT_SUCCESS);' and :260 'close (filetab[0]);                         /* Close the reader pipe end */' (files unchanged since 7.0.17).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate: deadlock and the double flush both reproduced. Its 'or use O_CLOEXEC' fix would not work: the children are forked, never exec()'ed, so close-on-exec never triggers; the ends must be closed explicitly in the child.",
+  "first_pass_critique": "Status, method and the deadlock reproduction are right; the duplicated-stdout claim was marked 'not reproduced' only because the first pass could not produce pending stdout data through the CLI tools: a 20-line program (repro/COR-08/stdio_dup.c) that printf()s before fileBlockOpen() shows the line twice. Its preferred option A (process-global list + 2 new fields + list maintenance in fileCompressExit) works but carries more state than needed: fileBlockOpen() already knows every earlier stream, so passing the table and index to fileCompress()/fileDecompress() lets the child close exactly the parent-held ends without any bookkeeping (option A here). It also missed that the decompression child must close the earlier ends too (a stalled decompressor holding an earlier write end deadlocks fileBlockClose the same way) and the father-side buffer leak in fork mode (PS2-G07-1).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/common_file_decompress.c:232-235",
+    "quote": "case 0 : fclose (readptr); fileDecompress2 (compptr); exit (EXIT_SUCCESS);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/common_file_compress.c:259-261 / common_file_decompress.c:236-238 (father)",
+    "quote": "default : close (filetab[0]); /* bufftab of the father's copy is never freed in fork mode */",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Child closes the parent-held pipe ends of the tasks launched before it; _exit()",
+    "summary": "fileCompress()/fileDecompress() receive the File table and the index of the stream; after fork the child close()s fileno(filetab[j].fileptr) for every j < filenum with a (de)compression task, then leaves with _exit() so the father's stdio buffers are not flushed again. No new state, no list maintenance; thread implementation untouched. Test program takes an optional second output file; the check rules run a 3-file case.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0002-Bugfix-avoid-deadlocks-and-duplicate-output-of-forke.patch",
+    "tested": "fork-mode build: gpart with two .gz outputs, gz input + two gz outputs, stdio_dup, extended check_common_file_compress (leak detection on) all pass; pthread build: check_common_file_compress/random/thread/integer and the sequential subset pass; 0 warnings 32/64-bit.",
+    "tradeoffs": "Internal signature change of fileCompress()/fileDecompress() (only caller: fileBlockOpen). Ends opened by a previous, separate fileBlockOpen() call in the same process are not closed (no tool does that).",
+    "preferred": true,
+    "maintainer_fit": "Same shape as his 7.0.17 cleanups: fix the mechanism where the information already is (fileBlockOpen owns the table), no module-global state; he changed internal prototypes freely in this range (7ab89cb changed fileCompress's type parameter)."
+   },
+   {
+    "label": "B. Process-global list of running tasks (first pass's option)",
+    "summary": "Keep a linked list of FileCompress structures with a running child; children close every listed parent-held fd; fileCompressExit unlinks; _exit() in children.",
+    "diff_file": "",
+    "tested": "untested: sketch only (compiled in the first pass's tree, not here)",
+    "tradeoffs": "Two new struct fields, a global shared by two source files (needs module.h rename entries), list maintenance; covers streams from any earlier fileBlockOpen() call.",
+    "preferred": false,
+    "maintainer_fit": "More machinery than the defect needs; he avoids module globals except for the random context."
+   },
+   {
+    "label": "C. Close every descriptor above 2 in the child",
+    "summary": "Daemon idiom: loop close() over 3..sysconf(_SC_OPEN_MAX) except the two the child needs; _exit().",
+    "diff_file": "",
+    "tested": "untested: not run",
+    "tradeoffs": "No bookkeeping at all, but up to 2^20 close() calls per child in containers, and closes unrelated descriptors (MPI sockets) in the child.",
+    "preferred": false,
+    "maintainer_fit": "Brute force; not his style."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0002-Bugfix-avoid-deadlocks-and-duplicate-output-of-forke.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0003-Bugfix-free-data-buffer-of-forked-de-compression-tas.patch"
+  ],
+  "cleanup_done": "none needed (the old 'exit gracefully' comment and the local filetab[] name that collided with the new parameter were replaced in the same commit)",
+  "test_added": "src/check/test_common_file_compress.c accepts an optional second output file; src/check/Makefile check_common_file_compress and the CMakeLists.txt twin run a 3-file case (plain input, two compressed outputs: three children in fork mode) and verify the first output. Hangs on pristine fork-mode builds, passes patched.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Commits 0002/0003 apply unchanged; alternative diffs in the 7.0.17 alt/ directory not re-cut (options unchanged)."
+ },
+ {
+  "id": "COR-15",
+  "our_title": "intLoad() overflow now rejected on both INT sizes; fscanf/sscanf/atol twins still wrap",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/COR-15 on pristine 7.0.18: intload_fuzz (digit strings 1-22 digits, signs, values around INTVALMAX, vs strtoll) seeds 1, 7, 42 x 300000 -> '0 mismatches' on the 32-bit ($INFRA/asan) and 64-bit ($INFRA/asan64) trees (7.0.17: 109743 and 63957 mismatches). archload: 32-bit 'cmplt 4294967298', 'cmplt 5000000000', 'cmplt 9223372036854775810' -> 'ERROR: intLoad: overflow' / archLoad ret=1; 'cmplt 2147483647' loads (archSize=2147483647); 64-bit: 4294967298 and 5000000000 load exactly, 9223372036854775810 rejected. New test_common_integer passes on pristine 7.0.18 and patched trees (32/64), and via CMake ctest. Cost of the now unconditional check (-O3 non-debug builds of 7.0.17 and 7.0.18, 72 MB m1500.grf from gmk_m2 1500 1500, interleaved): intLoad CPU time over its 11244005 integers, best of 5 x 3 rounds: 7.0.17 0.359/0.361/0.365 s, 7.0.18 0.358/0.357/0.358 s; SCOTCH_graphLoad wall best: 0.373 s vs 0.389 s (machine load 16, within noise) -> no measurable cost (getc() dominates). Callers: all 161 intLoad call sites test '!= 1', sum the results (dgraph_io_load.c:684-691, dmesh_io_load.c:213-220, arch_cmpltw.c:499, esmumps/order_io.c:87-89) or use '1 - intLoad' (graph_io_scot.c:136, mesh_io_scot.c:133): all treat 0 as failure, so the overflow return value 0 matches every caller.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "intLoad itself fixed; the remaining twins are other parsers (separate owners), listed in extra_instances; SCOTCH_graphTabLoad twin patched as PS3-G07-1.",
+  "location_7_0_18": "src/libscotch/common_integer.c:79-124 (intLoad)",
+  "evidence": "common_integer.c:115-119: 'if ((intgval >= ((((UINT) INTVALMAX) + 9U) / 10U)) || ((intgval = intgval * 10U + (UINT) (charval - '0')) > ((UINT) INTVALMAX))) { /* Accumulate digits */ errorPrint (\"intLoad: overflow\"); return (0); }' unconditional; :121 '*intgptr = (INT) ((signval != 0) ? (- intgval) : intgval);'",
+  "upstream_change": "ff9d5a54 Make integer loading more robust [report Z. Li]: unsigned accumulation with an unconditional overflow check",
+  "upstream_fix_review": {
+   "commit": "ff9d5a54",
+   "verdict": "correct",
+   "details": "Correct on both INT sizes: the pre-multiplication bound (INTVALMAX+9)/10 is exact (no value that fits is rejected, intgval*10+9 cannot wrap the UINT), and the post-addition test rejects INTVALMAX+1..INTVALMAX+9; fuzz 0/900000 mismatches per size; the COMMON_DEBUG-only check that missed upward wraps is gone. Failure returns 0 like a syntax error, which every caller already tests (!= 1, sums, 1 - intLoad); the destination is untouched on error. Behaviour changes: (1) an error message 'intLoad: overflow' is now printed in release builds (fine); (2) '-INTVALMAX-1' (e.g. -2147483648) is now rejected, while 7.0.17 release builds accepted it by signed-overflow luck; harmless since Scotch never writes that value. Style nit: a doubled space in 'charval  = getc (stream);' after the '-' sign (common_integer.c:95). No test added. No measurable cost.",
+   "compared_with_ours": "Our 7.0.17 commit did the same check with signed arithmetic ('val > (INTVALMAX - car) / 10'), equivalent in results; his unsigned form is as good. Ours also added src/check/test_common_integer.c and its Makefile/CMake rules: rebased as a test-only commit 'Add test for integer loading routine `intLoad()`' (passes on 7.0.18). Neither covers the fscanf/atol twins (see extra_instances; graphTabLoad patched as PS3-G07-1)."
+  },
+  "review_accuracy": "accurate, including the end-to-end 'cmplt 4294967298 -> 2 terminals' reproducer; its 'Fix:' line (val > (INT_MAX - d) / 10 before multiplying) is exactly what works and is what the patch does.",
+  "first_pass_critique": "Correct on status, mechanism and the 5000000000 weakness (now run, not only computed). Its preferred option A used two comparisons (INTVALMAX/10 and INTVALMAX%10); the single-comparison form of the review's fix line is equivalent and cheaper. It did not add a test, did not remove the now-dead COMMON_DEBUG blocks in its sketch, and did not measure the cost although the commit's debug-only choice suggested a performance motive (none measurable at -O3).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/library_graph_map_io.c:99, :120 (SCOTCH_graphTabLoad, fscanf GNUMSTRING; ran: '0 4294967298' read as part 2 on 32-bit, saturated on 64-bit)",
+    "quote": "if ((fscanf (stream, GNUMSTRING, &mappfileval) != 1) ||",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/graph_io_chac.c:112-115 (Chaco header via sscanf %ld then Gnum cast; ran: header '4294967298 1' loads a 2-vertex graph with gcv on 32-bit)",
+    "quote": "(sscanf (chalinetab, \"%ld%ld%ld\",",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/graph_io_habo.c:112, :131-133; mesh_io_habo.c (Harwell-Boeing fixed-width atol)",
+    "quote": "habcrdnbr = (Gnum) atol (&habmatbuf[1][00]);",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/graph_io_mmkt.c:107 (MatrixMarket base via atol)",
+    "quote": "((baseval = (Gnum) atol (dataptr)) == 0) &&",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/scotch/gout_c.c:349, :578, :595 (tool reads geometry and mapping files with fscanf SCOTCH_NUMSTRING)",
+    "quote": "if ((fscanf (fileptr, SCOTCH_NUMSTRING,         /* Read number of mapping pairs */",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/parser_ll.l:137, :141, :153 (strategy lexer atol/atof; covered by G04 commit 0007)",
+    "quote": "PARSERYYLVAL (INTEGER) = (INT) atol (yytext);",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Upstream ff9d5a54 (unsigned accumulation, unconditional check) + our regression test",
+    "summary": "Nothing left to fix in intLoad; keep the test-only commit.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0001-Add-test-for-integer-loading-routine-intLoad.patch",
+    "tested": "check_common_integer passes on 32/64-bit ASan trees and with CMake ctest.",
+    "tradeoffs": "Test only.",
+    "preferred": true,
+    "maintainer_fit": "He adds tests in separate commits ('Add test for ...')."
+   },
+   {
+    "label": "B. Our 7.0.17 signed check-before-accumulate",
+    "summary": "Superseded by ff9d5a54.",
+    "diff_file": "",
+    "tested": "7.0.17 only.",
+    "tradeoffs": "Equivalent results.",
+    "preferred": false,
+    "maintainer_fit": "Superseded."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0001-Add-test-for-integer-loading-routine-intLoad.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0006-Bugfix-read-mapping-files-with-intLoad-in-SCOTCH_gra.patch"
+  ],
+  "cleanup_done": "none needed (upstream removed the COMMON_DEBUG block)",
+  "test_added": "src/check/test_common_integer.c + check_common_integer (Makefile CHECKSCOTCH list, CMakeLists.txt add_test)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: partially-fixed -> 7.0.18 status: fixed (ff9d5a54). Our fix hunk dropped; test kept. The fscanf twin in SCOTCH_graphTabLoad is a new finding (extra.json PS3-G07-1, commit 0006); the Chaco/HB/MatrixMarket/gout twins belong to the loader/tool groups and are listed only. NOTE: $INFRA/v7.0.18/src/check/data/m4x4.grf was overwritten (by another process, 08:46) with a deco target; our runs use copies from git show v7.0.18."
+ },
+ {
+  "id": "COR-17",
+  "our_title": "Large-count MPI wrappers exit on one rank before the collective; scalar counts unchecked",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/COR-17/commtest.c, 64-bit ASan pristine 7.0.18, 3 ranks, timeout 25: g1 -> '(0): ERROR: commGatherv: communication indices out of range (1)', '0 ret=13', rc=124 (others hang); s1 -> root ret=13, rc=124; s2 -> '1 ret=0' (count truncated), rc=124; a1 -> all 'ret=0' (silent wrong result). Fault injection (fishim.so on plain -O0 64-bit build, FI_RANK=0 FI_NTH=0): ok/s0/a0 -> '(0): ERROR: comm...: out of memory', '0 ret=16', rc=124. Patched: every case returns on all ranks with the same code (13, or 16 for injected failures), rc=0; ok cases ret=0. PT check targets: see SUMMARY.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Hang (and, for the unchecked scalars, silent truncation) but only in 64-bit Gnum builds with > 2^31-element gathers or an allocation failure; as the review.",
+  "location_7_0_18": "src/libscotch/comm.c:150-177 (commGatherv), :219-244 (commScatterv), :86-111 (commAllgatherv)",
+  "evidence": "comm.c:167-168 'errorPrint (\"commGatherv: communication indices out of range (1)\"); goto fail;' (root only); :110 'o = MPI_Allgatherv (senddattab, sendcntnbr, sendtypval,' (comm.c unchanged since 7.0.17).",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate (mechanism, location, and the 'Allreduce before the collective + range-check scalars' fix); it did not mention that the unchecked scalars give silently wrong results rather than a hang (a1 case).",
+  "first_pass_critique": "Right status and a real 2-rank reproduction; its preferred option is the one taken. It did not notice that commAllgatherv() narrows sendcntnbr with no check at all (silent wrong result on every rank), that commScatterv()'s unchecked recvcntnbr also yields a silent wrong count, nor that commAllgatherv() can hang on a rank-local allocation failure; its precedent claim ('agree with MPI_Allreduce then act' is used in dgraph routines) is only half true: the maintainer guards those agreements with SCOTCH_DEBUG_DGRAPH1/2 in release (dgraph_fold.c:290-297, dgraph_redist.c:129-136), which is why option B is listed.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/comm.c:110 (commAllgatherv)",
+    "quote": "o = MPI_Allgatherv (senddattab, sendcntnbr, sendtypval,",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/comm.c:243-244 (commScatterv)",
+    "quote": "recvdattab, (int) recvcntnbr, recvtypval, rootnum, comm);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/comm.c:95-96 (commAllgatherv, allocation on every rank)",
+    "quote": "errorPrint (\"commAllgatherv: out of memory\"); return     (MPI_ERR_OTHER);",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Check the local count on every rank, then MPI_Allreduce(MAX) the error code before the collective",
+    "summary": "cheklocval = MPI_SUCCESS / MPI_ERR_ARG / MPI_ERR_OTHER per rank; MPI_Allreduce (&cheklocval, &chekglbval, 1, MPI_INT, MPI_MAX, comm); the collective is called only when chekglbval == MPI_SUCCESS, else every rank returns chekglbval. Same structure in the three routines.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0004-Bugfix-agree-on-errors-before-entering-collectives-i.patch",
+    "tested": "commtest cases g1/g2/s1/s2/a1/ok/s0/a0 and the malloc injections (root and non-root) on 3 ranks; dgraph check targets on 32- and 64-bit; 0 warnings.",
+    "tradeoffs": "One extra int Allreduce per call in 64-bit Gnum builds only (these wrappers already allocate and convert two int arrays per call; the gathers they wrap move > 2^31 elements or are called once per nested-dissection level in hdgraphGather). All ranks now return the same code; the failing rank alone prints the message.",
+    "preferred": true,
+    "maintainer_fit": "His own agreement idiom (cheklocval/chekglbval + MPI_Allreduce MPI_MAX) as in dgraph_fold.c:291; made unconditional here because the error is data-driven (counts), not only allocation failure, and because the 32-bit fast path is untouched. The 'out of range (1)/(2)' numbering follows his 73229e6 messages."
+   },
+   {
+    "label": "B. Same checks, agreement only under a debug flag",
+    "summary": "Keep the Allreduce under #ifdef SCOTCH_DEBUG_COMM1 as he does for allocation failures in dgraph_fold/redist/gather_all; release stays rank-local.",
+    "diff_file": "",
+    "tested": "untested: sketch",
+    "tradeoffs": "No cost in release, but the hang of COR-17/PS-COR-2 remains in release; only the silent truncations are fixed there.",
+    "preferred": false,
+    "maintainer_fit": "Matches his dgraph habit, but leaves the review's lead open; he may still prefer it for cost reasons (user decision noted in SUMMARY)."
+   },
+   {
+    "label": "C. MPI_Abort on any local failure",
+    "summary": "Replace the early returns by errorPrint + MPI_Abort (comm, code).",
+    "diff_file": "",
+    "tested": "untested: sketch",
+    "tradeoffs": "Deadlock-free and free, but unrecoverable and contrary to the error-code contract of the library.",
+    "preferred": false,
+    "maintainer_fit": "He returns error codes; no MPI_Abort in libscotch."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0004-Bugfix-agree-on-errors-before-entering-collectives-i.patch"
+  ],
+  "cleanup_done": "the 'fail:' label and the 'o = MPI_ERR_ARG; /* Assume a parameter overflow error */' pre-set from 73229e6 removed (replaced by cheklocval)",
+  "test_added": "; no natural home: the defect needs Gnum counts > 2^31 (hundreds of MB per rank) or an injected allocation failure; the existing check_scotch_dgraph_* targets exercise the wrappers' success path and were run.",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: partially-fixed -> 7.0.18 status: still-present (no change in 7.0.18; the 7.0.17 partial fix remains partial; 'still-present' describes the remaining defect). Commit 0004 applies unchanged."
+ },
+ {
+  "id": "COR-18",
+  "our_title": "Per-rank seeding multiplies two odd numbers: distinct states per rank (regression check)",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "mpirun --oversubscribe -np 4 rankstream (pristine 7.0.18 32-bit ASan): 'rank 0: 336419271 313946438 ...', 'rank 1: 416956115 ...', 'rank 2: 61285343 ...', 'rank 3: 477366507 ...' -- distinct and identical to the 7.0.17 record.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "as the review",
+  "location_7_0_18": "src/libscotch/common_integer.c:237, :251",
+  "evidence": "common_integer.c:251 'randval = (((UINT64) randptr->seedval) * 2U + 1U) * (((UINT64) randptr->procval) * 2U + 1U); /* Account for process index */'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate for 7.0.16 (collision pairs reproduced arithmetically: 1022 of 1024 ranks paired)",
+  "first_pass_critique": "Right conclusion, but status by source-read only; now confirmed with an MPI run on 4 ranks and an exhaustive 1024-rank collision count. Its label 'fixed' should be 'fixed-in-7.0.17'.",
+  "extra_instances": [],
+  "fix_options": [],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed (ff9d5a54 touched only intLoad in this file)."
+ },
+ {
+  "id": "PS-COR-2",
+  "our_title": "commGatherv() local send-count check exits one rank before the collective",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "commtest g2 (rank 1 sendcntnbr = 2^33), 64-bit ASan pristine 7.0.18: '(1): ERROR: commGatherv: communication indices out of range (2)', '1 ret=13', ranks 0 and 2 hang (rc=124). Patched: all three ranks ret=13, rc=0.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Same hang as COR-17, reachable from any non-root rank's count; raised from the first pass's 'low' because it is one defect with COR-17 and fixed by the same commit.",
+  "location_7_0_18": "src/libscotch/comm.c:173-177",
+  "evidence": "comm.c:175-176 'errorPrint (\"commGatherv: communication indices out of range (2)\"); goto fail;' before MPI_Gatherv on that rank only.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review",
+  "first_pass_critique": "Correct; source-read only, now run (case g2). It is the same design defect as COR-17 and is fixed by the same commit, which the first pass's two separate entries did not say.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Collective agreement (same commit as COR-17)",
+    "summary": "See COR-17 option A: the local check sets cheklocval, the Allreduce makes every rank return MPI_ERR_ARG.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0004-Bugfix-agree-on-errors-before-entering-collectives-i.patch",
+    "tested": "case g2 patched: all ranks ret=13, rc=0",
+    "tradeoffs": "as COR-17 A",
+    "preferred": true,
+    "maintainer_fit": "as COR-17 A"
+   },
+   {
+    "label": "B. MPI_Abort",
+    "summary": "See COR-17 option C.",
+    "diff_file": "",
+    "tested": "untested: sketch",
+    "tradeoffs": "unrecoverable",
+    "preferred": false,
+    "maintainer_fit": "as COR-17 C"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0004-Bugfix-agree-on-errors-before-entering-collectives-i.patch"
+  ],
+  "cleanup_done": "see COR-17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present; same commit as COR-17."
+ },
+ {
+  "id": "PS-SEP-6",
+  "our_title": "intRandVal2() returns a 64-bit type but truncates the generator output to UINT",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/PS-SEP-6/val2probe: pristine 7.0.18 32-bit 'OR of high 32 bits over 100000 draws = 0x00000000'; patched 32-bit '= 0xffffffff'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Only the seeds of spawned/split sub-generators in 32-bit builds are weaker (32 bits of entropy instead of 64); no wrong results.",
+  "location_7_0_18": "src/libscotch/common_integer.c:470 (intRandVal2), :290 (intRandSpawn)",
+  "evidence": "common_integer.c:470 'return ((UINT) intRandVal3 (&contptr->statdat));'; :290 'intRandSeed (rnewptr, (INT) seedval);'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "not in the review",
+  "first_pass_critique": "Correct, source-read only; missed the sibling cast in intRandSpawn() left by the same commit, and claimed bgraphBipartGaLoop 'slices by bits' as the consumer: it assigns the value to a UINT and uses sizeof (UINT) slices, so it is unaffected (and wastes 7/8 of each draw, PS2-G07-2). The real consumers are contextThreadLaunchSplit() (seed of sub-context 1) and intRandSpawn() (per-thread generators of bgraphBipartGg).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/common_integer.c:298 (intRandSpawn)",
+    "quote": "intRandSeed (rnewptr, (INT) seedval);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/bgraph_bipart_ga.c:174-178",
+    "quote": "UINT randval; ... randval = contextIntRandVal2 (grafptr->contptr); randnbr = MIN (sizeof (UINT), partnum);",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Drop both casts",
+    "summary": "intRandVal2 returns intRandVal3 directly; intRandSpawn passes the 64-bit seed.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0005-Bugfix-do-not-truncate-64-bit-pseudo-random-values-t.patch",
+    "tested": "val2probe on both int sizes; single-thread determinism unchanged; check_common_random/thread, graph_map/order, prog_* and the dgraph checks pass.",
+    "tradeoffs": "Seeds of split sub-contexts and spawned per-thread generators change in 32-bit INT builds (threaded runs only; 7.0.17 already changed 32-bit streams in b41893e by moving the modulo to 64 bits). Shipped check targets compare no reference outputs, so none changes.",
+    "preferred": true,
+    "maintainer_fit": "Completes his own b41893e; one-line fixes in the spirit of 64ec683."
+   },
+   {
+    "label": "B. Declare intRandVal2 as UINT",
+    "summary": "Keep the truncation, change the prototype.",
+    "diff_file": "",
+    "tested": "untested: not run",
+    "tradeoffs": "Contradicts the 64-bit API commit; 32-bit sub-context seeds stay 32-bit.",
+    "preferred": false,
+    "maintainer_fit": "Reverts his stated intent."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0005-Bugfix-do-not-truncate-64-bit-pseudo-random-values-t.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present; commit 0005 applies unchanged on top of ff9d5a54."
+ },
+ {
+  "id": "PS2-G07-1",
+  "our_title": "Fork-mode (de)compression leaks the father's copy of the data buffer",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine fork-mode build: ASAN_OPTIONS=detect_leaks=1 ./tcfc_new_np0 bump_b1.grf p3.gz -> 'Direct leak of 131080 byte(s) ... _SCOTCHfileCompress ... _SCOTCHfileBlockOpen'. Patched fork-mode build: 0 leaks; check_common_file_compress passes with detect_leaks=1.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/common_file_compress.c:224; common_file_decompress.c:201",
+  "evidence": "common_file_compress.c:224 '((compptr->bufftab = memAlloc (FILECOMPRESSDATASIZE)) == NULL)) {' freed only by the child in fork mode.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Father frees the buffer right after fork()",
+    "summary": "memFree (compptr->bufftab) in the 'default:' branch of both fork switches.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0003-Bugfix-free-data-buffer-of-forked-de-compression-tas.patch",
+    "tested": "fork-mode check_common_file_compress with detect_leaks=1 passes; gpart with two .gz outputs reports no leak.",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "two-line fix in the fork branch he already owns"
+   },
+   {
+    "label": "B. Allocate the buffer in the task (thread/child) instead of the father",
+    "summary": "Move the memAlloc into fileCompress2()/fileDecompress2().",
+    "diff_file": "",
+    "tested": "untested: not written",
+    "tradeoffs": "Allocation failure could then no longer be reported to the caller of fileBlockOpen().",
+    "preferred": false,
+    "maintainer_fit": "loses the error path"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G07-common-misc/patches/0003-Bugfix-free-data-buffer-of-forked-de-compression-tas.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G07-2",
+  "our_title": "bgraphBipartGaLoop() uses sizeof (UINT) bits of each random value",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "bgraph_bipart_ga.c:178",
+  "why_not_run": "Quality-of-randomness defect with no observable failure; bgraph_bipart_ga.c unchanged since 7.0.17 (git diff empty).",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/bgraph_bipart_ga.c:178",
+  "evidence": "'randnbr = MIN (sizeof (UINT), partnum);       /* Compute useable slices   */'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Use UINT64 and sizeof (UINT64) << 3 slices",
+    "summary": "See diff.",
+    "diff_file": "",
+    "tested": "untested: changes GA outputs by design",
+    "tradeoffs": "8x fewer generator calls when filling demes; GA results change.",
+    "preferred": true,
+    "maintainer_fit": "his decision (determinism of GA across versions)"
+   },
+   {
+    "label": "B. Leave as is",
+    "summary": "Document that only the low bits are used.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "wasteful but correct",
+    "preferred": false,
+    "maintainer_fit": "n/a"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No patch (as in 7.0.17)."
+ },
+ {
+  "id": "PS2-G07-3",
+  "our_title": "gz (de)compression closes the descriptor with gzclose() but leaves the FILE* open",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "common_file_compress.c:326, :341; common_file_decompress.c:322, :336",
+  "why_not_run": "Descriptor-level leak with no failing symptom in the test suite; common_file_compress.c / common_file_decompress.c unchanged since 7.0.17.",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/common_file_compress.c:326, :341; common_file_decompress.c:322, :336",
+  "evidence": "common_file_compress.c:341 'gzclose (encoptr);                              /* Closes oustptr */'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. gzdopen (dup (fileno (oustptr))) then fclose (oustptr) as the other two formats do",
+    "summary": "Keeps stdio and zlib ownership separate.",
+    "diff_file": "",
+    "tested": "untested: not written",
+    "tradeoffs": "one dup() per stream",
+    "preferred": true,
+    "maintainer_fit": "mirrors his 'Do as zlib does' comment in the twins, the other way round"
+   },
+   {
+    "label": "B. Leave as is",
+    "summary": "Tools-only code path.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "stale FILE* per compressed stream in long-running programs",
+    "preferred": false,
+    "maintainer_fit": "n/a"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. No patch."
+ }
+]

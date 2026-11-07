@@ -1,0 +1,18 @@
+pristine strat=default thr=1 distinct=1  1d497d7dx20
+pristine strat=default thr=2 distinct=4  24c5cba2x6 92721f40x8 944fb99ax2 d02c4de7x4
+pristine strat=default thr=4 distinct=2  9d2f3264x17 f7c5c291x3
+pristine strat=h thr=1 distinct=1  44898414x20
+pristine strat=h thr=2 distinct=1  184be4b5x20
+pristine strat=h thr=4 distinct=3  6d66626fx10 82e36d44x6 a399b3e7x4
+patched strat=default thr=1 distinct=1  1d497d7dx20
+patched strat=default thr=2 distinct=1  e180dfcfx20
+patched strat=default thr=4 distinct=1  e180dfcfx20
+patched strat=h thr=1 distinct=1  44898414x20
+patched strat=h thr=2 distinct=1  82e36d44x20
+patched strat=h thr=4 distinct=1  82e36d44x20
+pyscotch-patch strat=default thr=1 distinct=1  1d497d7dx12
+pyscotch-patch strat=default thr=2 distinct=1  e180dfcfx12
+pyscotch-patch strat=default thr=4 distinct=1  e180dfcfx12
+pyscotch-patch strat=h thr=1 distinct=1  44898414x12
+pyscotch-patch strat=h thr=2 distinct=1  82e36d44x12
+pyscotch-patch strat=h thr=4 distinct=1  82e36d44x12

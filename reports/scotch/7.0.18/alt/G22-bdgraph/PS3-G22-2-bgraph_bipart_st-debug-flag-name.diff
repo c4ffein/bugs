@@ -1,0 +1,21 @@
+diff --git a/src/libscotch/bgraph_bipart_st.c b/src/libscotch/bgraph_bipart_st.c
+index b83b7c45..f021abc7 100644
+--- a/src/libscotch/bgraph_bipart_st.c
++++ b/src/libscotch/bgraph_bipart_st.c
+@@ -305,14 +305,14 @@ const Strat * restrict const  straptr)            /*+ Bipartitioning strategy
+     case STRATNODECOND :
+       o = stratTestEval (straptr->data.conddat.testptr, &testdat, (void *) grafptr); /* Evaluate expression */
+       if (o == 0) {                               /* If evaluation was correct */
+-#ifdef SCOTCH_DEBUG_VGRAPH2
++#ifdef SCOTCH_DEBUG_BGRAPH2
+         if ((testdat.testval != STRATTESTVAL) ||
+             (testdat.nodeval != STRATPARAMLOG)) {
+           errorPrint ("bgraphBipartSt: invalid test result");
+           o = 1;
+           break;
+         }
+-#endif /* SCOTCH_DEBUG_VGRAPH2 */
++#endif /* SCOTCH_DEBUG_BGRAPH2 */
+         if (testdat.data.val.vallog == 1)         /* If expression is true                           */
+           o = bgraphBipartSt (grafptr, straptr->data.conddat.stratab[0]); /* Apply first strategy    */
+         else {                                    /* Else if expression is false                     */

@@ -1,0 +1,55 @@
+From 5a5991968cc6ab7adc7cb29efcf7609b9338ca52 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:15:50 +0000
+Subject: [PATCH 035/232] Bugfix: make master thread join start-up barrier when
+ thread creation fails [report R. Perry]
+
+When a thread could not be created, the thread number was reduced to
+the number of threads launched to date, master included, but the
+master thread did not take part in the start-up barrier. Hence, the
+launched slave threads could never complete it, and
+`threadContextExit3()`, which counts the slave threads having entered
+the barrier as terminated ones, destroyed the lock features while the
+slave threads were still waiting on them, after which the context was
+freed. With the GNU libc, `pthread_cond_destroy()` waited forever for
+these threads.
+The master thread now joins the start-up barrier after having reduced
+the thread number, under the protection of the lock, so that launched
+threads reach their wait loop and terminate before the lock features
+are destroyed.
+
+Refs: COR-09
+---
+ src/libscotch/common_thread.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/src/libscotch/common_thread.c b/src/libscotch/common_thread.c
+index 6a394728..4ba29298 100644
+--- a/src/libscotch/common_thread.c
++++ b/src/libscotch/common_thread.c
+@@ -41,7 +41,7 @@
+ /**   DATES      : # Version 6.0  : from : 04 jul 2012     **/
+ /**                                 to   : 27 apr 2015     **/
+ /**                # Version 7.0  : from : 03 jun 2018     **/
+-/**                                 to   : 24 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -142,8 +142,11 @@ const int * const           coretab)
+ 
+     if (threadCreate (&desctab[thrdnum], thrdnum, corenum) != 0) {
+       errorPrint ("threadContextInit: cannot create thread (%d)", thrdnum);
+-      contptr->thrdnbr = thrdnum;                 /* Terminate all threads that have been launched to date */
+-      threadContextExit3 (contptr);               /* Wait for already launched threads to terminate        */
++      pthread_mutex_lock   (&contptr->lockdat);
++      contptr->thrdnbr = thrdnum;                 /* Only threads launched to date take part in start-up barrier */
++      pthread_mutex_unlock (&contptr->lockdat);
++      threadContextBarrier (contptr);             /* Let launched threads complete their start-up barrier        */
++      threadContextExit3 (contptr);               /* Wait for already launched threads to terminate              */
+       memFree (desctab);
+       return  (1);
+     }
+-- 
+2.43.0
+

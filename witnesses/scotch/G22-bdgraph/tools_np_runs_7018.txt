@@ -1,0 +1,5 @@
+np=1:  rc=0
+np=2:       1 dgmap(1): ERROR: main: target architecture file not provided; rc=0
+np=3:       1 dgmap(1): ERROR: main: target architecture file not provided;      1 dgmap(2): ERROR: main: target architecture file not provided; rc=0
+np=2 rc=1
+rc=0 lines=15607

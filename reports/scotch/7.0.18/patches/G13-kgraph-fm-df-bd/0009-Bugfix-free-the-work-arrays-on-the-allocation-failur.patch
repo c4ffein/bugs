@@ -1,0 +1,79 @@
+From f511c7ea43258d19d0e0c1eca80c63bb727b5d87 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:54:00 +0000
+Subject: [PATCH 241/248] Bugfix: free the work arrays on the allocation
+ failure paths of `kgraphMapFm()` [report PyScotch]
+
+The out of memory paths numbered (4) to (7) released only part of the
+work arrays (the hash table, the save array, the extended edge array,
+the imbalance arrays and the gain table), or nothing at all. Path (4)
+could also not free the arrays already allocated, as the pointers were
+left uninitialized. The remaining internal error paths of the routine
+still leak and are left to a restructuring of the routine.
+
+Tested with an allocation failure injected (scratch-only hook) in the
+extended edge array resize: LeakSanitizer reports the leaked arrays
+before the change and nothing after.
+---
+ src/libscotch/kgraph_map_fm.c | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/src/libscotch/kgraph_map_fm.c b/src/libscotch/kgraph_map_fm.c
+index 79bf0b2..a791754 100644
+--- a/src/libscotch/kgraph_map_fm.c
++++ b/src/libscotch/kgraph_map_fm.c
+@@ -1108,10 +1108,20 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+     return (1);
+   }
+   else {
++    vexxtab = NULL;                               /* In case of partial allocation failure */
++    savetab = NULL;
++    edxxtab = NULL;
+     if (((vexxtab = memAlloc ((size_t) hashsiz * sizeof (KgraphMapFmVertex))) == NULL) ||
+         ((savetab = memAlloc ((size_t) savesiz * sizeof (KgraphMapFmSave)))   == NULL) ||
+         ((edxxtab = memAlloc ((size_t) edxxsiz * sizeof (KgraphMapFmEdge)))   == NULL)) {
+       errorPrint ("kgraphMapFm: out of memory (4)");
++      if (edxxtab != NULL)
++        memFree (edxxtab);
++      if (savetab != NULL)
++        memFree (savetab);
++      if (vexxtab != NULL)
++        memFree (vexxtab);
++      memFree (comploadmax);                      /* Free group leader */
+       kgraphMapFmTablExit (tablptr);
+       return (1);
+     }
+@@ -1124,6 +1134,9 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+     if (kgraphMapFmResize (&vexxtab, &hashmax, &hashmsk, savetab, 0, tablptr, edxxtab, &lockptr) != 0) {
+       errorPrint ("kgraphMapFm: out of memory (5)");
+       memFree    (vexxtab);                       /* Free group leader */
++      memFree    (savetab);
++      memFree    (edxxtab);
++      memFree    (comploadmax);                   /* Free group leader */
+       kgraphMapFmTablExit (tablptr);
+       return (1);
+     }
+@@ -1500,6 +1513,10 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+           if ((saveptr = memRealloc (savetab, savesiz * sizeof (KgraphMapFmSave))) == NULL) {
+             errorPrint ("kgraphMapFm: out of memory (6)");
+             memFree    (savetab);                 /* Free group leader */
++            memFree    (vexxtab);
++            memFree    (edxxtab);
++            memFree    (comploadmax);             /* Free group leader */
++            kgraphMapFmTablExit (tablptr);
+             return (1);
+           }
+           savetab = saveptr;
+@@ -1508,6 +1525,9 @@ const KgraphMapFmParam * const    paraptr)        /*+ Method parameters +*/
+           if (kgraphMapFmResize (&vexxtab, &hashmax, &hashmsk, savetab, savenbr, tablptr, edxxtab, &lockptr) != 0) {
+             errorPrint ("kgraphMapFm: out of memory (7)");
+             memFree    (vexxtab);                 /* Free group leader */
++            memFree    (savetab);
++            memFree    (edxxtab);
++            memFree    (comploadmax);             /* Free group leader */
+             kgraphMapFmTablExit (tablptr);
+             return (1);
+           }
+-- 
+2.47.3
+

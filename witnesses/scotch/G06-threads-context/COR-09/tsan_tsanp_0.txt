@@ -1,0 +1,2 @@
+spawn (4) returned 0
+exit done

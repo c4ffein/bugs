@@ -1,0 +1,151 @@
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-01_gra01 64 1
+ret=0 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 14
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-01_gra01 64 0
+ret=0 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 14
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-01_gra01 32 0
+ret=0 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 255 383 511 767 895 1023
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-01_gra01 300 0 1
+ret=0 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 14
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/PS3-G12-1_fewfix 1 64
+rc=124
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/PS3-G12-1_fewfix 4 64
+rc=124
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/PS3-G12-1_fewfix 1 8
+ret=0 badparts=0 check=0
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/PS3-G12-1_fewfix 64 64
+ret=0 badparts=0 check=0
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/PS3-G12-1_fewfix 1 1024 64
+rc=124
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-05_gra05 2 8 r{sep=h{pass=10}}b{width=3,bnd=f{move=100,pass=-1,bal=0.05},org=f{move=100,pass=-1,bal=0.05}}
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==11324==ERROR: AddressSanitizer: SEGV on unknown address 0x5125cdcdd330 (pc 0x7f921a2c982a bp 0x7fffa679c900 sp 0x7fffa679c8c0 T0)
+==11324==The signal is caused by a READ memory access.
+    #0 0x7f921a2c982a in _SCOTCHarchCmpltDomIncl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/arch_cmplt.c:418
+    #1 0x7f921a483999 in kgraphMapFmPartAdd /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:774
+rc=1
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-05_gra05 2 3 r{sep=h{pass=10}}b{width=3,bnd=f{move=100,pass=-1,bal=0.05},org=f{move=100,pass=-1,bal=0.05}}
+ret=0
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-05_gra05 8 2 r{sep=h{pass=10}}b{width=3,bnd=f{move=100,pass=-1,bal=0.05},org=f{move=100,pass=-1,bal=0.05}}
+ERROR: mapBuild3: invalid part array
+ERROR: kgraphInit: cannot initialize remapping (2)
+ret=1
+rc=1
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-05_gra05 4 4 r{sep=h{pass=10}}b{width=3,bnd=f{move=100,pass=-1,bal=0.05},org=f{move=100,pass=-1,bal=0.05}}
+ret=0
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-05_gra05 1 16 r{sep=h{pass=10}}b{width=3,bnd=f{move=100,pass=-1,bal=0.05},org=f{move=100,pass=-1,bal=0.05}}
+ret=0
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-21_gra21 100 c
+ERROR: kgraphMapRbBgraph: invalid fixed part array
+ERROR: kgraphMapRbPart2: cannot create bipartition graph
+ERROR: kgraphMapRbVfloMerge: invalid part array
+ERROR: kgraphMapRb: cannot merge fixed vertex domains
+ERROR: kgraphMapMl2: cannot apply low strategy
+
+=================================================================
+==11452==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 4096 byte(s) in 1 object(s) allocated from:
+    #0 0x7f88442fd9c7 in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:69
+    #1 0x561a38fd8b32 in mkgrid /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/GRA-21/../common/mk.h:35
+rc=1
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-21_gra21 100 h
+ERROR: kgraphMapRbBgraph: invalid fixed part array
+ERROR: kgraphMapRbMap: cannot create bipartition graph
+ERROR: kgraphMapRbVfloMerge: invalid part array
+ERROR: kgraphMapRb: cannot merge fixed vertex domains
+ERROR: kgraphMapMl2: cannot apply low strategy
+
+=================================================================
+==11471==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 4096 byte(s) in 1 object(s) allocated from:
+    #0 0x7efec26fd9c7 in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:69
+    #1 0x5602c39fcb32 in mkgrid /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/GRA-21/../common/mk.h:35
+rc=1
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-23_gra23 100
+ERROR: mapBuild3: invalid part array
+ERROR: kgraphInit: cannot initialize remapping (2)
+ret=1 new[7]=-1094795586
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-23_gra23b 100
+ERROR: kgraphMapRbVfloMerge: invalid part array
+ERROR: kgraphMapRb: cannot merge fixed vertex domains
+ERROR: kgraphMapMl2: cannot apply low strategy
+ret=1 p[16]=0
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-23_gra23 3
+ret=0 new[7]=2
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/GRA-23_gra23b 3
+ret=0 p[16]=3
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/SEP-01_partovl 6 3 r{sep=z}
+wgraph_part_rb.c:108:5: runtime error: null pointer passed as argument 2, which is declared to never be null
+    #0 0x7eff6e7f37f2 in wgraphPartRb3Fron /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/wgraph_part_rb.c:108
+    #1 0x7eff6e7f59cc in wgraphPartRb2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/wgraph_part_rb.c:299
+
+wgraph_part_rb.c:207:18: runtime error: load of null pointer of type 'const GraphPart'
+    #0 0x7eff6e7f45b4 in wgraphPartRb3One /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/wgraph_part_rb.c:207
+rc=1
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/SEP-01_partovl 7 3 r{sep=z}
+wgraph_part_rb.c:108:5: runtime error: null pointer passed as argument 2, which is declared to never be null
+    #0 0x7f72995f37f2 in wgraphPartRb3Fron /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/wgraph_part_rb.c:108
+    #1 0x7f72995f59cc in wgraphPartRb2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/wgraph_part_rb.c:299
+
+wgraph_part_rb.c:207:18: runtime error: load of null pointer of type 'const GraphPart'
+    #0 0x7f72995f45b4 in wgraphPartRb3One /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/wgraph_part_rb.c:207
+rc=1
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/SEP-17_partovl 2 3 - 1
+ret=0 part: 2 -1
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/SEP-17_partovl 3 6 - 1
+ret=0 part: -1 -1 -1
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/SEP-17_lost 4 4 -
+ret=0 part: -1 -1 -1 3  lost=2
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G12-overlap-kgraph-rb/repro/bin-pristine/SEP-17_lost 10 9 -
+ret=0 part: -1 -1 7 -1 8 -1 -1 3 -1 -1  lost=2
+rc=0
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/bin/gpart 4 data/m16x16.grf /dev/null -vmt -Mf
+kgraph_cost.c:104:13: runtime error: load of null pointer of type 'Anum'
+    #0 0x7f7d16a60740 in _SCOTCHkgraphCost /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_cost.c:104
+    #1 0x7f7d16a88382 in _SCOTCHkgraphMapFm /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:1020
+
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+rc=1
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/bin/gpart 4 data/m16x16.grf /dev/null -vmt -Mb{width=3,bnd=f,org=f}
+kgraph_cost.c:104:13: runtime error: load of null pointer of type 'Anum'
+    #0 0x7fd709e60740 in _SCOTCHkgraphCost /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_cost.c:104
+    #1 0x7fd709e88382 in _SCOTCHkgraphMapFm /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:1020
+    #10 0x55e6692a18e4 in _start (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/bin/gpart+0x78e4) (BuildId: 25d15f39727d961e51243cbaf39eba395c082cd2)
+
+AddressSanitizer:DEADLYSIGNAL
+rc=1
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/bin/gpart 4 data/m16x16.grf /dev/null -vmt -Md{pass=10}
+AddressSanitizerAddressSanitizer:DEADLYSIGNAL
+:DEADLYSIGNAL
+=================================================================
+AddressSanitizer:DEADLYSIGNAL
+==11982==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000200 (pc 0x7ff82486c1be bp 0x7ff81fffdcb0 sp 0x7ff81fffdb10 T2)
+==11982==The signal is caused by a READ memory access.
+rc=1
+--- /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/bin/gpart 4 data/m16x16.grf /dev/null -vmt -Mx
+T	Mapping		0.000434637
+T	I/O		0.0353937
+T	Total		0.0358284
+M	Processors 0/4 (0)
+M	Target min=0	max=0	avg=0	dlt=0	maxavg=0
+M	Neighbors min=0	max=0	sum=0
+rc=0

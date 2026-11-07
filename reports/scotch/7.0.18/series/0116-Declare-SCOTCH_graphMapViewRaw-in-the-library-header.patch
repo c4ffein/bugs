@@ -1,0 +1,31 @@
+From 2774d8d35a880a1cfde89604c38fa719d247149f Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:24:39 +0000
+Subject: [PATCH 116/232] Declare `SCOTCH_graphMapViewRaw()` in the library
+ header [report PyScotch]
+
+`SCOTCH_graphMapViewRaw()` is exported by libScotch, and renamed in
+"module.h" like its `SCOTCH_graphRemapViewRaw()` twin, but its
+prototype was missing from "library.h", so that C callers had to
+declare it themselves.
+
+Refs: PS3-G17-1
+---
+ src/libscotch/library.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/libscotch/library.h b/src/libscotch/library.h
+index 4cc76dd6..91aaa7e3 100644
+--- a/src/libscotch/library.h
++++ b/src/libscotch/library.h
+@@ -283,6 +283,7 @@ int                         SCOTCH_graphMapFixedCompute (SCOTCH_Graph * const, S
+ int                         SCOTCH_graphMap     (SCOTCH_Graph * const, const SCOTCH_Arch * const, SCOTCH_Strat * const, SCOTCH_Num * const);
+ int                         SCOTCH_graphMapFixed (SCOTCH_Graph * const, const SCOTCH_Arch * const, SCOTCH_Strat * const, SCOTCH_Num * const);
+ int                         SCOTCH_graphMapView (const SCOTCH_Graph * const, const SCOTCH_Mapping * const, FILE * const);
++int                         SCOTCH_graphMapViewRaw (const SCOTCH_Graph * const, const SCOTCH_Mapping * const, FILE * const);
+ int                         SCOTCH_graphPart    (SCOTCH_Graph * const, const SCOTCH_Num, SCOTCH_Strat * const, SCOTCH_Num * const);
+ int                         SCOTCH_graphPartFixed (SCOTCH_Graph * const, const SCOTCH_Num, SCOTCH_Strat * const, SCOTCH_Num * const);
+ int                         SCOTCH_graphPartOvl (SCOTCH_Graph * const, const SCOTCH_Num, SCOTCH_Strat * const, SCOTCH_Num * const);
+-- 
+2.43.0
+

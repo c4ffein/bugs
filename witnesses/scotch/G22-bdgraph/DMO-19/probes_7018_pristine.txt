@@ -1,0 +1,103 @@
+== gather np=1
+      1 rank 0: gather ret=0
+      1 rank 0: gather veextax=0x530000040400 bad=14280 of 15606, bbalval=1, compload0dlt=7803 compload0avg=7803
+== gather np=3
+      1 rank 0: gather ret=0
+      1 rank 0: gather veextax=0x530000020400 bad=14280 of 15606, bbalval=1, compload0dlt=7803 compload0avg=7803
+      1 rank 1: gather ret=0
+      1 rank 1: gather veextax=0x530000020400 bad=14280 of 15606, bbalval=1, compload0dlt=7803 compload0avg=7803
+      1 rank 2: gather ret=0
+      1 rank 2: gather veextax=0x530000020400 bad=14280 of 15606, bbalval=1, compload0dlt=7803 compload0avg=7803
+== q veex np=3
+      1 (0): ERROR: bdgraphCheck: invalid global communication gains
+      1 (0): ERROR: bdgraphCheck: invalid global communication loads
+      1 (1): ERROR: bdgraphCheck: invalid global communication gains
+      1 (1): ERROR: bdgraphCheck: invalid global communication loads
+      1 (2): ERROR: bdgraphCheck: invalid global communication gains
+      1 (2): ERROR: bdgraphCheck: invalid global communication loads
+      1 bgraph_bipart_gg.c:233:17: runtime error: signed integer overflow: -1094795351 + -1094795582 cannot be represented in type 'int'
+      1 bgraph_bipart_gg.c:233:17: runtime error: signed integer overflow: -1094795492 + -1094795584 cannot be represented in type 'int'
+      1 bgraph_bipart_gg.c:233:17: runtime error: signed integer overflow: -1094795554 + -1094795582 cannot be represented in type 'int'
+      3 bgraph_bipart_gg.c:429:15: runtime error: signed integer overflow: -2105376115 - 2105376124 cannot be represented in type 'int'
+      3 bgraph_bipart_gg.c:429:30: runtime error: signed integer overflow: 2 * -1094795586 cannot be represented in type 'int'
+      1 rank 0: check=96
+      1 rank 0: ret=0 load0=7852 dlt=49 size0=7852 comm=-84215623 gainextn=168431625 fron=187 bal=0.00627963604 balcalc=0.00627963604
+      1 rank 1: check=96
+      1 rank 1: ret=0 load0=7852 dlt=49 size0=7852 comm=-84215623 gainextn=168431625 fron=187 bal=0.00627963604 balcalc=0.00627963604
+      1 rank 2: check=96
+      1 rank 2: ret=0 load0=7852 dlt=49 size0=7852 comm=-84215623 gainextn=168431625 fron=187 bal=0.00627963604 balcalc=0.00627963604
+== q+x veex np=3
+      1 (0): ERROR: bdgraphCheck: invalid global communication gains
+      1 (0): ERROR: bdgraphCheck: invalid global communication loads
+      1 (1): ERROR: bdgraphCheck: invalid global communication gains
+      1 (1): ERROR: bdgraphCheck: invalid global communication loads
+      1 (2): ERROR: bdgraphCheck: invalid global communication gains
+      1 (2): ERROR: bdgraphCheck: invalid global communication loads
+      2 bdgraph_bipart_ex.c:382:5: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      3 bdgraph_bipart_ex.c:411:9: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+      1 bgraph_bipart_gg.c:233:17: runtime error: signed integer overflow: -1094795308 + -1094795582 cannot be represented in type 'int'
+      1 bgraph_bipart_gg.c:233:17: runtime error: signed integer overflow: -1094795351 + -1094795582 cannot be represented in type 'int'
+      1 bgraph_bipart_gg.c:233:17: runtime error: signed integer overflow: -1094795523 + -1094795582 cannot be represented in type 'int'
+      3 bgraph_bipart_gg.c:429:15: runtime error: signed integer overflow: -2105376115 - 2105376124 cannot be represented in type 'int'
+      3 bgraph_bipart_gg.c:429:30: runtime error: signed integer overflow: 2 * -1094795586 cannot be represented in type 'int'
+      1 rank 0: check=96
+      1 rank 0: ret=0 load0=7803 dlt=0 size0=7803 comm=-84215634 gainextn=168431625 fron=176 bal=0 balcalc=0
+      1 rank 1: check=96
+      1 rank 1: ret=0 load0=7803 dlt=0 size0=7803 comm=-84215634 gainextn=168431625 fron=176 bal=0 balcalc=0
+      1 rank 2: check=96
+      1 rank 2: ret=0 load0=7803 dlt=0 size0=7803 comm=-84215634 gainextn=168431625 fron=176 bal=0 balcalc=0
+== ml fold=n np=1
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7831 dlt=28 size0=7831 comm=-2228 gainextn=13815 fron=4594 bal=0.00358836345 balcalc=0.00358836345
+== ml fold=n np=2
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52c00000fbec at pc 0x7f37d4c83658 bp 0x7ffdcff66e20 sp 0x7ffdcff66e10
+      1 ERROR: AddressSanitizer: heap-use-after-free on address 0x52c00001f144 at pc 0x7f6fb8a83752 bp 0x7ffff8ad8410 sp 0x7ffff8ad8400
+      1 SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartM
+      1 SUMMARY: AddressSanitizer: heap-use-after-free /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartMl
+== ml fold=n np=3
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52a00003b348 at pc 0x7f022b883658 bp 0x7fff909c1910 sp 0x7fff909c1900
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52a00004b1cc at pc 0x7ff674c83752 bp 0x7ffd85ca6800 sp 0x7ffd85ca67f0
+      1 ERROR: AddressSanitizer: heap-use-after-free on address 0x52a000040490 at pc 0x7f4225e83658 bp 0x7fff76e50940 sp 0x7fff76e50930
+      2 SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartM
+      1 SUMMARY: AddressSanitizer: heap-use-after-free /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartMl
+== ml fold=n np=4
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x528000007df8 at pc 0x7f28c6683658 bp 0x7ffdab9672c0 sp 0x7ffdab9672b0
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52800000be44 at pc 0x7f697c483752 bp 0x7ffce0d1a9e0 sp 0x7ffce0d1a9d0
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52800000f7f0 at pc 0x7f8b48083658 bp 0x7ffccc62cb70 sp 0x7ffccc62cb60
+      1 ERROR: AddressSanitizer: heap-use-after-free on address 0x52800000baf0 at pc 0x7f011f483658 bp 0x7ffcea4e5b10 sp 0x7ffcea4e5b00
+      3 SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartM
+== ml fold=f np=1
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7831 dlt=28 size0=7831 comm=-2228 gainextn=13815 fron=4594 bal=0.00358836345 balcalc=0.00358836345
+== ml fold=f np=2
+      1 ERROR: AddressSanitizer: heap-use-after-free on address 0x52c00001f144 at pc 0x7fb49ec83752 bp 0x7fffe9ba4b60 sp 0x7fffe9ba4b50
+      1 SUMMARY: AddressSanitizer: heap-use-after-free /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartMl
+== ml fold=f np=3
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52a00003b348 at pc 0x7fc654a83658 bp 0x7ffce70148d0 sp 0x7ffce70148c0
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52a00004b1cc at pc 0x7fcf44883752 bp 0x7ffc2abecb30 sp 0x7ffc2abecb20
+      2 SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartM
+== ml fold=f np=4
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x528000007df8 at pc 0x7fb65ce83658 bp 0x7fffc85c3db0 sp 0x7fffc85c3da0
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52800000be44 at pc 0x7efc47a83752 bp 0x7ffcca7a73f0 sp 0x7ffcca7a73e0
+      2 SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartM
+== ml fold=d np=1
+      1 rank 0: check=0
+      1 rank 0: ret=0 load0=7831 dlt=28 size0=7831 comm=-2228 gainextn=13815 fron=4594 bal=0.00358836345 balcalc=0.00358836345
+== ml fold=d np=2
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52c00000fbec at pc 0x7f8f45483658 bp 0x7fffa15448a0 sp 0x7fffa1544890
+      1 ERROR: AddressSanitizer: heap-use-after-free on address 0x52c00001f144 at pc 0x7fc56d883752 bp 0x7fffb5ed3620 sp 0x7fffb5ed3610
+      1 SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartM
+      1 SUMMARY: AddressSanitizer: heap-use-after-free /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartMl
+== ml fold=d np=3
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52a00003b348 at pc 0x7fcac1683658 bp 0x7ffd30bf3df0 sp 0x7ffd30bf3de0
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52a00004b1cc at pc 0x7f406b883752 bp 0x7fff8c1559c0 sp 0x7fff8c1559b0
+      1 ERROR: AddressSanitizer: heap-use-after-free on address 0x52a000040490 at pc 0x7fbc87283658 bp 0x7ffd26768c60 sp 0x7ffd26768c50
+      2 SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartM
+      1 SUMMARY: AddressSanitizer: heap-use-after-free /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartMl
+== ml fold=d np=4
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x528000007df8 at pc 0x7fdb9b683658 bp 0x7ffce75d8750 sp 0x7ffce75d8740
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52800000be44 at pc 0x7f10fba83752 bp 0x7ffcb83d9080 sp 0x7ffcb83d9070
+      1 ERROR: AddressSanitizer: heap-buffer-overflow on address 0x52800000f7f0 at pc 0x7f2575483658 bp 0x7fff8d16c840 sp 0x7fff8d16c830
+      1 ERROR: AddressSanitizer: heap-use-after-free on address 0x52800000baf0 at pc 0x7fa0ef283658 bp 0x7ffc240d1a00 sp 0x7ffc240d19f0
+      3 SUMMARY: AddressSanitizer: heap-buffer-overflow /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartM
+      1 SUMMARY: AddressSanitizer: heap-use-after-free /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/bdgraph_bipart_ml.c:150 in bdgraphBipartMl

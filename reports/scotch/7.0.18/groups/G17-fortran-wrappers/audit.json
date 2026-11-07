@@ -1,0 +1,661 @@
+[
+ {
+  "id": "API-01",
+  "our_title": "Fortran order-strategy builder passed level count and flags swapped",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/API-01/fort_p 0 and fort_p64 0 (pristine 7.0.18, C driver of the Fortran symbol): C and Fortran strategy strings identical; python3 -I /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/fortran_audit.py $INFRA/v7.0.18 -> /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018.md (129 findings; 60 after the series, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018_patched.md): 0 ORDER findings.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Silent loss of the level limit in every Fortran-built ordering strategy; same as the review.",
+  "location_7_0_18": "src/libscotch/library_graph_order_f.c:340",
+  "evidence": "*revaptr = SCOTCH_stratGraphOrderBuild (straptr, *flagval, *levlnbr, *kbalval);",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Right on status and evidence, but it verified only the named wrapper; completeness of the class (any other wrapper forwarding its arguments out of order) was not checked. The audit script now covers all 244 wrappers: no other instance.",
+  "extra_instances": [],
+  "fix_options": [],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed (no regression)."
+ },
+ {
+  "id": "API-05",
+  "our_title": "Three Fortran wrappers took scalar arguments by value instead of by address",
+  "status": "fixed",
+  "method": "partly-run",
+  "ran": "python3 -I /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/fortran_audit.py $INFRA/v7.0.18 -> /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018.md (129 findings; 60 after the series, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018_patched.md): 0 BYVALUE findings; seq_f.f90/par_f.f90 on the patched trees call graphinducelist/part.",
+  "read_only": "ind.c kit not rebuilt; the three call sites dereference *vnumnbr/*fronlocnbr in 7.0.18 (unchanged since 7.0.17)",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Address used as a vertex count: out-of-bounds reads or crash from any Fortran caller; same as the review.",
+  "location_7_0_18": "src/libscotch/library_graph_induce_f.c:77,94; src/libscotch/library_dgraph_band_f.c:79",
+  "evidence": "*revaptr = SCOTCH_graphInduceList (orggrafptr, *vnumnbr, vnumtab, indgrafptr); ... SCOTCH_dgraphBand (srcgrafptr, *fronlocnbr, fronloctab, *distval, bndgrafptr);",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Correct. It did not check the rest of the tree for the same pattern; done now (BYVALUE class): none left. Note the upstream fix declares the new pointers as 'const SCOTCH_Num *' without the usual 'const' on the pointer itself (every neighbour uses 'const SCOTCH_Num * const'); cosmetic, not changed here.",
+  "extra_instances": [],
+  "fix_options": [],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: fixed -> 7.0.18 status: fixed (files untouched)."
+ },
+ {
+  "id": "API-09",
+  "our_title": "DGRAPHSTAT wrapper now exported as scotchfdgraphstat",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "nm -D $INFRA/asan/lib/libptscotch.so: 'SCOTCHFDGRAPHSTAT scotchfdgraphstat scotchfdgraphstat_ scotchfdgraphstat__'; mpifort -ffree-line-length-none /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/API-09/stat_f.f90 links on pristine 7.0.18 and 'mpirun -np 2 ./stat_f_p' prints 'dgraphstat: velosum= 16 degrmax= 4' (also 64-bit).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Documented routine cannot be linked from Fortran; no silent misbehaviour.",
+  "location_7_0_18": "src/libscotch/library_dgraph_stat_f.c:71",
+  "evidence": "DGRAPHSTAT, dgraphstat, (                     \\",
+  "upstream_change": "06f9d09be9 Bugfix: set proper FORTRAN wrapper name [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "06f9d09be9",
+   "verdict": "correct",
+   "details": "One-token change of the lower-case macro argument; all four mangling variants now exported (verified with nm on 32- and 64-bit). Breaks only the never-documented mixed-case symbols scotchfDgraphstat*, which no Fortran compiler generates. No other CASE finding in the tree (fortran_audit.py).",
+   "compared_with_ours": "Identical to our 7.0.17 0001 (option A). Ours dropped."
+  },
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Correct status, evidence and preferred option. Its patch sketch is the same one-token change. The audit script (CASE class) confirms this is the only wrapper whose two macro names disagree.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Upstream 06f9d09b (shipped)",
+    "summary": "lower-case macro argument",
+    "diff_file": "",
+    "tested": "nm, stat_f.f90 32/64",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "his"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (06f9d09b)."
+ },
+ {
+  "id": "API-11",
+  "our_title": "DGRAPHMAPSTAT wrapper now has ierr and returns the C status",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "mpicc /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/API-11/dmv2.c against pristine 7.0.18 32/64-bit, mpirun -np 2: 'Fortran DGRAPHMAPSTAT ierr=0 (sentinel -77 = never written)' (7.0.17: ierr=-77). par_f.f90 on the patched trees: 'par_f: OK'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Errors of a documented routine are silently lost by Fortran callers; also the only int-returning wrapper without ierr (audit IERR class).",
+  "location_7_0_18": "src/libscotch/library_dgraph_map_stat_f.c:85-96",
+  "evidence": "int * const                   revaptr),     \\ ... *revaptr = SCOTCH_dgraphMapStat (grafptr, mapptr, tgtnbrptr, ...",
+  "upstream_change": "bca5f63b1e Bugfix: add error return parameter [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "bca5f63b1e",
+   "verdict": "correct",
+   "details": "Adds the trailing int * revaptr documented in p_l.tex:3138 and stores the C return value. ABI: the Fortran symbol now takes 17 arguments instead of 16. Callers written from the manual (which always listed ierr) were already passing it and now get it written; callers written against the old 16-argument wrapper (undocumented usage) now make the wrapper store through whatever the 17th argument slot holds (stack garbage), i.e. a likely crash. No caller in the Scotch tree (no Fortran source references dgraphmapstat) and PyScotch uses the C API through ctypes, so nothing in our scope breaks. Leaves a TAB in the untouched continuation line ' mapavgptr, mapdltptr,<TAB><TAB>' (library_dgraph_map_stat_f.c:88), which our version had replaced by spaces; cosmetic. Manual order mapmax/mapmin still swapped (PS-API-6).",
+   "compared_with_ours": "Same code as our 7.0.17 0002 except the tab cleanup. Ours dropped."
+  },
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Correct, and it spotted the mapmin/mapmax doc swap (PS-API-6). Its sketch keeps the tab character that the pristine file contains in the argument list (' mapavgptr, mapdltptr,\\t\\t'); the maintainer's git diff shows tabs in red, so the patch replaces it with spaces.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Upstream bca5f63b (shipped)",
+    "summary": "trailing ierr",
+    "diff_file": "",
+    "tested": "dmv2.c 32/64",
+    "tradeoffs": "ABI change for undocumented 16-argument callers",
+    "preferred": true,
+    "maintainer_fit": "his"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "tab character in the argument list replaced by spaces (same line rewritten anyway)",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (bca5f63b)."
+ },
+ {
+  "id": "API-13",
+  "our_title": "ARCHSIZE wrapper now stores SCOTCH_Num result through a SCOTCH_Num pointer",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/API-01/fort_p64 2 (pristine 7.0.18 64-bit): 'sizeof(SCOTCH_Num)=8, after ARCHSIZE buf=0x11170 (expect 0x11170)' (7.0.17: 0x5a5a5a5a00011170). 32-bit: nothing observable, as expected. python3 -I /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/fortran_audit.py $INFRA/v7.0.18 -> /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018.md (129 findings; 60 after the series, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018_patched.md): 0 RETTYPE findings (no other wrapper stores a SCOTCH_Num through an int).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Wrong value for every 64-bit Fortran caller of a documented routine (upper half is garbage); 32-bit builds unaffected.",
+  "location_7_0_18": "src/libscotch/library_arch_f.c:220",
+  "evidence": "SCOTCH_Num * const          sizeptr), \\",
+  "upstream_change": "48efdddafb Bugfix: use proper integer type for returning value [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "48efdddafb",
+   "verdict": "correct",
+   "details": "Matches the manual's integer*num archnbr. Completeness checked with the audit script's RETTYPE class over every wrapper: none left. The Sizeof wrappers (archsizeof etc.) keep int * on purpose (C returns int).",
+   "compared_with_ours": "Identical to our 7.0.17 0003. Ours dropped."
+  },
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Correct, and its suggestion to grep for other int*-vs-Num outputs is implemented by the audit script's RETTYPE/CTYPE/TYPE classes: ARCHSIZE is the only instance (archvar's int * flag, the *sizeof int * and the MPI_Fint communicators are correct).",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A. Upstream 48efddda (shipped)",
+    "summary": "SCOTCH_Num * sizeptr",
+    "diff_file": "",
+    "tested": "fort.c mode 2 64-bit",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "his"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (48efddda)."
+ },
+ {
+  "id": "API-24",
+  "our_title": "Thirteen Fortran routines documented in the manuals are still defined nowhere",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "mpifort /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/API-24/missing_f.f90 against pristine 7.0.18 32/64: 13 'undefined reference' (scotchfarchbuild0_, archbuild2_, archltleaf_, dgraphfree_, dgraphgrow_, dmapsizeof_, dmeshfree_, dordersizeof_, graphorderload_, mapsizeof_, meshstat_, ordersizeof_, stratsizeof_). After patches 0001+0004 (+G02 0001 for the SCOTCH_archLtleaf prototype, applied in the build tree only): links; seq_f 'seq_f: OK' with MESHSTAT/SIZEOF lines identical to seq_c; par_f 'par_f: OK' (mpirun -np 2), 32/64-bit.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Link-time failure of documented routines (no silent misbehaviour), but 13 of them and for 5+ years; 'low' rather than the review's 'info'.",
+  "location_7_0_18": "doc/src/scotch/s_l.tex:1959,2032,2178,5222,6007,6526,7490,7533; doc/src/ptscotch/p_l.tex:2075,2142,4128,4678,4721",
+  "evidence": "NOWRAP class of fortran_audit.py on 7.0.18 (repro/audit_7018.md): e.g. \"manual documents 'scotchfarchbuild0' (section SCOTCH_archBuild0) but no *_f.c defines it\"",
+  "upstream_change": "f32c0cff20 Add missing graphpartovlview() Fortran wrapper [report R. Perry] (adds a different, undocumented-until-38006ee5 wrapper; none of the 13)",
+  "upstream_fix_review": {
+   "commit": "f32c0cff20",
+   "verdict": "correct",
+   "details": "GRAPHPARTOVLVIEW (library_graph_map_view_f.c:108-137): all four name variants exported (nm: SCOTCHFGRAPHPARTOVLVIEW, scotchfgraphpartovlview, _, __), argument order (grafdat, partnbr, parttab, fildes, ierr) = C order + ierr, matches the new s_l.tex synopsis; partnbr passed by address and dereferenced; dup/fdopen/fclose pattern copied from GRAPHMAPVIEW with error paths closing filenum. Verified functionally: repro/PS3-G17-1/views.c prints the same 63 bytes through the wrapper as through the C routine, ierr=0, 32/64-bit. library_f.h/scotchf.h only define kinds and constants (no routine declarations), so nothing to add there. Minor: grafptr and parttab lose their const in the wrapper (harmless). Incomplete as a sweep: the same file still lacks twins for SCOTCH_graphMapViewRaw, SCOTCH_graphRemapView and SCOTCH_graphRemapViewRaw, and SCOTCH_graphMapViewRaw is not even declared in library.h (PS3-G17-1, patches 0006/0007); the 13 documented-but-missing wrappers of API-24 remain.",
+   "compared_with_ours": "Our 7.0.17 series did not add graphpartovlview (it was undocumented then; our audit listed it among 'C routines with no Fortran wrapper'). Ours adds the 13 documented ones (0001, 0004)."
+  },
+  "review_accuracy": "accurate (13/13 confirmed); its two fix options are the right pair.",
+  "first_pass_critique": "Status/evidence right. Its sketch 'void routine(args, int * revaptr)' for free/grow/stat is wrong for dgraphfree, dmeshfree and meshstat, whose C routines return void and therefore get no ierr (mirroring graphfree/graphstat); it also did not notice that dgraphgrow needs a new file (no library_dgraph_grow_f.c exists) and thus Makefile/CMakeLists entries, that archltleaf cannot compile without the missing library.h declaration (PS-API-2 / G02), and it found only 13 of the 17 NOWRAP entries (the other 4 are misspelled names in the manuals, see docs commit).",
+  "extra_instances": [
+   {
+    "location": "doc/src/scotch/s_l.tex:2113,2782,8700,8930; doc/src/ptscotch/p_l.tex:3423,3528",
+    "quote": "misnamed synopses scotchfarchcmplt, scotchfarchdomwght, metis_nodwend, metis_metistodual, scotchfgraphdorderexit, scotchfgraphdordersavemap",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/library_graph_map_view.c:658,674,639 (SCOTCH_graphMapViewRaw, SCOTCH_graphRemapViewRaw, SCOTCH_graphRemapView)",
+    "quote": "exported C routines with no Fortran twin (undocumented)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A. Add the thirteen wrappers (0001 + 0004)",
+    "summary": "as 7.0.17; 0004 needs G02 0001 (SCOTCH_archLtleaf prototype) to compile",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0001-Add-the-Fortran-wrappers-of-documented-routines-that.patch",
+    "tested": "missing_f/seq_f/par_f 32/64, check_scotch_mesh_build_f, check_libmetis_dual_f_v3/v5",
+    "tradeoffs": "new exported symbols",
+    "preferred": true,
+    "maintainer_fit": "same pattern as his f32c0cff"
+   },
+   {
+    "label": "B. Remove the thirteen synopses from the manuals",
+    "summary": "as 7.0.17",
+    "diff_file": "",
+    "tested": "no",
+    "tradeoffs": "loses documented API",
+    "preferred": false,
+    "maintainer_fit": "unlikely, he just added a wrapper instead"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0001-Add-the-Fortran-wrappers-of-documented-routines-that.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0004-Add-the-Fortran-wrapper-of-SCOTCH_archLtleaf-report-.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0003-Fix-Fortran-synopses-in-the-Scotch-and-PT-Scotch-use.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "; src/check has no Fortran test of the sequential or PT-Scotch API beyond test_scotch_mesh_build_f; a new Fortran test program per library would be a separate addition. Functional tests live in repro/API-24 (seq_f.f90 + seq_c.c, par_f.f90).",
+  "docs_updated": "doc/src/scotch/s_l.tex, doc/src/ptscotch/p_l.tex (patch 0006: misspelled Fortran names, which were the remaining 4 'documented but undefined' routines)",
+  "needs": "series order",
+  "needs_note": "0004 (archltleaf wrapper) compiles only with G02's 0001 (SCOTCH_archLtleaf in library.h, still missing in 7.0.18; G02 0001 still applies cleanly on v7.0.18). git am of this series alone succeeds; building needs G02 0001 first.",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (no doc or wrapper change for the 13; upstream added the unrelated graphpartovlview wrapper). Patches applied with am -3, dates bumped."
+ },
+ {
+  "id": "BLD-20",
+  "our_title": "Fortran METIS_PartMeshDual test never inspects objval, epart or npart",
+  "status": "still-present",
+  "method": "partly-run",
+  "ran": "make check_libmetis_dual_f_v3 / _v5 (under flock) on the patched 32- and 64-bit trees: exit 0.",
+  "read_only": "pristine 7.0.18 test file read (unchanged since 7.0.17: no check after the call at test_libmetis_dual_f.f90.in:134); the negative corrupted.f90 case was not re-run",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Test gap only.",
+  "location_7_0_18": "src/check/test_libmetis_dual_f.f90.in:134-138",
+  "evidence": "call SCOTCHMETISNAMEFU (METIS_PartMeshDual) (ne, nn, eptr, eind, vgwt, vsize, ncommon, nparts, tpwgt, options, objval, epart, npart) / end block / deallocate (npart)",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate",
+  "first_pass_critique": "Correct; its sketch matches option A. It did not run the Fortran test although gfortran was available.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: mirror the C test's checks inline",
+    "summary": "objval < 0 check after the call; two do-loops checking epart/npart in [baseval, baseval + nparts), same messages as test_libmetis_dual.c.",
+    "diff_file": "",
+    "tested": "check_libmetis_dual_f_v3/_v5 pass (32 and 64-bit); corrupted copy exits 1.",
+    "tradeoffs": "None; CMakeLists.txt needs no change (test already registered for v3 and v5).",
+    "preferred": true,
+    "maintainer_fit": "The file already mirrors the C test line by line (same messages, exit_c); keeping the inline style is what he wrote for the dual-graph checks above it."
+   },
+   {
+    "label": "B: contained helper subroutine",
+    "summary": "check_part (parttab, partnbr, msgstr) called twice.",
+    "diff_file": "",
+    "tested": "untested: style variant; applies.",
+    "tradeoffs": "Less duplication, but departs from the C twin's structure.",
+    "preferred": false,
+    "maintainer_fit": "No contained procedures in the existing Fortran tests."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0002-Check-the-results-of-METIS_PartMeshDual-in-the-Fortr.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "src/check/test_libmetis_dual_f.f90.in: objval >= 0, epart/npart range checks",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (file untouched upstream). Patch applies unchanged."
+ },
+ {
+  "id": "PS-API-6",
+  "our_title": "Manual lists mapmax before mapmin for scotchfdgraphmapstat; C and wrapper use mapmin first",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "python3 -I /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/fortran_audit.py $INFRA/v7.0.18 -> /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018.md (129 findings; 60 after the series, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018_patched.md): DOCORDER finding at p_l.tex:3123 on 7.0.18; 0 after patch 0003.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "A Fortran caller following the manual gets the minimum and maximum swapped silently; raised from 'info' because the two values are the same type so nothing warns.",
+  "location_7_0_18": "doc/src/ptscotch/p_l.tex:3128-3129",
+  "evidence": "& integer*{\\it num}     & mapmax,  \\\\ / & integer*{\\it num}     & mapmin,  \\\\",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate (first-pass finding)",
+  "first_pass_critique": "Correct; the preferred option (fix the manual) is right.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: swap the two rows in the manual",
+    "summary": "mapmin then mapmax, as in library_pt.h and the wrapper.",
+    "diff_file": "",
+    "tested": "audit script DOCORDER: 1 -> 0.",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "He fixes synopses in 'Documentation fix' commits (f349192, a13ced9, 3e6d208); folded with the other synopsis fixes into one doc commit."
+   },
+   {
+    "label": "B: swap the wrapper's arguments to match the manual",
+    "summary": "Change the wrapper so that mapmax precedes mapmin.",
+    "diff_file": "",
+    "tested": "untested: ABI change not wanted; applies.",
+    "tradeoffs": "Breaks existing Fortran callers that followed the C order.",
+    "preferred": false,
+    "maintainer_fit": "Would make the Fortran order differ from the C one, which the whole API avoids."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0003-Fix-Fortran-synopses-in-the-Scotch-and-PT-Scotch-use.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "doc/src/ptscotch/p_l.tex",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. bca5f63b aligned the wrapper's ierr with this synopsis but not the order."
+ },
+ {
+  "id": "PS2-G17-1",
+  "our_title": "SCOTCH_dgraphBuildGrid3D checks its parameters only in debug builds; incrval = 0 divides by zero",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "mpicc /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/PS2-G17-1/grid.c (SCOTCH_dgraphBuildGrid3D (&g, 0, 2, 2, 2, 0, 0)) against pristine 7.0.18, mpirun -np 2: 'dgraph_build_grid3d.c:387:13: runtime error: division by zero' on both ranks.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/dgraph_build_grid3d.c:306-315, 387",
+  "evidence": "#ifdef SCOTCH_DEBUG_DGRAPH1 ... if (incrval < 1) { errorPrint (\"dgraphBuildGrid3D: invalid parameters (2)\"); ... #endif /* SCOTCH_DEBUG_DGRAPH1 */",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: make the two parameter checks unconditional",
+    "summary": "Drop the #ifdef around the checks: the values come straight from a public API call.",
+    "diff_file": "",
+    "tested": "untested: file belongs to the DGR groups; diff applies.",
+    "tradeoffs": "Two integer comparisons per call.",
+    "preferred": true,
+    "maintainer_fit": "STYLE.md / his 7.0.17 fixes: unconditional check for anything an API call controls (e.g. 'Add parameter check to `SCOTCH_dgraphRedist()`')."
+   },
+   {
+    "label": "B: document the constraint only",
+    "summary": "State in p_l.tex that incrval must be >= 1 and the dimensions >= 1.",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "Crash remains for careless callers.",
+    "preferred": false,
+    "maintainer_fit": "He prefers checks for API inputs."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "owner",
+  "needs_note": "Patch owned by G19 (7.0.17 patches/G19-dgraph-build-induce/0011); not rebased here.",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (file not touched by the 7.0.18 commits in this group)."
+ },
+ {
+  "id": "PS2-G17-2",
+  "our_title": "Manual synopses of SCOTCH_dmeshBuildAdm describe the 13-argument graph routine, not the mesh one",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "python3 -I /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/fortran_audit.py $INFRA/v7.0.18 -> /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018.md (129 findings; 60 after the series, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018_patched.md): same finding classes as 7.0.17 at shifted lines (only 38006ee5 touched s_l.tex, +40 lines from 4060 on); after patch 0003 they are gone, except the NODOC entries and the six TYPE/COUNT rows that compare the v5 wrapper with the v3 synopsis (the patch adds the v5 note, as in 7.0.17).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "doc/src/ptscotch/p_l.tex:3881-3913",
+  "evidence": "see repro/audit_7018.md rows for these lines",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: rewrite both synopses from library_pt.h and the wrapper",
+    "summary": "7 C arguments (meshptr, baseval, velmlocnbr, velmloctab, eelmlocnbr, eelmloctab, vnodglbnbr), Fortran twin plus ierr; the \\progdes text was already right.",
+    "diff_file": "",
+    "tested": "audit COUNT/DOCC for this routine: 0 after the patch.",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "086b78a added these sections; a 'Documentation fix' commit is his usual follow-up."
+   },
+   {
+    "label": "B: leave as is",
+    "summary": "No change.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "Users cannot call the routine from the manual.",
+    "preferred": false,
+    "maintainer_fit": "No."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0003-Fix-Fortran-synopses-in-the-Scotch-and-PT-Scotch-use.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (manual Fortran synopses untouched by 7.0.18)."
+ },
+ {
+  "id": "PS2-G17-3",
+  "our_title": "Nine Fortran synopses omit the trailing ierr their wrapper has",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "python3 -I /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/fortran_audit.py $INFRA/v7.0.18 -> /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018.md (129 findings; 60 after the series, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018_patched.md): same finding classes as 7.0.17 at shifted lines (only 38006ee5 touched s_l.tex, +40 lines from 4060 on); after patch 0003 they are gone, except the NODOC entries and the six TYPE/COUNT rows that compare the v5 wrapper with the v3 synopsis (the patch adds the v5 note, as in 7.0.17).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "",
+  "location_7_0_18": "doc/src/ptscotch/p_l.tex:2340; doc/src/scotch/s_l.tex:7128,7169,7213,7256,7296,7339,7383,7426",
+  "evidence": "see repro/audit_7018.md rows for these lines",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: add 'integer ierr' to the nine synopses (and rename redgrafptr to redgrafdat)",
+    "summary": "Doc rows added after 'string' / 'redgrafdat'.",
+    "diff_file": "",
+    "tested": "audit IERR (doc side): 11 -> 0.",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "Documentation fix."
+   },
+   {
+    "label": "B: drop revaptr from the nine wrappers",
+    "summary": "Make the wrappers match the manual.",
+    "diff_file": "",
+    "tested": "untested: ABI break, not written",
+    "tradeoffs": "Breaks every caller and loses error reporting.",
+    "preferred": false,
+    "maintainer_fit": "No."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0003-Fix-Fortran-synopses-in-the-Scotch-and-PT-Scotch-use.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (manual Fortran synopses untouched by 7.0.18)."
+ },
+ {
+  "id": "PS2-G17-4",
+  "our_title": "Type errors in Fortran synopses: wrong kinds, malformed integer{\\it num}, scalars for arrays",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "python3 -I /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/fortran_audit.py $INFRA/v7.0.18 -> /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018.md (129 findings; 60 after the series, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018_patched.md): same finding classes as 7.0.17 at shifted lines (only 38006ee5 touched s_l.tex, +40 lines from 4060 on); after patch 0003 they are gone, except the NODOC entries and the six TYPE/COUNT rows that compare the v5 wrapper with the v3 synopsis (the patch adds the v5 note, as in 7.0.17).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "doc/src/scotch/s_l.tex:3228,3361,3479,3515,5411,5509,5795,7672,8930; doc/src/ptscotch/p_l.tex:4065,4860",
+  "evidence": "see repro/audit_7018.md rows for these lines",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: correct the tokens",
+    "summary": "integer*{\\it num}, integer*{\\it idx}, integer, integer*1 for SCOTCH_GraphPart2 (unsigned char), (*) for arrays; C return types.",
+    "diff_file": "",
+    "tested": "audit TYPE/DOCTYPE on patched tree: only ParMETIS 'float (*)' and METIS '(**)' notations remain (accepted as notation).",
+    "tradeoffs": "'integer*1' for SCOTCH_GraphPart2 is my choice (a plain 'character' would add hidden length arguments); the user may prefer 'character'.",
+    "preferred": true,
+    "maintainer_fit": "Documentation fix."
+   },
+   {
+    "label": "B: leave as is",
+    "summary": "No change.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "Misleading manual.",
+    "preferred": false,
+    "maintainer_fit": "No."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0003-Fix-Fortran-synopses-in-the-Scotch-and-PT-Scotch-use.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (manual Fortran synopses untouched by 7.0.18)."
+ },
+ {
+  "id": "PS2-G17-5",
+  "our_title": "Twelve Fortran wrappers have no synopsis in either manual",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "python3 -I /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/fortran_audit.py $INFRA/v7.0.18 -> /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018.md (129 findings; 60 after the series, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018_patched.md): same finding classes as 7.0.17 at shifted lines (only 38006ee5 touched s_l.tex, +40 lines from 4060 on); after patch 0003 they are gone, except the NODOC entries and the six TYPE/COUNT rows that compare the v5 wrapper with the v3 synopsis (the patch adds the v5 note, as in 7.0.17).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/libscotch/library_arch_f.c:231,273; library_dgraph_halo_f.c:137; library_graph_order_f.c:269; library_mesh_order_f.c:231,268; library_parser_f.c:95; library_random_f.c:71,105",
+  "evidence": "see repro/audit_7018.md rows for these lines",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: document them",
+    "summary": "Add manual sections (C and Fortran) for the routines that are public API but undocumented.",
+    "diff_file": "",
+    "tested": "untested: not written (12+ manual sections is a documentation project, not a bugfix)",
+    "tradeoffs": "Large doc work; needs the maintainer's intent (some, like stratfree or graphorderlist, may be deliberately undocumented).",
+    "preferred": true,
+    "maintainer_fit": "80b7f5c did exactly this for PT-Scotch on report."
+   },
+   {
+    "label": "B: leave undocumented",
+    "summary": "No change.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "Status quo.",
+    "preferred": false,
+    "maintainer_fit": "Acceptable for internal-ish routines."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (manual Fortran synopses untouched by 7.0.18). New in 7.0.18 audit: our patch 0007 adds three more wrappers (graphmapviewraw, graphremapview, graphremapviewraw) whose C routines are undocumented, so they join this list."
+ },
+ {
+  "id": "PS2-G17-6",
+  "our_title": "Manual documents only the METIS v3 Fortran API; v5 wrappers take 13 arguments",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "python3 -I /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/fortran_audit.py $INFRA/v7.0.18 -> /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018.md (129 findings; 60 after the series, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/audit_7018_patched.md): same finding classes as 7.0.17 at shifted lines (only 38006ee5 touched s_l.tex, +40 lines from 4060 on); after patch 0003 they are gone, except the NODOC entries and the six TYPE/COUNT rows that compare the v5 wrapper with the v3 synopsis (the patch adds the v5 note, as in 7.0.17).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "doc/src/scotch/s_l.tex:8752,8806; src/libscotchmetis/metis_graph_part_f.c:328",
+  "evidence": "see repro/audit_7018.md rows for these lines",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: add a note and the v5 synopses",
+    "summary": "State that libscotchmetisv5 exports the METIS 5 signatures and give them.",
+    "diff_file": "",
+    "tested": "untested: not written",
+    "tradeoffs": "Doc work only.",
+    "preferred": true,
+    "maintainer_fit": "Documentation."
+   },
+   {
+    "label": "B: leave as is",
+    "summary": "No change.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "Users of the v5 library get no Fortran reference.",
+    "preferred": false,
+    "maintainer_fit": "Status quo."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0003-Fix-Fortran-synopses-in-the-Scotch-and-PT-Scotch-use.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (manual Fortran synopses untouched by 7.0.18)."
+ },
+ {
+  "id": "PS2-G17-7",
+  "our_title": "test_scotch_mesh_build_f never deallocates its arrays or exits the mesh",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/repro/PS2-G17-7/t_pristine (7.0.18 test source, f77 -fsanitize=address,undefined, ASAN_OPTIONS=detect_leaks=1): '==ERROR: LeakSanitizer: detected memory leaks / Direct leak of 96 byte(s)'. Patched test (0005) under the same options: exit 0, no report; make check_scotch_mesh_build_f passes 32/64.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "",
+  "location_7_0_18": "src/check/test_scotch_mesh_build_f.f90.in:78-79, 101",
+  "evidence": "allocate(verttab(1+velmnbr+vnodnbr)) / allocate(edgetab(24)) and no deallocate nor scotchfmeshexit before 'end program'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: deallocate before the end of the program",
+    "summary": "deallocate (edgetab) / deallocate (verttab) after scotchfmeshexit (the dual test already does this).",
+    "diff_file": "",
+    "tested": "see PS2-G30-7",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "test_libmetis_dual_f does it."
+   },
+   {
+    "label": "B: leave as is",
+    "summary": "Fortran frees at exit.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "Fails sanitizer runs of the test.",
+    "preferred": false,
+    "maintainer_fit": "Status quo."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G17-fortran-wrappers/patches/0005-Bugfix-release-the-mesh-and-its-arrays-in-the-Fortra.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. Our 7.0.17 version used the SCOTCH_NAME_SUFFIX macro from G30's test-template commit; rebased onto bare v7.0.18 context (plain scotchfmeshexit), so it no longer depends on G30."
+ }
+]

@@ -1,0 +1,36 @@
+From df8167c11f7669d1c204a5f5fbe76812b442ad2c Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:54:35 +0000
+Subject: [PATCH 242/248] Bugfix: declare the flag array of `kgraphMapBd()` as
+ unsigned [report PyScotch]
+
+The flag array is allocated, cleared and addressed as unsigned integers
+through the kgraphMapBdFlag*() macros, which shift an unsigned one, but
+was declared as an array of signed integers, leaving the bit 31 handling
+to implementation-defined conversions. Declare it with the type it is
+allocated with, as done in the other users of these macros.
+
+Tested: gcc -Wall -Wextra -Wsign-conversion -Wconversion on
+kgraph_map_bd.c goes from 14 to 10 warnings (the flag array ones are
+gone); no runtime difference can be observed with gcc, as the signed
+conversions are implementation-defined, not undefined.
+---
+ src/libscotch/kgraph_map_bd.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/libscotch/kgraph_map_bd.c b/src/libscotch/kgraph_map_bd.c
+index b2ee9cb..0ef82db 100644
+--- a/src/libscotch/kgraph_map_bd.c
++++ b/src/libscotch/kgraph_map_bd.c
+@@ -118,7 +118,7 @@ const KgraphMapBdParam * const      paraptr)      /*+ Method parameters +*/
+   Gnum                      bndvertnum;
+   Gnum                      bndvertlvlnum;        /* Based number of first band vertex in last layer                     */
+   Gnum                      orgfronnum;
+-  int * restrict            orgflagtab;
++  unsigned int * restrict   orgflagtab;
+   Gnum                      commload;
+   Gnum                      commload2;            /* Twice twice (4 times) the internal communication load of last layer */
+   Anum                      domnnum;
+-- 
+2.47.3
+

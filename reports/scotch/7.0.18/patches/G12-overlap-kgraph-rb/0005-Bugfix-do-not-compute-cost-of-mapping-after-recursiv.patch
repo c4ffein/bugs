@@ -1,0 +1,58 @@
+From 5aeb0e2474cd53d1c328a93d03ea1c3a87e85f2c Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:26:23 +0000
+Subject: [PATCH 5/8] Bugfix: do not compute cost of mapping after recursive
+ bipartitioning failed in `kgraphMapRb()` [report PyScotch]
+
+When `kgraphMapRbPart()` or `kgraphMapRbMap()` failed, the error value
+was only returned at the end of the routine, after fixed vertices had
+been merged into, and the frontier and cost computed from, an
+incomplete mapping whose domain array may contain uninitialized
+entries. Return as soon as the failure is known.
+
+Refs: PS2-G12-1
+---
+ src/libscotch/kgraph_map_rb.c | 19 ++++++++++++-------
+ 1 file changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/src/libscotch/kgraph_map_rb.c b/src/libscotch/kgraph_map_rb.c
+index 7dd97563..b5d142fe 100644
+--- a/src/libscotch/kgraph_map_rb.c
++++ b/src/libscotch/kgraph_map_rb.c
+@@ -170,13 +170,18 @@ const KgraphMapRbParam * restrict const paraptr)
+   o = ((archPart (grafptr->m.archptr) != 0) ? kgraphMapRbPart : kgraphMapRbMap) (&datadat, indgrafptr, vflonbr, vflotab, grafptr->contptr); /* Compute recursive bipartitioning */
+ 
+   if (grafptr->pfixtax != NULL) {                 /* If fixed vertices   */
+-    memFree (vflotab);                            /* Not used any longer */
+-
++    memFree   (vflotab);                          /* Not used any longer */
+     graphExit (&indgrafdat);
+-    if (kgraphMapRbVfloMerge (&grafptr->m, dfixmax, grafptr->vfixnbr, grafptr->pfixtax) != 0) {
+-      errorPrint ("kgraphMapRb: cannot merge fixed vertex domains");
+-      return (1);
+-    }
++  }
++  if (o != 0) {                                   /* If recursive bipartitioning failed, mapping is not valid */
++    errorPrint ("kgraphMapRb: cannot compute recursive bipartitioning");
++    return (1);
++  }
++
++  if ((grafptr->pfixtax != NULL) &&               /* If fixed vertices, merge them back into mapping */
++      (kgraphMapRbVfloMerge (&grafptr->m, dfixmax, grafptr->vfixnbr, grafptr->pfixtax) != 0)) {
++    errorPrint ("kgraphMapRb: cannot merge fixed vertex domains");
++    return (1);
+   }
+ 
+   if (memReallocGroup (grafptr->comploadavg,      /* Reallocate cost array according to potential new size                                        */
+@@ -202,7 +207,7 @@ const KgraphMapRbParam * restrict const paraptr)
+   }
+ #endif /* SCOTCH_DEBUG_KGRAPH2 */
+ 
+-  return (o);
++  return (0);
+ }
+ 
+ /*******************************************/
+-- 
+2.43.0
+

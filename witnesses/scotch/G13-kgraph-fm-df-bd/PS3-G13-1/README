@@ -1,0 +1,9 @@
+PS3-G13-1 (found while rebasing GRA-02): after its fallback strategy, kgraphMapFm() keeps the domain array
+pointer cached at entry (`const ArchDom * restrict const domntab = grafptr->m.domntab;`), but the fallback's
+recursive bipartitioning reallocates grafptr->m.domntab (kgraphMapRbPart3 -> mapResize) when a variable-sized
+target gets more than min(1023, vertnbr)+1 domains. vardom.c = GRA-02/gra02int.c with k <= 0 selecting vcmplt.
+  sh ../common/cc.sh <tree> vardom vardom.c -I. ; LD_LIBRARY_PATH=<tree>/lib ./vardom 40 0 2
+  pristine 7.0.18 : dies earlier in GRA-02's overflow (kgraphMapFmTablGet kgraph_map_fm.c:129)
+  GRA-02 domnnbr refresh only (7.0.17 0006 rebased): heap-use-after-free READ in archVcmpltDomDist <-
+                    kgraphMapFm kgraph_map_fm.c:1814; freed by realloc in mapResize <- kgraphMapRbPart3
+  series (domntab re-read too): after: ret=0 domnnbr=1600 fronnbr=1600 (32/64-bit); 64 0 2 -> domnnbr=4096

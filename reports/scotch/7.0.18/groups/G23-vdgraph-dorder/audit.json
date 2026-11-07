@@ -1,0 +1,662 @@
+[
+ {
+  "id": "DMO-02",
+  "our_title": "dorderSave fixed; the tree writer still gathers labels into an un-based array",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "repro/DMO-02/run.sh TREE (dgord on lbl.grf = 12-vertex path, base 1, labels 101..112, and lbl14.grf; np 1 and 3):\n  pristine 7.0.18 ASan ($INFRA/asan): ord.out at np=3 now '12 / 101 107 / 102 108 / ...' (correct; 7.0.17: labels of the previous vertex); 'dgord lbl14.grf /dev/null -T t14.out' np=1 and 3 -> 'ERROR: AddressSanitizer: heap-buffer-overflow ... in memcpy' rc=1 (dorderSaveTree2); np=3 -> 'dorder_io.c:144:12: runtime error: applying non-zero offset 18446744073709551612 to null pointer' twice (non-root processes, new with 59c9a31c)\n  pristine UBSan-only (glibc malloc): 'dgord lbl14.grf /dev/null -T' np=1 -> 'munmap_chunk(): invalid pointer', signal 6, rc=134\n  series (build, buildfi): all runs rc=0, no report, same ord/tre contents (run_7018_*.txt).\n  New check line 'dgord data/m4x4_b1_elv.grf ... -T...' passes on the series 32/64; on pristine it exits 0 too (only the UBSan report shows): it is a smoke test (checkline_pristine.txt).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "unchanged for dorderSaveTree2 (heap write past a malloc'ed block from the shipped dgord -T on any based, labelled graph); dorderSave's wrong output is fixed",
+  "location_7_0_18": "src/libscotch/dorder_io_tree.c:116-131, 151, 156-157; dorder_io.c:115, 143-147",
+  "evidence": "dorder_io_tree.c:118 'if ((vlbltab = memAlloc (ordeptr->vnodglbnbr * sizeof (Gnum))) == NULL) {' then :130-131 'commGatherv (grafptr->vlblloctax + grafptr->baseval, ..., vlbltab, grafptr->proccnttab, grafptr->procdsptab, ...)' (un-based array, based displacements) and :151 'funcptr (&corddat, vlbltab, stream)' into orderSaveTree/orderSaveMap whose parameter is 'vlbltax' (order_io.c:192, :250). dorder_io.c:115 'permtab       = NULL;' (vlbltax not initialized on non-root) and :144 '   vlbltax -= grafptr->baseval;' (executed on every process; 3-space indent).",
+  "upstream_change": "59c9a31c8b 'Bugfix: base properly receive label array since displacement array is based [report R. Perry]' (dorder_io.c only)",
+  "upstream_fix_review": {
+   "commit": "59c9a31c8b",
+   "verdict": "incomplete",
+   "details": "Right for dorderSave(): the array is based before the gather and the late basing is removed (output verified correct at np=1 and 3). Missing: the twin dorderSaveTree2() (dorder_io_tree.c:116-157), which the review listed in the same lead, still overflows (ASan and glibc aborts above). New defect: the basing runs on non-root processes too, where vlbltax is never initialized (dorder_io.c:115 sets only permtab), i.e. pointer arithmetic on an indeterminate value (UBSan reports it as an offset on a null pointer on the ASan tree); dmapSave() has the same NULL basing since 4290e22 (PS2-G23-1). Style: the two new lines are indented by 3 spaces (dorder_io.c:144, :146), against the 2-space rule. The vlblnbr -> vlblsiz rename is right (it is a size).",
+   "compared_with_ours": "Our 7.0.17 0005 also initialized vlbltax to NULL, based it on the root only, fixed dorderSaveTree2 (renamed vlbltab to vlbltax, freed vlbltax + baseval) and added a based, labelled graph to check_prog_dgord. Ours is complete; his takes the dmapSave comment text, which we now reuse. Rebased as 0003: tree writer + NULL init/guard + indentation + check line."
+  },
+  "review_accuracy": "Accurate; the tree writer overflow is the part upstream missed.",
+  "first_pass_critique": "Carried over.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dorder_io_tree.c:118-157",
+    "quote": "vlbltab un-based, gathered with based procdsptab, passed to vlbltax parameter",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/dorder_io.c:144",
+    "quote": "   vlbltax -= grafptr->baseval; (non-root: uninitialized pointer)",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/dmapping_io.c:170",
+    "quote": "vlbltax -= grafptr->baseval; (non-root: NULL)",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: base before the gather on the root only, in both writers",
+    "summary": "0003: dorderSaveTree2 rebased from our 0005; dorderSave gets the NULL initialization and guard; check_prog_dgord and CMake dgord_4 run a based labelled graph with -T",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0003-Bugfix-base-the-vertex-label-arrays-gathered-by-dist.patch",
+    "tested": "DMO-02 runs above (ASan, glibc), ptcheck 32/64, DEBUG_ALL build",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "his own comment text and idiom, guarded as in vdgraph_separate_ml.c:374-379"
+   },
+   {
+    "label": "B: over-allocate by baseval",
+    "summary": "as 7.0.17 alt",
+    "diff_file": "",
+    "tested": "7.0.17 alt only",
+    "tradeoffs": "convention differs from dmapSave/dorderSave",
+    "preferred": false,
+    "maintainer_fit": "not his idiom"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0003-Bugfix-base-the-vertex-label-arrays-gathered-by-dist.patch"
+  ],
+  "cleanup_done": "vlbltab renamed vlbltax in dorderSaveTree2 (now based)",
+  "test_added": "src/check/Makefile check_prog_dgord + CMakeLists.txt dgord_4: dgord on data/m4x4_b1_elv.grf (base 1, labels) with -T. Smoke test only: it exits 0 on pristine release builds too and reveals the bug only under sanitizers (no glibc-detectable size among the shipped labelled graphs).",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed (59c9a31c fixed dorderSave; dorderSaveTree2 untouched; the fix introduced the non-root basing, extra.json PS3-G23-1)."
+ },
+ {
+  "id": "DMO-04",
+  "our_title": "Diffusion separator still hides allocation failure in a summed degree",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "FI_FUNC=vdgraphSeparateDf ./scan.sh LIB BIN 3 1 0 17 -- 4elt.grf -1 order \"$(cat st_df.txt)\" 0 n - (kit adapted: 60 s timeout):\n  pristine 7.0.18 (basefi/dtest_basefi, scan_7018_pristine.txt): 'nth=3 exit=139 :: (1): ERROR: vdgraphSeparateDf: out of memory; vdgraph_separate_df.c:177:28: runtime error: store to null pointer of type 'float'; signal 11', same at nth=11\n  series (buildfi, scan_7018_patched.txt): nth=3 'exit=0 :: (0),(1): ERROR: vdgraphSeparateBd: cannot separate band graph; (1): ERROR: vdgraphSeparateDf: out of memory; rank 0..2: OrderCompute rc=0' (and nth=11 idem).\n  Both trees: nth 4-7, 12-15 HANG (dgraphHaloSync2, PS2-G23-6); nth 0-2, 8-10, 16-17 SIGSEGV in dgraphGhst2 / dgraph_halo_fill.c:71 after an injected dgraphGhst failure (G19/G20 files, PS2-G23-5).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "as the review",
+  "location_7_0_18": "src/libscotch/vdgraph_separate_df.c:123-149",
+  "evidence": "vdgraph_separate_df.c:128 'reduloctab[0] = -1;' then the summed MPI_Allreduce of 4 Gnum; :141 'if (reduglbtab[0] < 0) {                        /* If memory error */' (no return), :177 'ielsloctax[vertlocnum] = 1.0F / ...' on NULL.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate.",
+  "first_pass_critique": "Carried over.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/bdgraph_bipart_df.c:124-147 (twin)",
+    "quote": "reduloctab[0] = -1; ... ielsloctax -= grafptr->s.baseval; ... if (reduglbtab[0] < 0)",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/vdgraph_separate_df.c:187-191, 276-280, 299-302",
+    "quote": "dgraphHaloSync failure returns on one process",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: summed error slot in the existing reduction",
+    "summary": "re-applied unchanged (date bump); G22's 0003 is the bdgraph twin with the same layout",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0002-Bugfix-agree-on-allocation-failures-in-vdgraphSepara.patch",
+    "tested": "scan above; ptcheck 32/64; DEBUG_ALL build",
+    "tradeoffs": "+1 Gnum per reduction",
+    "preferred": true,
+    "maintainer_fit": "no extra collective"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0002-Bugfix-agree-on-allocation-failures-in-vdgraphSepara.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G22-bdgraph/patches/0003-Bugfix-do-not-hide-allocation-failures-in-the-anchor.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (no upstream change in either Df file)."
+ },
+ {
+  "id": "DMO-05",
+  "our_title": "Exchange buffer group still leaked when all coarse separators are invalid",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "LD_LIBRARY_PATH=$INFRA/asan/lib ASAN_OPTIONS=detect_leaks=1 mpirun --oversubscribe -np 3 ./dtest_asan 4elt.grf -1 order \"$(cat st_z.txt)\" 0 n - -> 14 LeakSanitizer records with '#2 ... in vdgraphSeparateMlUncoarsen .../vdgraph_separate_ml.c:399' under '#3 vdgraphSeparateMl2 vdgraph_separate_ml.c:775' (5+5+4 over the ranks). Series (build): 0 records mentioning vdgraph_separate_ml.c (repro/DMO-13/runs_7018.txt).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "as the review",
+  "location_7_0_18": "src/libscotch/vdgraph_separate_ml.c:399-407 (allocation), :449-454 (return without memFree)",
+  "evidence": "vdgraph_separate_ml.c:449 'if (reduglbtab[0] == 1) {' :450 '#ifdef SCOTCH_DEBUG_BDGRAPH2' :451 'errorPrintW (\"vdgraphSeparateMlUncoarsen: no valid partition\");' :453 'return (1);' while :443-447 frees vsndcnttab on the memory-error branch.",
+  "upstream_change": "cc440aca31 'Bugfix: set proper debug flag name [report R. Perry]' (same routine, :383-390 only)",
+  "upstream_fix_review": {
+   "commit": "cc440aca31",
+   "verdict": "incomplete",
+   "details": "Renames SCOTCH_DEBUG_BDGRAPH1 to SCOTCH_DEBUG_VDGRAPH1 at :383-390 (right), but the same copy-paste at :450-452 (SCOTCH_DEBUG_BDGRAPH2 around the 'no valid partition' warning) is left, and the leak on that path is not addressed.",
+   "compared_with_ours": "Our 0001 fixed both flag pairs and freed the group leader. Rebased: memFree plus the :450-452 flag pair."
+  },
+  "review_accuracy": "Accurate.",
+  "first_pass_critique": "Carried over.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/vdgraph_separate_ml.c:450-452",
+    "quote": "#ifdef SCOTCH_DEBUG_BDGRAPH2",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: free the group leader on the all-invalid path; Vdgraph debug flag",
+    "summary": "0001",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0001-Bugfix-free-the-exchange-buffers-of-vdgraphSeparateM.patch",
+    "tested": "LSan run above; ptcheck 32/64; DEBUG_ALL build",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "same as the memory-error branch three lines above"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0001-Bugfix-free-the-exchange-buffers-of-vdgraphSeparateM.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "DMO-12",
+  "our_title": "Separator store now saves local part loads; vdgraphCheck tests them",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "Strategy n{sep=(q{strat=h}|z)b{width=3,strat=q{strat=f}},ole=s,ose=s,osq=s}, 4elt.grf, np=3, dtest (repro/DMO-12/proof_7018.txt):\n  A pristine 7.0.18 -DSCOTCH_DEBUG_ALL (pdbg): rc=0 on all ranks, no error\n  B same tree with the 7.0.17 vdgraph.h + vdgraph_store.c ($WORK/dbgold): '(r): ERROR: vgraphCheck: invalid local part sizes' + '(r): ERROR: vdgraphStoreUpdt: inconsistent graph data' on all 3 ranks (so the new 2d1b7e39 test catches the old store, under a wrong message)\n  C series DEBUG_ALL (builddbg): clean.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "as the review",
+  "location_7_0_18": "src/libscotch/vdgraph.h:79; vdgraph_store.c:122-123, 155-157; vdgraph_check.c:106-109, 242-248",
+  "evidence": "vdgraph.h:79 'Gnum                      complocload[2];       /*+ Local load in both parts          +*/'; vdgraph_store.c:157 'grafptr->complocload[2] = grafptr->s.velolocsum - (storptr->complocload[0] + storptr->complocload[1]);'",
+  "upstream_change": "aace01bf06 'Bugfix: save and restore local vertex separation loads [report R. Perry]'; 2d1b7e3905 'Test local vertex partition loads in `vdgraphCheck()` [report R. Perry]'",
+  "upstream_fix_review": {
+   "commit": "aace01bf06, 2d1b7e3905",
+   "verdict": "correct",
+   "details": "aace01bf: two loads saved, third derived from velolocsum, same position and convention as the global fields; complete for the only consumer (vdgraphSeparateBd) and for vdgraphSeparateZr's shortcut (PS-DMO-1). 2d1b7e39: the local load sum test (:106-109) and the recomputed-load comparison (:242-248) are right and catch the old store (proof B), but their messages are copies: ':108 \"vdgraphCheck: invalid local size sum\"' for a load sum and ':246 \"vgraphCheck: invalid local part sizes\"' for a load comparison; the header date of vdgraph_check.c was set to '31 oct 2023' (extra.json PS3-G23-2). The flag bits were renumbered consistently (4..512).",
+   "compared_with_ours": "Same design as our 0003 (complocload[2] between compglbsize0 and complocsize0, third derived; load comparison in vdgraphCheck). Ours also fixed the two old 'vgraphCheck' names; the message part is rebased as 0007 (with PS2-G23-3)."
+  },
+  "review_accuracy": "Accurate.",
+  "first_pass_critique": "Carried over.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/vdgraph_check.c:108, 246",
+    "quote": "\"vdgraphCheck: invalid local size sum\" / \"vgraphCheck: invalid local part sizes\" on load tests",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: store/restore complocload, check in vdgraphCheck",
+    "summary": "done upstream",
+    "diff_file": "",
+    "tested": "proof above",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": "his"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0007-Bugfix-fix-error-messages-and-free-part-array-on-err.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (aace01bf + 2d1b7e39). Our 0003 reduced to the message fixes in 0007."
+ },
+ {
+  "id": "DMO-13",
+  "our_title": "Block ordering writer: leak fixed, trailing writes checked; separators and flush still unchecked",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "(repro/DMO-13/runs_7018.txt, dtest 4elt.grf ... order \"\" 0 b FILE, np=2)\n  pristine 7.0.18 LSan: no record mentioning dorder_io_block.c (7.0.17: 'Direct leak of 62428 byte(s) ... dorderSaveBlock2 dorder_io_block.c:88'); blk.out md5 aca951a7 (= series)\n  /dev/full: '(0): ERROR: dorderSaveBlock2: bad output (2)', 'rank 0: OrderSave(b) rc=1', 'rank 1: OrderSave(b) rc=0'\n  /dev/full with lbl.grf (12 vertices, output fits in the stdio buffer): 'rank 0: OrderSave(b) rc=0' on pristine and series: the failure only surfaces at fclose, which the library does not do.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "as the review",
+  "location_7_0_18": "src/libscotch/dorder_io_block.c:88-131",
+  "evidence": "dorder_io_block.c:95 'if ((rangtab = memAlloc (...)) == NULL) {' after the header fprintf; :103-121 'if (intSave (stream, rangtab[...]) != 1) goto fail;' with unchecked 'putc' at :106, :110, :117, :121; :126 'fail:' :128 'memFree (rangtab);'",
+  "upstream_change": "addcd163d9 'Bugfix: prevent memory leak and check (almost) all outputs [report R. Perry]'",
+  "upstream_fix_review": {
+   "commit": "addcd163d9",
+   "verdict": "correct",
+   "details": "Allocation moved after the header write (no leak on 'bad output (1)'), every intSave checked with goto fail, single memFree on both paths, 0/1 return. Still unchecked ('almost'): the four putc() separators (:106, :110, :117, :121), whose failure is caught only if a later intSave fails, and the final stdio flush: no fflush/ferror, so a write error on the last buffered block (any small ordering) returns 0 (shown with /dev/full). Not in this routine: dorderSaveTree2 agrees on the result only under SCOTCH_DEBUG_DORDER1 (dorder_io_tree.c:160-169), so non-root processes return 0 while the root returns 1. The sequential writers (order_io.c) do not check putc either.",
+   "compared_with_ours": "Our 0006 guarded the two trailing writes with 'if (o == 1)' and freed on both returns; his goto-fail version is equivalent and also moves the allocation after the header write (better). Dropped."
+  },
+  "review_accuracy": "Accurate.",
+  "first_pass_critique": "Carried over.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dorder_io_block.c:106, 110, 117, 121",
+    "quote": "putc (((cblknum & 7) == 7) ? '\\n' : '\\t', stream);",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/dorder_io_block.c:123-130",
+    "quote": "no fflush (stream) / ferror (stream) before returning 0",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: as upstream",
+    "summary": "addcd163",
+    "diff_file": "",
+    "tested": "ran",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": "his"
+   },
+   {
+    "label": "B: also test putc and fflush",
+    "summary": "'if (putc (...) == EOF) goto fail;' and 'if (fflush (stream) != 0) goto fail;' before 'o = 0'",
+    "diff_file": "",
+    "tested": "untested: not written (the sequential writers share the convention; a cross-file decision)",
+    "tradeoffs": "one more call per writer",
+    "preferred": false,
+    "maintainer_fit": "he chose 'almost'"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (addcd163). Unchecked outputs listed in extra_instances; our 0006 dropped."
+ },
+ {
+  "id": "DMO-14",
+  "our_title": "dorderCblkDist returns -1 on error: our patch taken verbatim",
+  "status": "fixed",
+  "method": "partly-run",
+  "ran": "Normal path on pristine 7.0.18 and the series: dtest 4elt.grf -1 order \"\" 0 n - -> 'CblkDist=1' at np=1, 'CblkDist=7' on 3 ranks at np=3 (runs_7018.txt).",
+  "read_only": "The error return needs an MPI_Allreduce failure; patch identity checked: 'git patch-id --stable' of b260ba75 and of our 7.0.17 0007 are both 2fea8d49d679342abeaea8a559c18bef1f50fd15. library_dgraph_order_tree_dist.c:84 returns the value unchanged; the Fortran wrapper (_f.c:74) stores it.",
+  "why_not_run": "error path needs an MPI collective failure",
+  "severity": "low",
+  "severity_note": "as the review",
+  "location_7_0_18": "src/libscotch/dorder_tree_dist.c:119-120",
+  "evidence": "dorder_tree_dist.c:120 '    return (-1);'",
+  "upstream_change": "b260ba7572 'Bugfix: return negative value from dorderCblkDist on error, as per docs [report R. Perry]' (C. Barthélemy)",
+  "upstream_fix_review": {
+   "commit": "b260ba7572",
+   "verdict": "correct",
+   "details": "One token, matches the code comment (:66-68) and p_l.tex; Gnum and SCOTCH_Num are signed in 32 and 64 bits.",
+   "compared_with_ours": "Identical to our 0007 (same patch-id). Dropped."
+  },
+  "review_accuracy": "Accurate.",
+  "first_pass_critique": "Carried over.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: return (-1)",
+    "summary": "taken upstream",
+    "diff_file": "",
+    "tested": "",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": "his"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "mpi-fault",
+  "needs_note": "Only an MPI_Allreduce failure reaches the error return.",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (b260ba75 = our 0007 verbatim)."
+ },
+ {
+  "id": "DMO-15",
+  "our_title": "dmapSave count test now a range test; fragments without part array still dereferenced",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "repro/DMO-15/run.sh (dmaptest = internal-API driver, np=3, 4elt.grf; run_7018_*.txt):\n  pristine 7.0.18: mode x (root fragment claims one vertex too many) -> '(0),(1),(2): ERROR: dmapSave: invalid mapping (1)', rc=1 on all ranks (7.0.17: accepted, header 15607); mode n (root fragment without part array) -> 'dmapping_io.c:196:19: runtime error: load of null pointer of type 'Anum'' + 'AddressSanitizer: SEGV ... dmapping_io.c:196'; mode c rc=0\n  series 32/64: mode x same; mode n -> 'dmapSave: invalid mapping (2)' on all ranks, rc=1, no hang; mode c rc=0.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "the dead test is fixed; the NULL part array crash (reachable from SCOTCH_dgraphMap with an 'r{sep=...}' strategy, PS2-G23-2) remains",
+  "location_7_0_18": "src/libscotch/dmapping_io.c:123 (fixed), :196 and :256 (part array dereferences)",
+  "evidence": "dmapping_io.c:123 'if ((reduglbtab[1] < 0) || (reduglbtab[1] > grafptr->vertglbnbr)) {'; :196 'termnum = archDomNum (&dmapptr->archdat, &fragptr->domntab[fragptr->parttab[fraglocnum]]);' with no parttab check.",
+  "upstream_change": "96a44b3d40 'Bugfix: fix sanity check in dmapSave() [report R. Perry]' (C. Barthélemy)",
+  "upstream_fix_review": {
+   "commit": "96a44b3d40",
+   "verdict": "incomplete",
+   "details": "The test can now fire and rejects negative or oversized counts (verified, mode x). It accepts partial mappings, which dmapTerm() (dmapping.c:202-211) rejects; a partial mapping file is a legal file format, so this is a defensible choice, but the two routines now differ. Not addressed: fragments without part array are still dereferenced (:196 root, :256 others), and a non-root process that gave up later would leave the root waiting; the fix needs a collective decision before the gathers.",
+   "compared_with_ours": "Our 0008 used dmapTerm's 'empty or complete' test and counted NULL-part fragments in the same reduction. Rebased: keep his range test, add only the NULL-part slot (0004); the stricter test is alt/DMO-15-B-empty-or-complete-mapping.diff."
+  },
+  "review_accuracy": "Accurate on the dead test; its fix line is what upstream took.",
+  "first_pass_critique": "Carried over.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dmapping.c:224 (dmapTerm)",
+    "quote": "archDomNum (&dmapptr->archdat, &fragptr->domntab[fragptr->parttab[fraglocnum]])",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/kdgraph_map_rb_part.c:133",
+    "quote": "fragptr->parttab = kgrfdat.m.parttax + kgrfdat.s.baseval;",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: count fragments without part array in the existing MaxSum reduction",
+    "summary": "0004 (reduloctab[6], op (1,6), 'invalid mapping (2)', debug messages renumbered)",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0004-Bugfix-reject-fragments-without-part-array-in-dmapSa.patch",
+    "tested": "dmaptest modes c/x/n 32/64; ptcheck 32/64",
+    "tradeoffs": "no extra collective",
+    "preferred": true,
+    "maintainer_fit": "error slot in the reduction, as his dgraphGhst/4290e22 code"
+   },
+   {
+    "label": "B: also require empty or complete mappings",
+    "summary": "dmapTerm's test instead of the range test",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/alt/DMO-15-B-empty-or-complete-mapping.diff",
+    "tested": "applies on the series, -O2 -Wall clean; not run",
+    "tradeoffs": "rejects partial mappings that the file format allows",
+    "preferred": false,
+    "maintainer_fit": "user/maintainer decision"
+   },
+   {
+    "label": "D: fix the producer only",
+    "summary": "0006 alone",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0006-Bugfix-assign-all-vertices-to-the-initial-domain-bef.patch",
+    "tested": "ran",
+    "tradeoffs": "dmapSave still crashes on other producers",
+    "preferred": false,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0004-Bugfix-reject-fragments-without-part-array-in-dmapSa.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0006-Bugfix-assign-all-vertices-to-the-initial-domain-bef.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed (96a44b3d)."
+ },
+ {
+  "id": "PS-DMO-1",
+  "our_title": "Zero method's global-size shortcut is sound now that the store restores local loads",
+  "status": "not-a-bug",
+  "method": "ran",
+  "ran": "Proof A of DMO-12 (pristine 7.0.18 DEBUG_ALL, strategy with (q{strat=h}|z) then b{...}): vdgraphCheck clean after every vdgraphStoreUpdt and after z, with vdgraph_separate_zr.c:78 unchanged.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "the stale-load symptom was DMO-12's, fixed by aace01bf",
+  "location_7_0_18": "src/libscotch/vdgraph_separate_zr.c:78-79",
+  "evidence": "vdgraph_separate_zr.c:78 'if (grafptr->compglbsize[0] != grafptr->s.vertglbnbr) /* If not all vertices already in part zero */'",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "n/a (first-pass finding)",
+  "first_pass_critique": "Carried over.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: fix the store (done by aace01bf)",
+    "summary": "",
+    "diff_file": "",
+    "tested": "ran",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: not-a-bug -> 7.0.18 status: not-a-bug (now with upstream's store fix)."
+ },
+ {
+  "id": "PS2-G23-1",
+  "our_title": "dmapSave still offsets the NULL label pointer of non-root processes",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/DMO-15/run.sh: 'mpirun -np 3 $INFRA/asan/bin/dgpart 2 lbl.grf' -> 'dmapping_io.c:170:13: runtime error: applying non-zero offset 18446744073709551612 to null pointer' (2 reports, non-root ranks); series: none, same mapping file '12 101 0 ... 112 1'.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "UB only; output correct",
+  "location_7_0_18": "src/libscotch/dmapping_io.c:153 (vlbltax = NULL on non-root), :170",
+  "evidence": "dmapping_io.c:170 'vlbltax -= grafptr->baseval;                  /* Base label array since displacement array is based */' under 'if (grafptr->vlblloctax != NULL)'",
+  "upstream_change": "96a44b3d40 touched the file (count test only)",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: base only when non-NULL",
+    "summary": "0005, re-applied unchanged (date bump)",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0005-Bugfix-do-not-base-the-null-label-array-of-non-root-.patch",
+    "tested": "run above, ptcheck",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "same guard as 0003"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0005-Bugfix-do-not-base-the-null-label-array-of-non-root-.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present; 59c9a31c copied the same pattern into dorder_io.c (PS3-G23-1)."
+ },
+ {
+  "id": "PS2-G23-2",
+  "our_title": "Sequential leaf of distributed mapping still leaves fragments without part array",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "'mpirun -np 3 ./dtest_asan 4elt.grf -1 map \"r{sep=q{strat=f}}\" 4 n -' (pristine 7.0.18): 'dmapping.c:224:47: runtime error: load of null pointer of type 'Anum'' + 'AddressSanitizer: SEGV ... dmapping.c:224 in dmapTerm'; series: 'rank 0..2: Map rc=0' (32 and 64 bit). 'dgpart k 4elt.grf -m\"r{sep=q{strat=f}}\"' did not crash on pristine 7.0.18 in 6 runs (np 2-4, k 4 and 8); the 7.0.17 dgpart crash was observed on base-combined, not on pristine 7.0.17.",
+  "read_only": "Why the dgpart path does not reach a NULL fragment here was not isolated.",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "crash of SCOTCH_dgraphMap with any user 'r{sep=...}' strategy without seq=",
+  "location_7_0_18": "src/libscotch/kdgraph_map_rb_part.c:109-133",
+  "evidence": "kdgraph_map_rb_part.c:133 'fragptr->parttab = kgrfdat.m.parttax + kgrfdat.s.baseval;' after kgraphMapSt with the default stratdummy seq strategy; kgraphInit leaves parttax NULL.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: mapAlloc + kgraphFrst before the sequential strategy",
+    "summary": "0006, re-applied unchanged (date bump)",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0006-Bugfix-assign-all-vertices-to-the-initial-domain-bef.patch",
+    "tested": "run above; ptcheck 32/64",
+    "tradeoffs": "one Anum array per leaf",
+    "preferred": true,
+    "maintainer_fit": "his kgraphMapMlUncoarsen idiom"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0006-Bugfix-assign-all-vertices-to-the-initial-domain-bef.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (file not touched upstream)."
+ },
+ {
+  "id": "PS2-G23-3",
+  "our_title": "vdgraphCheck messages name vgraphCheck or the wrong quantity; part array leaked on one path",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "DMO-12 proof B (dbgold): the local-load mismatch is reported as '(r): ERROR: vgraphCheck: invalid local part sizes'. Series builddbg compiles (0 warnings) and the proof strategy runs clean.",
+  "read_only": "The 'inconsistent global graph data' return (vdgraph_check.c:186-193, bdgraph_check.c:183-195) cannot be reached without corrupting a graph; read.",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "debug-only",
+  "location_7_0_18": "src/libscotch/vdgraph_check.c:108, 191-192, 239, 246, 274; bdgraph_check.c:193-194",
+  "evidence": "vdgraph_check.c:191 'errorPrint (\"vdgraphCheck: inconsistent global graph data\");' :192 'return (1);' without memFree (partgsttax) (allocated :158); :239/:246 'vgraphCheck: invalid local part sizes'; :274 'vgraphCheck: invalid global part sizes'; :108 'vdgraphCheck: invalid local size sum' on the load test.",
+  "upstream_change": "2d1b7e3905 (added two more messages with the same defects)",
+  "upstream_fix_review": {
+   "commit": "2d1b7e3905",
+   "verdict": "incomplete",
+   "details": "Tests right; messages copied ('local size sum' for loads at :108, 'vgraphCheck ... sizes' for loads at :246); header 'to : 31 oct 2023'. The old names at :239, :274 untouched; the leak untouched (also in the twin bdgraphCheck :193).",
+   "compared_with_ours": "Our 0003 fixed the two old names and gave the load test its own message. Rebased as 0007, extended to the new messages and to the leak in both check routines."
+  },
+  "review_accuracy": "(our finding)",
+  "first_pass_critique": "Carried over.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/bdgraph_check.c:193-194",
+    "quote": "errorPrint (\"bdgraphCheck: inconsistent global graph data\"); return     (1);",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: proper messages; free the part array",
+    "summary": "0007",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0007-Bugfix-fix-error-messages-and-free-part-array-on-err.patch",
+    "tested": "DEBUG_ALL builds 0 warnings; proof C clean; ptcheck 32/64",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "same class as aa24a7cb"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G23-vdgraph-dorder/patches/0007-Bugfix-fix-error-messages-and-free-part-array-on-err.patch"
+  ],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (worse: two more mislabelled messages). bdgraph_check.c's header gets a 7.0 version block (last block was 6.0), as his 7.0.16..17 commits do."
+ },
+ {
+  "id": "PS2-G23-4",
+  "our_title": "kdgraphMapRbPartSequ still ignores a failing shrinking memRealloc",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "kdgraph_map_rb_part.c:138-139 'if (kgrfdat.m.domnmax > kgrfdat.m.domnnbr) fragptr->domntab = memRealloc (fragptr->domntab, kgrfdat.m.domnnbr * sizeof (ArchDom));' unchanged in 7.0.18 (git log v7.0.17..v7.0.18 -- kdgraph_map_rb_part.c: empty).",
+  "why_not_run": "glibc never fails a shrinking realloc; G24's file",
+  "severity": "low",
+  "severity_note": "shrinking realloc failure only",
+  "location_7_0_18": "src/libscotch/kdgraph_map_rb_part.c:138-139",
+  "evidence": "see read_only",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: keep the old array when the shrink fails",
+    "summary": "tmp pointer test (G19's dgraphGhst2 idiom)",
+    "diff_file": "",
+    "tested": "untested",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G23-5",
+  "our_title": "Folded sub-communicator hang after collective band failure: masked by a dgraphGhst2 crash in 7.0.18",
+  "status": "inconclusive",
+  "method": "ran",
+  "ran": "FI_FUNC=vdgraphSeparateDf scans (DMO-04), nth=0,1,8,9,16,17 (dgraphGhst out of memory (1|2) on rank 1, agreed on all ranks) and nth=2,10 (tolerated shrink failure): pristine 7.0.18 and series both 'exit=139', rank 1 'signal 11'; backtrace of nth=0 (repro/DMO-04/nth0_bt.txt): libc (+0x1a1ee3) <- _SCOTCHdgraphGhst2+0x10e7 <- _SCOTCHvdgraphSeparateDf+0x175 <- vdgraphSeparateSt <- vdgraphSeparateBd; nth=2: 'dgraph_halo_fill.c:71:16: runtime error: load of null pointer of type 'const int''.",
+  "read_only": "The 7.0.17 hang was observed on base-combined, which carried G19's dgraphGhst2 fixes; pristine 7.0.18 crashes in dgraphGhst2 (G19) before the timing-dependent hang can occur, so it could not be re-observed.",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "unchanged assessment; on pristine 7.0.18 the injections that produced the hang now crash earlier",
+  "location_7_0_18": "unknown (hang); crash in src/libscotch/dgraph_ghst.c (dgraphGhst2 error path) and dgraph_halo_fill.c:71",
+  "evidence": "see ran",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "none",
+    "summary": "re-test once G19's dgraphGhst2 rebase lands",
+    "diff_file": "",
+    "tested": "",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: inconclusive -> 7.0.18 status: inconclusive (masked by the G19 crash; G19 should know dgraphGhst2's error path segfaults on pristine 7.0.18)."
+ },
+ {
+  "id": "PS2-G23-6",
+  "our_title": "Diffusion methods still return alone on halo synchronization failure, hanging the others",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "DMO-04 scans, pristine 7.0.18 and series alike: nth=4..7 and 12..15 'HANG; (1): ERROR: dgraphHaloSync2: out of memory; (1): ERROR: vdgraphSeparateDf: cannot propagate diffusion data (1)|(2) / cannot propagate part data' (60 s timeout).",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "as 7.0.17",
+  "location_7_0_18": "src/libscotch/vdgraph_separate_df.c:187-191, 276-280, 299-302 (and bdgraph_bipart_df.c twin)",
+  "evidence": "vdgraph_separate_df.c:188 'errorPrint (\"vdgraphSeparateDf: cannot propagate diffusion data (1)\");' followed by memFree and return (1) on the failing process only.",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "none here",
+    "summary": "dgraphHaloSync design decision (G20)",
+    "diff_file": "",
+    "tested": "",
+    "tradeoffs": "",
+    "preferred": true,
+    "maintainer_fit": ""
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ }
+]

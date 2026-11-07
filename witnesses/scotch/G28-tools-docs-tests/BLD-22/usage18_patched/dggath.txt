@@ -1,0 +1,6 @@
+Usage is:
+  dggath [<input (distributed) source file> [<output centralized source file>]] <options>
+    -c       : Check the input graph after loading
+    -h       : Display this help
+    -r<num>  : Set root process for centralized files (default is 0)
+    -V       : Print program version and copyright

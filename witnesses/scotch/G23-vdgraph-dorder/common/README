@@ -1,0 +1,22 @@
+Shared tooling for the G23 reproducers (WORK=.../work/G23-vdgraph-dorder)
+  dtest.c    PT-Scotch driver: dtest <graph> <base|-1> order|map|part <strategy|""> <nparts> <save> <outfile|->
+             save: o/t/m/b = dgraphOrderSave/SaveTree/SaveMap/SaveBlock, s = dgraphMapSave (MapInit without user part array, as dgmap), n = none.
+             Linked with libptscotcherr (non-exiting errorPrint); uses MPI_Init_thread(MPI_THREAD_MULTIPLE) because fold-dup
+             coarsening runs MPI-communicating threads (with plain MPI_Init, as in the first pass's drv.c, strategies that fold hang at random).
+             Build: mpicc -g -O0 -fsanitize=address,undefined -I$B/include dtest.c -o dtest_<tree> -L$B/lib -lptscotch -lscotch -lptscotcherr -lz -lm -lrt -pthread -ldl
+             (use -fsanitize=undefined only for the LD_PRELOAD trees buildfi/buildfip). Arms the fault injector (fi_armed) around the compute call.
+  dmaptest.c internal-API driver for dmapSave (see DMO-15/README).
+  fishim.c   G18's LD_PRELOAD malloc injector + FI_FUNC=<routine substring>: only allocations whose backtrace contains the routine are counted.
+             gcc -O1 -g -fPIC -shared -o fishim.so fishim.c -ldl ; SIGUSR1 prints a backtrace of a hung rank.
+  scan.sh    G18's scanner: scan.sh LIBDIR BIN NP FAILRANK FROM TO -- args  (exports FI_FUNC; HANG = 15 s timeout).
+  Trees: build = series (32-bit ASan+UBSan), buildp = base-combined copy (same flags), build64 = series 64-bit, buildfi/buildfip = base/series
+         with -fsanitize=undefined only, builddbg = series with -DSCOTCH_DEBUG_ALL. "pristine" below means base-combined (== v7.0.17 for these files).
+  Data: 4elt.grf (base 0, 15606 vertices), lbl.grf (12-vertex path, base 1, labels 101..112), lbl13/lbl14.grf (same, 13/14 vertices),
+        st_z.txt / st_df.txt (first pass's strategies: low=z / d{} inside band graphs), st_df_nofold.txt.
+  Logs kept here: scan_df_pristine.txt, scan_df_patched.txt, redo.txt (G20 guard hang test + scans), dmo12proof.txt, trace.* (hang traces).
+
+7.0.18 round (WORK=work18/G23-vdgraph-dorder)
+  build.sh TREE NAME [ubsan] builds dtest_NAME and dmaptest_NAME; dmaptest.c now uses MPI_Init_thread; scan.sh 60 s.
+  Pristine trees: $INFRA/asan (asan), work18/G22-bdgraph/basefi (UBSan-only, glibc malloc), work18/G22-bdgraph/pdbg
+  (DEBUG_ALL), dbgold (pdbg + 7.0.17 vdgraph.h/vdgraph_store.c, DMO-12 proof B). Series: build, build64, buildfi, builddbg.
+  ../DMO-02/run.sh, ../DMO-15/run.sh, ../DMO-04/scan_7018_*.txt + nth0_bt.txt, ../DMO-12/proof_7018.txt, ../DMO-13/runs_7018.txt.

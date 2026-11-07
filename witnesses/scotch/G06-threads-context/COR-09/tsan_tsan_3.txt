@@ -1,0 +1,184 @@
+ERROR: threadCreate: cannot launch thread (2)
+ERROR: threadContextInit: cannot create thread (2)
+==================
+WARNING: ThreadSanitizer: data race (pid=5377)
+  Write of size 4 at 0x724000000000 by main thread:
+    #0 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:145 (libscotch.so+0x45d6d) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Previous read of size 4 at 0x724000000000 by thread T1 (mutexes: write M0):
+    #0 threadWaitBarrier1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:322 (libscotch.so+0x456ac) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:402 (libscotch.so+0x456ac)
+
+  Location is heap block of size 248 at 0x724000000000 allocated by main thread:
+    #0 malloc ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:665 (libtsan.so+0x54b3f) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:196 (libscotch.so+0x400f7) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Mutex M0 (0x724000000020) created at:
+    #0 pthread_mutex_init ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1315 (libtsan.so+0x594cd) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:134 (libscotch.so+0x45c68) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Thread T1 (tid=5382, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:145 in _SCOTCHthreadContextInit
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=5377)
+  Write of size 1 at 0x724000000020 by main thread:
+    #0 pthread_mutex_destroy ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1332 (libtsan.so+0x5653a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadContextExit3 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:194 (libscotch.so+0x45def) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:146 (libscotch.so+0x45def)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Previous atomic read of size 1 at 0x724000000020 by thread T1:
+    #0 pthread_cond_wait ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1243 (libtsan.so+0x5afad) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadWaitBarrier1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:331 (libscotch.so+0x45725) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:402 (libscotch.so+0x45725)
+
+  Location is heap block of size 248 at 0x724000000000 allocated by main thread:
+    #0 malloc ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:665 (libtsan.so+0x54b3f) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:196 (libscotch.so+0x400f7) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Thread T1 (tid=5382, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:194 in threadContextExit3
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=5377)
+  Read of size 8 at 0x724000000048 by thread T1 (mutexes: write M0):
+    #0 pthread_cond_wait ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1243 (libtsan.so+0x5afad) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadWaitBarrier1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:331 (libscotch.so+0x45725) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:402 (libscotch.so+0x45725)
+
+  Previous write of size 8 at 0x724000000048 by main thread:
+    #0 pthread_cond_destroy ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1303 (libtsan.so+0x5a1ab) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadContextExit3 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:193 (libscotch.so+0x45de6) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:146 (libscotch.so+0x45de6)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Location is heap block of size 248 at 0x724000000000 allocated by main thread:
+    #0 malloc ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:665 (libtsan.so+0x54b3f) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:196 (libscotch.so+0x400f7) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Mutex M0 (0x724000000020) created at:
+    #0 pthread_mutex_init ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1315 (libtsan.so+0x594cd) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:134 (libscotch.so+0x45c68) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Thread T1 (tid=5382, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:331 in threadWaitBarrier1
+==================
+==================
+WARNING: ThreadSanitizer: unlock of an unlocked mutex (or by a wrong thread) (pid=5377)
+    #0 pthread_cond_wait ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1243 (libtsan.so+0x5afad) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadWaitBarrier1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:331 (libscotch.so+0x45725) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:402 (libscotch.so+0x45725)
+
+  Location is heap block of size 248 at 0x724000000000 allocated by main thread:
+    #0 malloc ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:665 (libtsan.so+0x54b3f) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:196 (libscotch.so+0x400f7) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Mutex M0 (0x724000000020) created at:
+    [failed to restore the stack]
+
+SUMMARY: ThreadSanitizer: unlock of an unlocked mutex (or by a wrong thread) /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:331 in threadWaitBarrier1
+==================
+==================
+WARNING: ThreadSanitizer: destroy of a locked mutex (pid=5377)
+    #0 pthread_mutex_destroy ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1332 (libtsan.so+0x5653a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadContextExit3 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:194 (libscotch.so+0x45def) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:146 (libscotch.so+0x45def)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  and:
+    #0 pthread_cond_wait ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1243 (libtsan.so+0x5afad) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadWaitBarrier1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:331 (libscotch.so+0x45725) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:402 (libscotch.so+0x45725)
+
+  Location is heap block of size 248 at 0x724000000000 allocated by main thread:
+    #0 malloc ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:665 (libtsan.so+0x54b3f) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:196 (libscotch.so+0x400f7) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Mutex M0 (0x724000000020) created at:
+    #0 pthread_mutex_init ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1315 (libtsan.so+0x594cd) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:134 (libscotch.so+0x45c68) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+SUMMARY: ThreadSanitizer: destroy of a locked mutex /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:194 in threadContextExit3
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=5377)
+  Write of size 8 at 0x724000000018 by main thread:
+    #0 free ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:724 (libtsan.so+0x57c71) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:202 (libscotch.so+0x4012f) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Previous read of size 4 at 0x72400000001c by thread T1 (mutexes: write M0):
+    #0 threadWaitBarrier1 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:338 (libscotch.so+0x4570e) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #1 threadWait /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:402 (libscotch.so+0x4570e)
+
+  Mutex M0 (0x724000000020) created at:
+    #0 pthread_mutex_init ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1315 (libtsan.so+0x594cd) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:134 (libscotch.so+0x45c68) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+  Thread T1 (tid=5382, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:1022 (libtsan.so+0x5ac1a) (BuildId: 2a13a7710e361d06f7babbea53065ca2be93f738)
+    #1 threadCreate /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:868 (libscotch.so+0x45571) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #2 _SCOTCHthreadContextInit /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_thread.c:143 (libscotch.so+0x45d10) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #3 _SCOTCHcontextThreadInit2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:201 (libscotch.so+0x40118) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #4 SCOTCH_contextThreadSpawn /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/library_context.c:261 (libscotch.so+0x84cbb) (BuildId: aecdf61ba5bebc624aa0f6092915ad8045987413)
+    #5 main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/repro/COR-09/spawn.c:23 (spawn_tsan+0x1318) (BuildId: 2588ba2e53fa4552e8a03b77a6f19033b755e40f)
+
+SUMMARY: ThreadSanitizer: data race /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G06-threads-context/tsan/src/libscotch/common_context.c:202 in _SCOTCHcontextThreadInit2
+==================
+spawn (4) returned 1
+ThreadSanitizer: reported 6 warnings
+exit done

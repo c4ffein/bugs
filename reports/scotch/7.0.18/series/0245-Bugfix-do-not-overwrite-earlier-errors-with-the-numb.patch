@@ -1,0 +1,40 @@
+From 394a1b498c32e2e636cd3a875ac5b2446508e319 Mon Sep 17 00:00:00 2001
+From: c4ffein <c4ffein.work@gmail.com>
+Date: Mon, 2 Nov 2026 20:58:26 +0000
+Subject: [PATCH 245/248] Bugfix: do not overwrite earlier errors with the
+ numbering hole error in `dgraphCheck()`
+
+When an edge end lies in a numbering hole of a neighbor process,
+`dgraphCheck()` unconditionally set the local error code to 4, thus
+overwriting an error (1 to 3) already found on the same process. The
+check result is unaffected, but the reported message was misleading
+("arc end in numbering hole" instead of "arc data do not match").
+
+Only set the hole error code when no error has been found yet.
+
+Tested with a 2-process reproducer (unmatched arc followed by an arc
+end in a hole, on each process): the message was "arc end in numbering
+hole" before, "arc data do not match" after. test_scotch_dgraph_check
+on bump.grf at np=1 and np=3 with ASan/UBSan: passes; dgraph_check.c
+compiles without warning with -Wall.
+---
+ src/libscotch/dgraph_check.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/libscotch/dgraph_check.c b/src/libscotch/dgraph_check.c
+index bf3e580..7a15504 100644
+--- a/src/libscotch/dgraph_check.c
++++ b/src/libscotch/dgraph_check.c
+@@ -471,7 +471,8 @@ fail:
+           Gnum                edgengbsum;
+ 
+           if (vertglbend >= vertngbnnd) {         /* If end vertex lies in numbering hole of neighbor process */
+-            cheklocval = 4;
++            if (cheklocval == 0)                  /* Do not overwrite an error already found */
++              cheklocval = 4;
+             continue;
+           }
+           for (edgengbnum = vertngbptr[vertglbend - vertngbmin],
+-- 
+2.47.3
+

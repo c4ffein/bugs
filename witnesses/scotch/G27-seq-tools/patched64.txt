@@ -1,0 +1,81 @@
+### CLI-11
+    #0 0x7f3230952324 in bgraphBipartMlUncoarsen /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_ml.c:195
+    #1 0x7f32309546db in bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_ml.c:329
+    #2 0x7f3230954953 in _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_ml.c:359
+4,6c4,6
+< 0	2	2
+< 0	1	1
+< 3	1	1
+bgraph_bipart_ml.c:195:35: runtime error: applying non-zero offset 18446744073709551600 to null pointer
+    #0 0x7fc1c1752324 in bgraphBipartMlUncoarsen /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_ml.c:195
+    #1 0x7fc1c17546db in bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_ml.c:329
+4,10c4,10
+< 4	5	10
+< 8	3	5
+< 4	2	5
+amk_grf: ERROR: main: list vertex number out of range
+rc=1
+bgraph_bipart_ml.c:195:35: runtime error: applying non-zero offset 18446744073709551600 to null pointer
+    #0 0x7f7683f52324 in bgraphBipartMlUncoarsen /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_ml.c:195
+    #1 0x7f7683f546db in bgraphBipartMl2 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_ml.c:329
+    #2 0x7f7683f54953 in _SCOTCHbgraphBipartMl /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_ml.c:359
+    #3 0x7f7683f55ef3 in _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_st.c:383
+    #4 0x7f7683f54c52 in _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_st.c:301
+    #5 0x7f7683f54c52 in _SCOTCHbgraphBipartSt /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/bgraph_bipart_st.c:301
+    #6 0x7f7683ed9591 in _SCOTCHarchDecoArchBuild /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/arch_deco_build.c:234
+    #7 0x7f76840b60a8 in SCOTCH_archBuild0 /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/libscotch/library_arch_build.c:146
+    #8 0x55a2d88e6549 in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/src/scotch/amk_grf.c:233
+    #9 0x7f7682e2a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #10 0x7f7682e2a28a in __libc_start_main_impl ../csu/libc-start.c:360
+    #11 0x55a2d88e4544 in _start (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G27-seq-tools/build64/bin/amk_grf+0x4544) (BuildId: f96da966d24ee5bec2d265af1671871c978d9997)
+
+4,6c4,6
+< 1	2	2
+< 1	1	1
+< 3	1	1
+ERROR: graphInduceList: invalid vertex list
+ERROR: archDecoArchBuild: cannot induce graph
+archBuild0 bad list: 1
+ERROR: graphInduceList: invalid vertex list
+ERROR: archDecoArchBuild: cannot induce graph
+archBuild0 dup list: 1
+ERROR: graphInduceList: invalid vertex list
+graphInduceList bad list: 1
+### CLI-12
+-Oi identical
+-Ov identical
+-Ot differs
+-Op identical
+### CLI-13
+A	Terminals	nbr=8
+A	Distance	min=1	max=1	avg=1	dlt=0
+A	Terminals	nbr=1
+A	Distance	min=0	max=0	avg=0	dlt=0
+A	Terminals	nbr=16
+A	Distance	min=1	max=6	avg=2.66667	dlt=2.08889
+### CLI-14
+gcv: ERROR: main: unprocessed option '-oZ'
+rc=1
+rc=0
+mcv: ERROR: main: unprocessed option '-oZ'
+rc=1
+rc=0
+### CLI-16
+gout: ERROR: outDrawTulMesh: geometry not provided
+rc=1
+gout: ERROR: outDrawTulMesh: geometry not provided
+rc=1
+gout: ERROR: outDrawInvMesh: geometry not provided
+gout: ERROR: outDrawVtkMesh: geometry not provided
+gout: ERROR: outDrawPosMesh: geometry not provided
+### CLI-17
+gout: ERROR: main: error in output option string (3)
+rc=1
+### CLI-18
+CLI-18 sweep done
+### PS2-G15-6
+gotst: ERROR: orderLoad: bad input (3)
+rc=1
+### PS2-G27-2
+-Oi rc=0
+-Ov rc=0

@@ -1,0 +1,53 @@
+From 3782807eec78e827ce45cc8f1ba5b1f141afd80d Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:44:45 +0000
+Subject: [PATCH 2/7] Bugfix: set baseval early in `hdgraphFold2()` to allow
+ for early freeing [report R. Perry]
+
+As in `dgraphFold2()`, the folded halo graph structure is cleared, then
+based arrays are attached to it, but its base value was only set at the
+very end. Consequently, premature freeing on error through
+`hdgraphExit()` freed the based pointers with a base value of 0, which
+corrupts the heap whenever the base value of the original graph is not
+0.
+
+Set the base value right after the structure is cleared, as done for
+`dgraphFold2()`.
+
+Refs: DGR-02
+---
+ src/libscotch/hdgraph_fold.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/libscotch/hdgraph_fold.c b/src/libscotch/hdgraph_fold.c
+index 9f155d48..1f045ea7 100644
+--- a/src/libscotch/hdgraph_fold.c
++++ b/src/libscotch/hdgraph_fold.c
+@@ -45,7 +45,7 @@
+ /**                # Version 6.1  : from : 02 apr 2021     **/
+ /**                                 to   : 19 jun 2021     **/
+ /**                # Version 7.0  : from : 28 aug 2019     **/
+-/**                                 to   : 08 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /**   NOTES      : # This code derives from tht of         **/
+ /**                  dgraphFold().                         **/
+@@ -181,6 +181,7 @@ MPI_Comm                        fldproccomm)      /*+ Pre-computed communicator
+ 
+     memSet (fldgrafptr, 0, sizeof (Hdgraph));     /* Pre-initialize graph fields */
+ 
++    fldgrafptr->s.baseval    = orggrafptr->s.baseval; /* Set base early in case hdgraphExit() is called */
+     fldgrafptr->s.proccomm   = fldproccomm;
+     fldgrafptr->s.procglbnbr = fldprocglbnbr;
+     fldgrafptr->s.proclocnum = fldproclocnum;
+@@ -876,7 +877,6 @@ fail2:                                            /* Receivers must fail collect
+     if (fldvhalloctax != NULL)                    /* If process is a pure receiver */
+       memFree (fldvhalloctax + orggrafptr->s.baseval);
+ 
+-    fldgrafptr->s.baseval    = orggrafptr->s.baseval;
+     fldgrafptr->s.vertlocnbr = fldvertlocnbr;
+     fldgrafptr->s.vertlocnnd = fldvertlocnbr + orggrafptr->s.baseval;
+     fldgrafptr->s.velolocsum = fldvelolocsum;
+-- 
+2.43.0
+

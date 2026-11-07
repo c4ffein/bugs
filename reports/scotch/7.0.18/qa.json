@@ -1,0 +1,50 @@
+{
+ "date": "2026-11-02",
+ "base": "v7.0.18",
+ "series": {
+  "groups": 30,
+  "patches": 232,
+  "duplicates": 0,
+  "distinct": 232,
+  "plain_git_am": true
+ },
+ "builds": [
+  {
+   "tree": "32-bit Gnum, ASan+UBSan -O0",
+   "warnings": 0
+  },
+  {
+   "tree": "64-bit Gnum, ASan+UBSan -O0",
+   "warnings": 0
+  }
+ ],
+ "suites": [
+  {
+   "suite": "make check (sequential)",
+   "pristine32": "FAIL check_scotch_arch_build (leak); 23 UBSan reports (bgraph_bipart_ml.c:195, kgraph_map_ml.c:239)",
+   "patched32": "PASS, 0 sanitizer reports",
+   "pristine64": "FAIL check_scotch_arch_build (leak); 25 UBSan reports (same two sites, plus two shift overflows in mesh_induce_sepa.c:160-161)",
+   "patched64": "PASS, 0 sanitizer reports"
+  },
+  {
+   "suite": "make ptcheck (PT-Scotch)",
+   "pristine32": "PASS, 7 UBSan reports (bgraph_bipart_ml.c:195)",
+   "patched32": "PASS, 0 sanitizer reports",
+   "pristine64": "PASS, 7 UBSan reports (bgraph_bipart_ml.c:195)",
+   "patched64": "PASS, 0 sanitizer reports"
+  },
+  {
+   "suite": "make escheck (esMUMPS)",
+   "pristine32": "PASS",
+   "patched32": "PASS",
+   "pristine64": "PASS",
+   "patched64": "PASS"
+  }
+ ],
+ "notes": [
+  "Suites run one tree at a time under a lock (the check recipe writes to a shared /tmp), with make -k so one failure does not hide the next.",
+  "The first QA run found a semantic conflict between groups that git merged without complaint: G28's 0008 changes the signature of checkMap() in test_scotch_graph_map.c, and G12's 0002 adds two calls with the old signature (check_scotch_graph_map crashed, with -Wint-conversion warnings). G28's commit now updates those calls; the run above is after the fix.",
+  "The exported series/ reproduces the tested tree exactly (archive diff of a plain git am on a fresh v7.0.18 clone).",
+  "PyScotch's reproducibility gate: pristine 7.0.18 fails (SEP-13); with the series or with pyscotch/_scotch_patches/scotch-7.0.18-bgraph-bipart-gg-determinism.patch it passes."
+ ]
+}

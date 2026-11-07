@@ -1,0 +1,39 @@
+[
+ {
+  "local_id": "PS3-G01-1",
+  "our_title": "ecaf094's unconditional terminal checks double free the published terminal array",
+  "severity": "high",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Harness: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/repro (7.0.17 kits adapted: common/{archload,archtrip,subapi,subapi2}.c, <ID>/run.sh <libdir>, new/run.sh = 7.0.18-specific cases, alloc/sweep_plain.sh = malloc-failure sweep on non-sanitized builds /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plain (pristine) and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/plainp (patched)). Pristine = INFRA/asan/lib and INFRA/asan64/lib; patched = /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build/lib and /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/build64/lib. Transcript: repro/RESULTS18.txt. Pristine 7.0.18: 'sub 2 0 99 cmplt 4' and 'sub 2 0 0 cmplt 4' -> 'ERROR: archSubArchBuild: invalid vertex number in vertex list' (resp. 'duplicate vertex number') then 'AddressSanitizer: attempting double-free on 0x50b000000040 ... #1 _SCOTCHarchSubArchFree arch_sub.c:202 #2 _SCOTCHarchLoad arch.c:216 ... freed by thread T0 here: ... #1 _SCOTCHarchSubArchBuild arch_sub.c:451 #2 _SCOTCHarchSubArchLoad arch_sub.c:122'; subapi2 '0 0' / '0 99' (SCOTCH_archSub then SCOTCH_archExit) -> double free; same on asan64. Patched (0001): ret=1 / ret=2, no report.",
+  "read_only": "",
+  "why_not_run": "",
+  "location_7_0_18": "src/libscotch/arch_sub.c:425 and 448-452",
+  "evidence": "arch_sub.c:425: '  subarchptr->termtab = termtab;'; 448-452: 'fail1:' / '      orgarchptr->clasptr->matchExit (&matcdat);  /* Free matching structure */' / '      memFree (treetab - 1);' / '      memFree (termtab);' / '      return  (2);'; archSubArchFree 201-202 frees archptr->termtab again.",
+  "related_ids": [
+   "COR-03",
+   "COR-04",
+   "PS-COR-3"
+  ],
+  "fix_options": [
+   {
+    "label": "A. Publish the body fields only on success (in rebased 0001)",
+    "summary": "Move the four subarchptr assignments after archSubArchBuild3() succeeded.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0001-Bugfix-clean-up-properly-on-sub-architecture-loading.patch",
+    "tested": "see 'ran'",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "same commit as the COR-04 remainder"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G01-arch-sub-dist/patches/0001-Bugfix-clean-up-properly-on-sub-architecture-loading.patch"
+  ],
+  "upstream_fix_review": {
+   "commit": "ecaf094ef7",
+   "verdict": "wrong",
+   "details": "Introduced by making the SCOTCH_DEBUG_ARCH1 checks unconditional without moving the earlier publication of termtab: in 7.0.17 release builds this failure path did not exist (it was a heap overflow instead, COR-03).",
+   "compared_with_ours": "Our 7.0.17 0001 published the fields only on success, which is why our 0001+0002 had no such path."
+  }
+ }
+]

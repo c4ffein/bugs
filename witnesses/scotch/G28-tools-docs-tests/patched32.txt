@@ -1,0 +1,47 @@
+### CLI-20
+    -b<val>    : Load imbalance tolerance (default: 0.01)
+gmap: ERROR: main: invalid strategy selection option 'Z' after '-c'
+### PS2-G28-1
+gmap: ERROR: main: missing parameter after '-q' for gmap
+dgmap(0): ERROR: main: missing parameter after '-q' for dgmap
+### BLD-23
+    -i<nbr> : Create a potentially imbalanced distribution with <nbr> vertices per process, remainder assigned to the last
+gscat: ERROR: main: invalid number of vertices in graph parts ''
+rc=1
+rc=0
+### PS3-G28-1 (gscat as in the man page synopsis)
+gscat: ERROR: main: invalid number of parts '/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G28-tools-docs-tests/scotch/src/check/data/m4x4.grf'
+### CLI-21
+dgmap -h rc=0 
+dgmap -V rc=0 
+dgord -h rc=0 
+dgord -V rc=0 
+dgscat -h rc=0 
+dgscat -V rc=0 
+dggath -h rc=0 
+dggath -V rc=0 
+dgtst -h rc=0 
+dgtst -V rc=0 
+dgtst(1): ERROR: dgraphLoadDist: bad input (1)
+MPI_ABORT was invoked on rank 1 in communicator MPI_COMM_WORLD
+rc=1
+### BLD-04
+...vAVK/test_scotch_graph_order: ERROR: checkOrder: invalid permutation pair
+rc=1
+...FU1S/test_scotch_graph_order: ERROR: checkOrder: invalid permutation value
+rc=1
+### BLD-15
+...wR7Ub/test_scotch_mesh_graph: ERROR: graphCheck: invalid edge array
+...wR7Ub/test_scotch_mesh_graph: ERROR: main: invalid graph converted from mesh
+rc=0
+### BLD-16
+...eUaGRz/test_scotch_graph_map: ERROR: checkMap: invalid mapping (1)
+rc=1
+...AWYnpG/test_scotch_graph_map: ERROR: checkMap: invalid mapping (3)
+rc=1
+...rP80pz/test_scotch_graph_map: ERROR: checkMap: invalid mapping (2)
+rc=1
+...QBXSJq/test_scotch_graph_map: ERROR: checkMap: invalid mapping (2)
+rc=1
+### BLD-18 (CHECKSCOTCH list entries for atst/mcv; read with awk, no make in the source tree)
+2

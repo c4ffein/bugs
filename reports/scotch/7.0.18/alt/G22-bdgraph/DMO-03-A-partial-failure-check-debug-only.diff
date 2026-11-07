@@ -1,0 +1,26 @@
+diff --git a/src/libscotch/bdgraph_bipart_sq.c b/src/libscotch/bdgraph_bipart_sq.c
+index a490fd23..fcb20b83 100644
+--- a/src/libscotch/bdgraph_bipart_sq.c
++++ b/src/libscotch/bdgraph_bipart_sq.c
+@@ -211,16 +211,17 @@ const BdgraphBipartSqParam * const  paraptr)      /*+ Method parameters +*/
+     return (1);
+   }
+ 
+-  if ((reduglbtab[4] != 0) && (reduglbtab[4] != dgrfptr->s.procglbnbr)) {
++#ifdef SCOTCH_DEBUG_BDGRAPH2
++  if ((reduglbtab[4] != 0) && (reduglbtab[4] != dgrfptr->s.procglbnbr)) { /* If sequential bipartitioning failed on some processes only */
+     errorPrint ("bdgraphBipartSq: internal error");
+-fail:
+     bgraphExit (&cgrfdat);
+     return (1);
+   }
+-
++#endif /* SCOTCH_DEBUG_BDGRAPH2 */
+   if ((reduglbtab[5] != 0) ||                     /* In case of memory allocation error             */
+       (reduglbtab[3] != 0)) {                     /* Or if none of the sequential methods succeeded */
+-    goto fail;
++    bgraphExit (&cgrfdat);
++    return (1);
+   }
+ 
+   bestprocnum = (int) reduglbtab[2];

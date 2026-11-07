@@ -1,0 +1,45 @@
+diff --git a/src/libscotch/parser.c b/src/libscotch/parser.c
+index 15bf0035..bf7a4ffe 100644
+--- a/src/libscotch/parser.c
++++ b/src/libscotch/parser.c
+@@ -54,7 +54,7 @@
+ /**                # Version 6.0  : from : 01 jun 2012     **/
+ /**                                 to   : 30 dec 2016     **/
+ /**                # Version 7.0  : from : 02 mar 2018     **/
+-/**                                 to   : 24 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -561,7 +561,6 @@ StratTest * const           testptr)
+ */
+ 
+ static char                 strattestsaveop[STRATTESTNBR] = "|&!=><+-*%##";
+-static char *               strattestsavepa[2][2] = { { "", "" }, { "(", ")" } };
+ 
+ int
+ stratTestSave (
+@@ -595,17 +594,12 @@ FILE * const                stream)
+     case STRATTESTSUB :                           /* Subtraction operator    */
+     case STRATTESTMUL :                           /* Multiplication operator */
+     case STRATTESTMOD :                           /* Modulus operator        */
+-      i  = (testptr->data.testtab[0]->testval < testptr->testval) ? 1 : 0;
+-      o  = (fprintf (stream, "%s", strattestsavepa[i][0]) == EOF);
+-      o |= stratTestSave (testptr->data.testtab[0], stream);
+-      o |= (fprintf (stream, "%s", strattestsavepa[i][1]) == EOF);
+-      if (o == 0) {
+-        o  = (fprintf (stream, "%c", strattestsaveop[testptr->testval]) == EOF);
+-        i  = (testptr->data.testtab[1]->testval < testptr->testval) ? 1 : 0;
+-        o |= (fprintf (stream, "%s", strattestsavepa[i][0]) == EOF);
+-        o |= stratTestSave (testptr->data.testtab[1], stream);
+-        o |= (fprintf (stream, "%s", strattestsavepa[i][1]) == EOF);
+-      }
++      if ((fprintf (stream, "(") == EOF) ||       /* Always parenthesize operands to preserve evaluation order */
++          (stratTestSave (testptr->data.testtab[0], stream) != 0) ||
++          (fprintf (stream, ")%c(", strattestsaveop[testptr->testval]) == EOF) ||
++          (stratTestSave (testptr->data.testtab[1], stream) != 0) ||
++          (fprintf (stream, ")") == EOF))
++        o = 1;
+       break;
+     case STRATTESTVAL :                           /* Constant value */
+       switch (testptr->nodeval) {

@@ -1,0 +1,703 @@
+[
+ {
+  "id": "DGR-05",
+  "our_title": "dgraphBuild2 error scan read one int per process from pairs: fixed upstream",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/DGR-05 (MPI_Init_thread), fault injection on pristine 7.0.18 UBSan build /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi: `scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib DGR-05/bin_pristinefi/buildfi 4 3 0 1 -- 0 4` -> nth=0 exit=0 :: (3): ERROR: dgraphBuild2: out of memory; r0..r3 build rc=1 (7.0.17: HANG); nth=1: all ranks build rc=0, check rc=0. Same with our series. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Hang of the whole job on a public API call (SCOTCH_dgraphBuild and every loader/generator that uses dgraphBuild2), but only on allocation failure of a tiny array; same as the review.",
+  "location_7_0_18": "src/libscotch/dgraph_build.c:213",
+  "evidence": "dgraph_build.c:213: `if (grafptr->procngbtab[2 * procnum] < 0) {   /* If error notified by another process during memory allocation */`",
+  "upstream_change": "79a5045974 Bugfix: read proper array cells for error return codes [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "79a5045974",
+   "verdict": "correct",
+   "details": "Same one-token fix as ours (procngbtab[2 * procnum], the cell the loop body reads at l.218). Verified by running: a failing rank >= P/2 no longer hangs the others. 484adec3 later documents the trick (\"TRICK: possibly propagate external error code\", l.202) and reuses it from dmeshDgraphDual(). The dummy-array path (l.186-198) still returns without a collective when even the dummy allocation fails (accepted limitation, unchanged).",
+   "compared_with_ours": "Identical code change; ours (7.0.17 0004) is dropped. Neither adds a test (an allocation failure cannot be provoked from src/check)."
+  },
+  "review_accuracy": "accurate (lines shifted by -7 in 7.0.17); the consequence is exactly the hang in dgraphBuild3's reduction.",
+  "first_pass_critique": "Status, mechanism and one-token fix correct and verified. Its option 3 (let dgraphBuild3 agree) was rightly rejected. It did not note that the same pattern also hangs through dgraphBuildGrid3D (its own nth=2 run), nor the non-collective failure of the grid builder itself before dgraphBuild2 (PS2-G19-1).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_induce.c:177 (DGR-06)",
+    "quote": "if (indgrafptr->procdsptab[procnum] < 0)      /* If error notified by another process */",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/hdgraph_induce.c:189 (twin, already correct in 3436099)",
+    "quote": "if (indgrafptr->s.proccnttab[procnum] < 0)    /* If error notified by another process */",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: index the pair array with 2 * procnum",
+    "summary": "One-token fix: test procngbtab[2 * procnum], the slot the loop two lines below already reads.",
+    "diff_file": "",
+    "tested": "fault injection np=3/4, failing rank 1, 2 and 3, base 0 and 1 (repro/DGR-05/README): all ranks return 1; relevant check targets: all CHECKPTSCOTCH targets (incl. the new check_scotch_dgraph_build) pass on the 32-bit ASan tree and the 64-bit tree (chk_32_summary.txt, chk_64_summary.txt; np=3 via the Makefile, plus the dgraph test programs, dgtst and dgpart with -np 1, 2 and 4); the dgraph targets pass on the -DSCOTCH_DEBUG_ALL tree (chk_dbg_summary.txt). The only sanitizer hits are pre-existing ones in other groups' files (library_dgraph_coarsen.c:163 memcpy with NULL, bgraph_bipart_ml.c:195 null offset), identical to G18's logs.",
+    "tradeoffs": "None: keeps the sentinel idiom the maintainer reused in 3c9b3ab; no extra communication.",
+    "preferred": true,
+    "maintainer_fit": "His own idiom (3c9b3ab, 3436099 keep the -1 sentinel in an Allgather); dgraph_build.c:219 shows the intended index."
+   },
+   {
+    "label": "B: dedicated MPI_Allreduce of the error flag before the Allgather",
+    "summary": "Drop the -1 sentinel and the dummy receive array; agree with an int MAX reduction, then gather plain counts.",
+    "diff_file": "",
+    "tested": "compiles (mpicc, 32-bit flags); not run",
+    "tradeoffs": "One more collective per build; removes the 'cannot allocate the dummy array' hole (currently a non-collective return, kept by the maintainer as 'cannot do a clean exit'); larger diff.",
+    "preferred": false,
+    "maintainer_fit": "He chose the sentinel over an extra reduction in his own 7.0.17 reworks of dgraphInduce2/hdgraphInduceList, so he would not take this."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (79a50459, identical to our 0004, which is dropped)."
+ },
+ {
+  "id": "DGR-06",
+  "our_title": "dgraphInduce2 looked for the -1 error marker in prefix sums: fixed upstream",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/DGR-06/inducefi, pristine 7.0.18: `scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib DGR-06/bin_pristinefi/inducefi 3 2 0 4 -- 1 4` -> nth=0,1,2: (2): ERROR: dgraphInduce2: out of memory (1)/(2)/(3); r0,r1,r2 induce rc=1 (7.0.17: HANG); nth=3: HANG in dgraphHaloSync2 (G20 PS-DGR-2, unchanged). Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Hang on allocation failure in SCOTCH_dgraphInducePart and in all internal inductions (nested dissection, recursive bipartitioning); as the review.",
+  "location_7_0_18": "src/libscotch/dgraph_induce.c:177",
+  "evidence": "dgraph_induce.c:177: `if (indgrafptr->proccnttab[procnum] < 0)      /* If error notified by another process */`",
+  "upstream_change": "b08bc63efd Bugfix: read proper error flag [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "b08bc63efd",
+   "verdict": "correct",
+   "details": "Same one-token fix as ours (proccnttab instead of procdsptab), aligns dgraphInduce2() with hdgraphInduceList() (hdgraph_induce.c:190). Verified by running with base 1 and failing rank 2 of 3.",
+   "compared_with_ours": "Identical; our 7.0.17 0007 is dropped."
+  },
+  "review_accuracy": "accurate; line numbers are 7.0.16's.",
+  "first_pass_critique": "Correct, verified and well explained (base-0/rank-0 masking). Nothing to add except that the precedent for the fix is the maintainer's own hdgraphInduceList (3436099), which it did not cite.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_build.c:213 (DGR-05, same sentinel family)",
+    "quote": "if (grafptr->procngbtab[procnum] < 0) {",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: test proccnttab[procnum]",
+    "summary": "One-token fix aligning dgraphInduce2 with hdgraphInduceList.",
+    "diff_file": "",
+    "tested": "fault injection np=3 fail rank 2 base 1, np=4 fail rank 3 base 0, np=3 fail rank 0 base 0: every rank returns 1; check_scotch_dgraph_induce/order/coarsen with -np 1-4 on 32/64/debug trees; relevant check targets: all CHECKPTSCOTCH targets (incl. the new check_scotch_dgraph_build) pass on the 32-bit ASan tree and the 64-bit tree (chk_32_summary.txt, chk_64_summary.txt; np=3 via the Makefile, plus the dgraph test programs, dgtst and dgpart with -np 1, 2 and 4); the dgraph targets pass on the -DSCOTCH_DEBUG_ALL tree (chk_dbg_summary.txt). The only sanitizer hits are pre-existing ones in other groups' files (library_dgraph_coarsen.c:163 memcpy with NULL, bgraph_bipart_ml.c:195 null offset), identical to G18's logs.",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "Literally what he wrote in the twin (3436099, hdgraph_induce.c:189)."
+   },
+   {
+    "label": "B: int Allreduce of the error flag before the count gather",
+    "summary": "Replace the -1 sentinel and the 'fake procdsptab' trick by an MPI_Allreduce(MAX) agreement, then gather plain counts.",
+    "diff_file": "",
+    "tested": "compiles; not run",
+    "tradeoffs": "One more collective per induction (inductions are frequent in nested dissection); also removes the 'cannot allocate fake procdsptab' non-collective return; larger diff against a routine he just reworked.",
+    "preferred": false,
+    "maintainer_fit": "Contradicts the design he chose in 3c9b3ab three weeks ago."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (b08bc63e, identical to our 0007)."
+ },
+ {
+  "id": "DGR-08",
+  "our_title": "dgraphGhst2 reports a local allocation failure, agrees, then keeps going (crash)",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/DGR-08/ghstfi, pristine 7.0.18: `scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib DGR-08/bin_pristinefi/ghstfi 3 2 0 2 -- 1 4` -> nth=0: (2): ERROR: dgraphGhst: out of memory (1); fishim: rank 2: signal 11 (r0,r1 ghst rc=1); nth=1: out of memory (2), signal 11. Patched (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/buildfi, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0005-Bugfix-stop-dgraphGhst2-after-a-local-allocation-fai.patch): nth=0,1: r0..r2 ghst rc=1, exit done; nth=2: rc=0, check rc=0. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Crash (NULL memSet) of the failing process on an allocation failure in SCOTCH_dgraphGhst and in every routine that computes ghosts; as the review.",
+  "location_7_0_18": "src/libscotch/dgraph_ghst.c:152-157, 164, 284-298",
+  "evidence": "dgraph_ghst.c:152: `if (cheklocval != 0) {                          /* TRICK: Processes not on error will perform collective communication at end of routine */` (no return after the reduction); :164 `memSet (vertsidtab,         ~0, grafptr->procglbnbr * sizeof (Gnum));`; :284 `grafptr->procsidtab = memRealloc (procsidtab, procsidnbr * sizeof (int));`; :294 `if (reduglbtab[0] != 0)`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate; the crash comes first, the unmatched collective second.",
+  "first_pass_critique": "Status and evidence correct; its preferred one-line `return (1)` is sufficient for the lead but leaves: a graph whose edge array was moved to edgegsttax (replace mode) with edgeloctax == NULL on a later work-array failure; the healthy processes leaking the reallocated procsidtab (no DGRAPHFREEPSID yet) when some other process fails or on 'communication error (5)'; and the debug 'internal error (2)' path not freeing the work group. Its option 2 (goto a common final reduction) is close to what the patch does.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_ghst.c:290-295 (healthy processes leak procsidtab on remote error) ",
+    "quote": "if (reduglbtab[0] != 0)                         /* If error, propagated by some previous reduction operator */\n    return (1);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/dgraph_ghst.c:254-259 (debug path, work group not freed)",
+    "quote": "errorPrint (\"dgraphGhst: internal error (2)\"); ... return (1);",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: work arrays first, one `fail` label with the early agreement, attach procsidtab after the final agreement",
+    "summary": "Allocate the work group before touching edgegsttax/edgeloctax; every local error (both allocations, the three debug checks) frees the group if it exists and jumps to `fail:` which performs the early reduction and returns 1; the final reduction frees the work group when any process failed, and only then is the (shrunk, checked) send index array attached and flagged.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0005-Bugfix-stop-dgraphGhst2-after-a-local-allocation-fai.patch",
+    "tested": "fault injection np=3 fail rank 2 base 1 and np=4 fail rank 0 base 0 (nth 0,1,2); all CHECKPTSCOTCH targets on 32/64 and the dgraph targets on the -DSCOTCH_DEBUG_ALL tree (where the debug paths compile); relevant check targets: all CHECKPTSCOTCH targets (incl. the new check_scotch_dgraph_build) pass on the 32-bit ASan tree and the 64-bit tree (chk_32_summary.txt, chk_64_summary.txt; np=3 via the Makefile, plus the dgraph test programs, dgtst and dgpart with -np 1, 2 and 4); the dgraph targets pass on the -DSCOTCH_DEBUG_ALL tree (chk_dbg_summary.txt). The only sanitizer hits are pre-existing ones in other groups' files (library_dgraph_coarsen.c:163 memcpy with NULL, bgraph_bipart_ml.c:195 null offset), identical to G18's logs.",
+    "tradeoffs": "Reorders two allocations (messages (1)/(2) swap); removes the local cheklocval; +9/-20 lines.",
+    "preferred": true,
+    "maintainer_fit": "The `goto fail` inside the first error block is his 3c9b3ab layout; attaching after agreement mirrors his dgraphFold2 'fldgrafptr->...' assignments after the reductions."
+   },
+   {
+    "label": "B: minimal return after the early reduction",
+    "summary": "The review's fix: `return (1)` after the early dgraphAllreduceMaxSum whatever its result.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G19-dgraph-build-induce/DGR-08-B-minimal-return.diff",
+    "tested": "compiles; not run",
+    "tradeoffs": "3-line change; keeps the procsidtab leak on remote failure, the replace-mode edgeloctax loss and the debug leak.",
+    "preferred": false,
+    "maintainer_fit": "He would take it as a hotfix, but his 2026 reworks (0635547, 3436099) show he prefers one cleanup path."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0005-Bugfix-stop-dgraphGhst2-after-a-local-allocation-fai.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17 (applies as is)",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (dgraph_ghst.c untouched). Patch re-applied unchanged."
+ },
+ {
+  "id": "DGR-11",
+  "our_title": "dgraphCheck accepts out-of-range edge ends, reads past holes, checks loads only with ghosts",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/DGR-11/chk on pristine 7.0.18 ASan (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan): `mpirun -np 2|3 chk far 1` -> build rc=0 check rc=0; `chk hole 1` -> AddressSanitizer: stack-buffer-overflow (dgraphCheck); `chk zero|neg 1` -> check rc=0. Patched (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/build): far -> 'dgraphCheck: invalid edge array' rc=1; hole -> 'arc end in numbering hole' rc=1; zero/neg -> 'invalid edge load' rc=1. test_scotch_dgraph_check (extended) fails on the pristine library ('main: wrong check result (case 1)') and passes on the patched 32/64-bit trees. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/nonfi_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Out-of-bounds read on a hand-built graph passed to the public checker and false 'valid' answers; PyScotch's test bench relies on this checker.",
+  "location_7_0_18": "src/libscotch/dgraph_check.c:295-323, 459-468",
+  "evidence": "dgraph_check.c:306: `if ((grafptr->flagval & DGRAPHHASEDGEGST) != 0) { /* If ghost edge array is valid */` (only place where edge loads are tested); :466: `for (edgengbnum = vertngbptr[vertglbend - vertngbmin],` with vertngbmax including the numbering hole; no range test of edgeloctax",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate on all three points; its 'Fix:' line is what was done (bound by the neighbour's vertex count = proccnttab, report unmatched ends, loads unconditional).",
+  "first_pass_critique": "Correct and verified. Its sketch tested ends against [baseval, procvrttab[P]) (the global range starts at procvrttab[0], which dgraphCheck never ties to baseval) and used `continue` with cheklocval = 1 for holes (reported as 'arc data do not match'); it missed that vertloctax[v] < baseval is not checked either (now in the same test as the vendloctax checks).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_check.c:298 (vertloctax lower bound never checked)",
+    "quote": "if ((vendloctax[vertlocnum] < vertloctax[vertlocnum]) ||",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: range check in the local pass, hole check in the matching rounds, unconditional load check",
+    "summary": "Local pass: vertloctax >= baseval, every end in [procvrttab[0], procvrttab[P]) ('invalid edge array'), edge loads > 0, ghost checks only under DGRAPHHASEDGEGST. Matching rounds: vertngbnnd = vertngbmin + proccnttab[procngbnum]; an end at or beyond it sets error code 4 'arc end in numbering hole'.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0006-Bugfix-check-edge-ends-and-edge-loads-of-distributed.patch",
+    "tested": "repro/DGR-11 np=1-4 base 0/1; test_scotch_dgraph_check.c new cases (bump.grf base 0 and bump_b100000.grf base 100000) with -np 1-4 on 32/64/debug; relevant check targets: all CHECKPTSCOTCH targets (incl. the new check_scotch_dgraph_build) pass on the 32-bit ASan tree and the 64-bit tree (chk_32_summary.txt, chk_64_summary.txt; np=3 via the Makefile, plus the dgraph test programs, dgtst and dgpart with -np 1, 2 and 4); the dgraph targets pass on the -DSCOTCH_DEBUG_ALL tree (chk_dbg_summary.txt). The only sanitizer hits are pre-existing ones in other groups' files (library_dgraph_coarsen.c:163 memcpy with NULL, bgraph_bipart_ml.c:195 null offset), identical to G18's logs.",
+    "tradeoffs": "Stricter: graphs with non-positive edge loads, dangling ends or ends in holes are now rejected (see notes); one compare per edge in the local pass, one per matched end in the rounds (O(E) and O(E.P) already).",
+    "preferred": true,
+    "maintainer_fit": "Follows the file's own cheklocval/goto fail structure and message style; graphCheck (sequential) already rejects out-of-range ends ('invalid edge array') so the distributed twin now matches."
+   },
+   {
+    "label": "B: full validation in the local pass with a binary search over procvrttab",
+    "summary": "Find the owner of each end by dichotomy (as dgraphGhst2 does) and reject hole ends there; matching rounds untouched.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G19-dgraph-build-induce/DGR-11-B-local-pass-binary-search.diff",
+    "tested": "compiles; not run",
+    "tradeoffs": "All end checks in one place and before any communication, but O(E log P) extra work and 20 more lines for what the rounds already do for free.",
+    "preferred": false,
+    "maintainer_fit": "Acceptable style, but he avoids redundant work; the rounds already enumerate every (edge, process) pair."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0006-Bugfix-check-edge-ends-and-edge-loads-of-distributed.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "src/check/test_scotch_dgraph_check.c: cases far/hole/zero/neg (run by check_scotch_dgraph_check)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (dgraph_check.c untouched). Patch applies unchanged."
+ },
+ {
+  "id": "DGR-12",
+  "our_title": "Label translation walks the first edgelocnbr slots and ignores untranslated labels",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "repro/DGR-12/lab on pristine 7.0.18 ASan: `mpirun -np 2 lab noncompact 0` -> build rc=0, check rc=1 'dgraphCheck: arc data do not match' (gap slot translated, real slot keeps label 201); `lab unknown 0` -> build rc=0 with 9999 left in the edge array. Patched: noncompact -> build rc=0 check rc=0; unknown -> 'dgraphBuild3: unknown vertex label', rc=1 on every rank. New test_scotch_dgraph_build fails on the pristine library ('main: invalid built graph (base 0)') and passes on the patched 32/64-bit trees (check_scotch_dgraph_build). Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/nonfi_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Silent wrong graph (rc=0) through the documented public API (vendloctab != vertloctab + 1 is allowed); as the review.",
+  "location_7_0_18": "src/libscotch/dgraph_build.c:403-408, 424-456, 460-468",
+  "evidence": "dgraph_build.c:403: `for (edsolocptr = edsoloctab, edsoloctnd = edsoloctab + edgelocnbr, edgelocnum = baseval;` (first edgelocnbr slots, not per-vertex ranges); no scan for entries left untranslated after the ring",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "accurate on both points; its 'Fix:' line (iterate per vertex, error on untranslated) is what the patch does, plus a degree-sum check that the per-vertex walk needs to stay in bounds.",
+  "first_pass_critique": "Correct and verified; its sketch is close to the patch but (1) relied on edsoloctnd = filled pointer without checking the announced edgelocnbr (a degree sum larger than edgelocnbr would overflow edsoloctab, sized edgeglbmax), (2) kept the error reporting on the debug-only agreement, so the 'unknown label' error was reported on one process only in release builds, and (3) did not see the np>=3 duplicate-label hang.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_build.c:392-401 and 460-468 (release-only agreement, PS2-G19-2)",
+    "quote": "#ifdef SCOTCH_DEBUG_DGRAPH1                       /* Communication cannot be merged with a useful one */",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: per-vertex fill with degree-sum check, untranslated-label scan, collective agreement",
+    "summary": "Collect edge labels vertex by vertex ([vertloctax[v], vendloctax[v])), stop and report if the degree sum differs from edgelocnbr, scan edsoloctab for entries still != -1 after the ring and report 'unknown vertex label'; both agreements unconditional (patch 0005).",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0003-Bugfix-translate-the-vertex-labels-of-non-compact-ed.patch",
+    "tested": "repro/DGR-12 (np 1-4, base 0/1), new test_scotch_dgraph_build.c with -np 1-4 on 32/64/debug trees; relevant check targets: all CHECKPTSCOTCH targets (incl. the new check_scotch_dgraph_build) pass on the 32-bit ASan tree and the 64-bit tree (chk_32_summary.txt, chk_64_summary.txt; np=3 via the Makefile, plus the dgraph test programs, dgtst and dgpart with -np 1, 2 and 4); the dgraph targets pass on the -DSCOTCH_DEBUG_ALL tree (chk_dbg_summary.txt). The only sanitizer hits are pre-existing ones in other groups' files (library_dgraph_coarsen.c:163 memcpy with NULL, bgraph_bipart_ml.c:195 null offset), identical to G18's logs.",
+    "tradeoffs": "Graphs that used to be accepted with unknown labels or a wrong edgelocnbr now fail with a message (intended); one extra O(E) scan.",
+    "preferred": true,
+    "maintainer_fit": "Same error-at-the-site + agreement structure as his hdgraphGather rework (0635547); the message style matches 'duplicate vertex label (1)'."
+   },
+   {
+    "label": "B: per-vertex fill only",
+    "summary": "Only replace the fill loop by a per-vertex loop and set edsoloctnd to the filled end; no count check, no unknown-label report.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G19-dgraph-build-induce/DGR-12-B-per-vertex-fill-only.diff",
+    "tested": "compiles; not run",
+    "tradeoffs": "Fixes the gap/real-slot confusion but keeps the silent acceptance of unknown labels and can overflow edsoloctab when the degree sum exceeds edgelocnbr.",
+    "preferred": false,
+    "maintainer_fit": "Incomplete with respect to the lead; he reports input errors."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0003-Bugfix-translate-the-vertex-labels-of-non-compact-ed.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0002-Bugfix-make-error-handling-of-vertex-label-translati.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "src/check/test_scotch_dgraph_build.c (new) + check_scotch_dgraph_build in Makefile and CMakeLists.txt",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (dgraphBuild3 untouched by 79a50459/484adec3, which only changed dgraphBuild2). Patches apply unchanged."
+ },
+ {
+  "id": "DGR-18",
+  "our_title": "Grid builder flagged arrays freeable before dgraphBuild2 (double free): fixed upstream",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/DGR-18/grid3dfi, pristine 7.0.18: `scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib DGR-18/bin_pristinefi/grid3dfi 1 0 0 5 -- 1 3` -> nth=3: (0): ERROR: dgraphBuild3: out of memory; r0 grid3d rc=1, exit done (7.0.17: signal 6, double free); nth=4,5 rc=0 check rc=0. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Double free, but only on a failure inside dgraphBuild3 (label path or its consistency checks) of a test-graph generator; as the review.",
+  "location_7_0_18": "src/libscotch/dgraph_build_grid3d.c:476-484",
+  "evidence": "dgraph_build_grid3d.c:484: `grafptr->flagval |= (DGRAPHFREETABS | DGRAPHVERTGROUP | DGRAPHEDGEGROUP); /* All arrays will be freed on exit */` after the dgraphBuild2() failure branch (l.476-482)",
+  "upstream_change": "4a56ae3ffe Bugfix: prevent double-freeing on error [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "4a56ae3ffe",
+   "verdict": "correct",
+   "details": "Moves the flag setting after a successful dgraphBuild2() and uses |=, exactly like dgraphBuildHcub(). Verified: the dgraphBuild3 allocation failure no longer aborts. Not addressed (separate items, still present): the grid builder's own allocation failures (l.348, l.355) return alone and hang the other processes (PS2-G19-1), and the parameter checks are debug-only (PS2-G17-1). The comment 'All arrays will be freed on exit' is kept although it now describes the success path only (harmless).",
+   "compared_with_ours": "Same change as our 7.0.17 0002 (ours had a different comment); ours dropped. Our 0001 (PS2-G19-1) and 0007 (PS2-G17-1) rebase cleanly on top of it."
+  },
+  "review_accuracy": "accurate, including the '=' remark.",
+  "first_pass_critique": "Correct and verified (it even observed the nth=0,1 hangs with np>1 in its harness but filed nothing for them). Its option 2 (let dgraphExit free) is the alt diff here.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_build_grid3d.c:348-357",
+    "quote": "errorPrint (\"dgraphBuildGrid3D: out of memory (1)\");\n    return     (1);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/dgraph_io_load.c:627-632, 879-884 (G20's file, PS2-G19-4)",
+    "quote": "o = dgraphBuild2 (grafptr, baseval, ...); grafptr->flagval |= DGRAPHFREETABS | DGRAPHVERTGROUP | DGRAPHEDGEGROUP; return (o);",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/dgraph_build_hcub.c:158-163 (PS2-G19-5)",
+    "quote": "errorPrint (\"dgraphBuildHcub: inconsistent parameters\");\n    return     (1);",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: set the flags with |= after a successful build",
+    "summary": "Move the flag assignment after dgraphBuild2 and or it, exactly like dgraphBuildHcub (dgraph_build_hcub.c:215).",
+    "diff_file": "",
+    "tested": "fault injection nth=3 on np=1,2,3: rc=1 and clean exit; relevant check targets: all CHECKPTSCOTCH targets (incl. the new check_scotch_dgraph_build) pass on the 32-bit ASan tree and the 64-bit tree (chk_32_summary.txt, chk_64_summary.txt; np=3 via the Makefile, plus the dgraph test programs, dgtst and dgpart with -np 1, 2 and 4); the dgraph targets pass on the -DSCOTCH_DEBUG_ALL tree (chk_dbg_summary.txt). The only sanitizer hits are pre-existing ones in other groups' files (library_dgraph_coarsen.c:163 memcpy with NULL, bgraph_bipart_ml.c:195 null offset), identical to G18's logs.",
+    "tradeoffs": "The failed graph keeps dangling (unflagged) pointers, as hcub/scatter/dmesh do.",
+    "preferred": true,
+    "maintainer_fit": "His own pattern in the sibling generator."
+   },
+   {
+    "label": "B: keep the flags, let dgraphExit free attached arrays",
+    "summary": "Or the flags before the build and free in the routine only if grafptr->vertloctax is still NULL.",
+    "diff_file": "",
+    "tested": "compiles; not run",
+    "tradeoffs": "Relies on dgraphBuild3 attaching all pointers at once (true today) and on the caller calling dgraphExit; fragile.",
+    "preferred": false,
+    "maintainer_fit": "Not his pattern; he frees what the routine allocated on its own failure."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (4a56ae3f; our 0002 dropped). The grid builder still hangs other processes on its own allocation failures: see PS2-G19-1."
+ },
+ {
+  "id": "DGR-21",
+  "our_title": "dgraphMatchCheck bounded its based vertex scan by a count: fixed upstream",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "repro/DGR-21/mchk on pristine 7.0.18 ASan: `mpirun -np 1 mchk 1` -> 'dgraphMatchCheck: unmatched local vertex', rc=1 (7.0.17: rc=0, last vertex missed). Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/nonfi_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Debug-only check (dgraph_coarsen.c:1387 under SCOTCH_DEBUG_DGRAPH2).",
+  "location_7_0_18": "src/libscotch/dgraph_match_check.c:112-113",
+  "evidence": "dgraph_match_check.c:112-113: `vertlocnnd = grafptr->vertlocnnd;\n  for (vertlocnum = baseval; vertlocnum < vertlocnnd; vertlocnum ++) {`",
+  "upstream_change": "b626b1b896 Bugfix: base end of loop [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "b626b1b896",
+   "verdict": "correct",
+   "details": "Byte-for-byte the same change as our 7.0.17 0001 (vertlocnnd set before the scan, vertlocnbr local removed, later assignment removed). Variant hunt: the only other based loops bounded by a count in libscotch (hdgraph_order_si.c:125,129) use `vertlocnbr + baseval`, which is correct.",
+   "compared_with_ours": "Identical; ours dropped. Neither adds a test (dgraphMatchCheck() is only compiled in SCOTCH_DEBUG_DGRAPH2 builds)."
+  },
+  "review_accuracy": "accurate.",
+  "first_pass_critique": "Correct; its sketch used `vertlocnbr + baseval` although `vertlocnnd` is already a local of the routine (set at l.143); the patch uses vertlocnnd and drops the now-unused vertlocnbr local.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: loop to vertlocnnd, drop the vertlocnbr local",
+    "summary": "Set vertlocnnd before the scan (it was set later for the multinode loop) and remove the unused local.",
+    "diff_file": "",
+    "tested": "repro/DGR-21 on ASan and -DSCOTCH_DEBUG_ALL trees; check_scotch_dgraph_coarsen on the debug tree (np 1-4, m4x4_b1.grf); relevant check targets: all CHECKPTSCOTCH targets (incl. the new check_scotch_dgraph_build) pass on the 32-bit ASan tree and the 64-bit tree (chk_32_summary.txt, chk_64_summary.txt; np=3 via the Makefile, plus the dgraph test programs, dgtst and dgpart with -np 1, 2 and 4); the dgraph targets pass on the -DSCOTCH_DEBUG_ALL tree (chk_dbg_summary.txt). The only sanitizer hits are pre-existing ones in other groups' files (library_dgraph_coarsen.c:163 memcpy with NULL, bgraph_bipart_ml.c:195 null offset), identical to G18's logs.",
+    "tradeoffs": "None.",
+    "preferred": true,
+    "maintainer_fit": "Guide section 3.4 loop form; removes the dead local as he does."
+   },
+   {
+    "label": "B: verify coverage through flaggsttax after the multinode scan",
+    "summary": "Drop the mate scan and check, once all multinodes have been visited, that every local vertex got a multinode flag (stronger: catches a vertex mated in mategsttax but absent from the multinode array).",
+    "diff_file": "",
+    "tested": "compiles; not run",
+    "tradeoffs": "Reports later and only after the flag array is allocated; changes the semantics of the existing check rather than fixing its bound.",
+    "preferred": false,
+    "maintainer_fit": "A good extra check, but not the fix of this lead; could be proposed separately."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (b626b1b8 == our 0001)."
+ },
+ {
+  "id": "PS-DGR-3",
+  "our_title": "dgraphInduce2 rebases an unchecked shrinking memRealloc result",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: `scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib DGR-06/bin_pristinefi/inducefi 3 2 4 4 -- 1 4` -> nth=4 exit=0 :: dgraph_induce.c:240: runtime error: applying non-zero offset to null pointer; dgraph.c:140 and dgraph_check.c:438: runtime errors; induce rc=0 on every rank (success reported with edgeloctax = NULL - baseval). Patched (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0004-Bugfix-check-the-result-of-edge-array-shrinking-in-d.patch): nth=4 -> all ranks induce rc=0, check rc=0, no runtime error. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Only on a failing shrink (glibc never fails it); memRealloc ORs the size with 8 so the size-0 case cannot trigger it.",
+  "location_7_0_18": "src/libscotch/dgraph_induce.c:235-246",
+  "evidence": "dgraph_induce.c:239-240: `indgrafptr->edgeloctax  = memRealloc (indgrafptr->edgeloctax + baseval, (indedlooftval + indedgelocnbr) * sizeof (Gnum));\n    indgrafptr->edgeloctax -= baseval;`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "n/a (first-pass finding); the first pass's description is accurate.",
+  "first_pass_critique": "Accurate; its preferred option (keep the old block) is the one taken. It did not list the tree-wide instances of the same unchecked shrink (see extra_instances).",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_ghst.c:284",
+    "quote": "grafptr->procsidtab = memRealloc (procsidtab, procsidnbr * sizeof (int)); /* Reallocate send index array */",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/graph_induce.c:362,367 (sequential twin; other group)",
+    "quote": "indgrafptr->edgetax = (Gnum *) memRealloc ((indgrafptr->edgetax + indgrafptr->baseval),",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/hdgraph_induce.c:302 (G18 PS2-G18-1), dgraph_coarsen.c:1269,1271,1436 (G21), dmesh_dgraph.c:645, kdgraph_map_rb_part.c:139, hgraph_induce.c:207, hmesh_induce.c:362, hgraph_order_cp.c:433, bgraph_bipart_bd.c:430, graph_io_mmkt.c:240, graph_io_habo.c:349, dgraph_redist.c:475 (debug-only check)",
+    "quote": "memRealloc (... ) - baseval / -= baseval without a NULL test",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: keep the old array when shrinking fails",
+    "summary": "Compute the single new size (offset of the load array, or 0, plus indedgelocnbr), memRealloc into a temporary, rebase only on success; the old array is valid and large enough.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0004-Bugfix-check-the-result-of-edge-array-shrinking-in-d.patch",
+    "tested": "fault injection nth=4 (patched: no UBSan, rc=0, graph checks); relevant check targets: all CHECKPTSCOTCH targets (incl. the new check_scotch_dgraph_build) pass on the 32-bit ASan tree and the 64-bit tree (chk_32_summary.txt, chk_64_summary.txt; np=3 via the Makefile, plus the dgraph test programs, dgtst and dgpart with -np 1, 2 and 4); the dgraph targets pass on the -DSCOTCH_DEBUG_ALL tree (chk_dbg_summary.txt). The only sanitizer hits are pre-existing ones in other groups' files (library_dgraph_coarsen.c:163 memcpy with NULL, bgraph_bipart_ml.c:195 null offset), identical to G18's logs.",
+    "tradeoffs": "None functionally; the two branches of the old code collapse into one.",
+    "preferred": true,
+    "maintainer_fit": "No collective needed (a 'goto fail2' here would leave the other processes in dgraphBuild4's reduction); he keeps shrink failures silent elsewhere, this is the only way to keep them silent and safe."
+   },
+   {
+    "label": "B: debug-only NULL check as in dgraphRedist2",
+    "summary": "Add `#ifdef SCOTCH_DEBUG_DGRAPH2 if (edgeloctax == NULL) { errorPrint; return (1); }` after each memRealloc.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G19-dgraph-build-induce/PS-DGR-3-B-debug-only-check.diff",
+    "tested": "compiles; not run",
+    "tradeoffs": "His idiom (dgraph_redist.c:476-481), but leaves the release build undefined and the debug return non-collective.",
+    "preferred": false,
+    "maintainer_fit": "Matches what he wrote in dgraphRedist2, but it is the pattern that produced this lead."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0004-Bugfix-check-the-result-of-edge-array-shrinking-in-d.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. b08bc63e touched dgraph_induce.c only at l.177; the patch applies unchanged."
+ },
+ {
+  "id": "PS2-G19-1",
+  "our_title": "dgraphBuildGrid3D returns alone on allocation failure; other processes hang",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18: `scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib DGR-18/bin_pristinefi/grid3dfi 2 1 0 5 -- 0 3` -> nth=0: HANG; (1): ERROR: dgraphBuildGrid3D: out of memory (1); r1 grid3d rc=1 (r0 never returns); nth=1: HANG, out of memory (2). Patched (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0001-Bugfix-make-error-handling-of-dgraphBuildGrid3D-coll.patch): nth=0..3: r0 and r1 grid3d rc=1, exit done; nth=4,5 rc=0 check rc=0. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "test-graph generator; hang only on out-of-memory",
+  "location_7_0_18": "src/libscotch/dgraph_build_grid3d.c:344-358",
+  "evidence": "dgraph_build_grid3d.c:348-349: `errorPrint (\"dgraphBuildGrid3D: out of memory (1)\");\n    return     (1);` and :355-356 same for (2), with no collective before dgraphBuild2()'s MPI_Allgather on the other processes",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: dgraphBuildHcub-style agreement",
+    "summary": "MPI_Allreduce(MAX) of (params, -params, cheklocval) after the two allocations; free and return 1 collectively on error or inconsistent parameters.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0001-Bugfix-make-error-handling-of-dgraphBuildGrid3D-coll.patch",
+    "tested": "fault injection np=2,3 (see DGR-18); check_prog_dgtst etc. unaffected (the generator is only reached through SCOTCH_dgraphBuildGrid3D)",
+    "tradeoffs": "One 13-Gnum Allreduce per grid build.",
+    "preferred": true,
+    "maintainer_fit": "Copy of his dgraphBuildHcub structure."
+   },
+   {
+    "label": "B: leave as is",
+    "summary": "Accept the hang for a test-graph generator.",
+    "diff_file": "",
+    "tested": "n/a",
+    "tradeoffs": "Hang on OOM.",
+    "preferred": false,
+    "maintainer_fit": "He made hcub collective, so no."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0001-Bugfix-make-error-handling-of-dgraphBuildGrid3D-coll.patch"
+  ],
+  "cleanup_done": "the separate debug-only checks are replaced by the agreement (with P7)",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 4a56ae3f only moved the flag setting; our 0003 (now 0001) rebased without conflict on it. The agreement is an unconditional MPI_Allreduce (same pattern as dgraphBuildHcub, which already has it in release builds)."
+ },
+ {
+  "id": "PS2-G19-2",
+  "our_title": "dgraphBuild3 label path: allocation failure or duplicate label hangs the others",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "Pristine 7.0.18 ASan: `mpirun -np 3 lab dup 0` -> timeout (rc=124): (1): ERROR: dgraphBuild3: duplicate vertex label (1), the other ranks wait in the label ring. Fault injection, `scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib DGR-18/bin_pristinefi/grid3dfi 2 1 0 5 -- 0 3` nth=3: (1): ERROR: dgraphBuild3: out of memory, r1 rc=1, r0 never returns (exit 137 after timeout). Patched (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0002-Bugfix-make-error-handling-of-vertex-label-translati.patch): dup np3 -> rc=1 on every rank; grid3dfi nth=3 -> r0,r1 rc=1. Outputs: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/nonfi_7018.txt, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/repro/fi_matrix_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "user-reachable (duplicate labels in SCOTCH_dgraphBuild input) hang in release builds",
+  "location_7_0_18": "src/libscotch/dgraph_build.c:392-399, 460-468",
+  "evidence": "dgraph_build.c:392-396: `#ifdef SCOTCH_DEBUG_DGRAPH1 /* Communication cannot be merged with a useful one */ ... #else /* SCOTCH_DEBUG_DGRAPH1 */\n    chekglbval = cheklocval;\n#endif` then `return (1)` before the MPI_Irecv/MPI_Isend ring that the other processes enter",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: unconditional agreements, errors reported where found",
+    "summary": "cheklocval = 1 'assume an error', goto fail on allocation failure or local duplicate, Allreduce at fail:, free and return 1 if any process failed; second Allreduce unconditional after the ring.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0002-Bugfix-make-error-handling-of-vertex-label-translati.patch",
+    "tested": "repro/DGR-12 dup/unknown np=1-4; test_scotch_dgraph_build.c; relevant check targets: all CHECKPTSCOTCH targets (incl. the new check_scotch_dgraph_build) pass on the 32-bit ASan tree and the 64-bit tree (chk_32_summary.txt, chk_64_summary.txt; np=3 via the Makefile, plus the dgraph test programs, dgtst and dgpart with -np 1, 2 and 4); the dgraph targets pass on the -DSCOTCH_DEBUG_ALL tree (chk_dbg_summary.txt). The only sanitizer hits are pre-existing ones in other groups' files (library_dgraph_coarsen.c:163 memcpy with NULL, bgraph_bipart_ml.c:195 null offset), identical to G18's logs.",
+    "tradeoffs": "Two int Allreduces per labeled build in release mode (negligible next to the P-round ring exchange of 2*vertglbmax Gnums). Reverses the maintainer's explicit 'cannot be merged' choice: USER DECISION, same as G18's.",
+    "preferred": true,
+    "maintainer_fit": "Structure of his hdgraphGather rework (0635547)."
+   },
+   {
+    "label": "B: piggyback the error on the ring messages",
+    "summary": "Send an odd-length message as an error marker in the first ring round and let every process forward it.",
+    "diff_file": "",
+    "tested": "not written",
+    "tradeoffs": "No extra collective but intricate; the allocation failure happens before the buffers exist, so the failing process would need a separate small buffer.",
+    "preferred": false,
+    "maintainer_fit": "Too clever; he did not do it in 2026 reworks."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0002-Bugfix-make-error-handling-of-vertex-label-translati.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "test_scotch_dgraph_build.c 'dup' case (with P3)",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. This is one of the release-build agreement decisions (the maintainer's '#ifdef SCOTCH_DEBUG_DGRAPH1 Communication cannot be merged' pattern): our patch makes both agreements unconditional."
+ },
+ {
+  "id": "PS2-G19-3",
+  "our_title": "dgraphGhst2 leaks the send index array on healthy processes when another fails",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "dgraph_ghst.c:284-298 in 7.0.18 (unchanged since 7.0.17)",
+  "why_not_run": "the leak needs LeakSanitizer and a remote failure at the last allocation; the run of DGR-08 exercises the same path but the release FI build has no leak detector. The fix is part of P5, verified there for the absence of crash/hang.",
+  "severity": "low",
+  "severity_note": "leak on an error path",
+  "location_7_0_18": "src/libscotch/dgraph_ghst.c:284-298",
+  "evidence": "dgraph_ghst.c:284: `grafptr->procsidtab = memRealloc (procsidtab, procsidnbr * sizeof (int));` ... :294-295 `if (reduglbtab[0] != 0) return (1);` while DGRAPHFREEPSID is only set at :298",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: attach after agreement, free on error",
+    "summary": "Part of patch 0009.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0005-Bugfix-stop-dgraphGhst2-after-a-local-allocation-fai.patch",
+    "tested": "see DGR-08",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "see DGR-08"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G19-dgraph-build-induce/patches/0005-Bugfix-stop-dgraphGhst2-after-a-local-allocation-fai.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (file untouched)."
+ },
+ {
+  "id": "PS2-G19-4",
+  "our_title": "dgraphLoadCent/Dist set DGRAPHFREETABS after dgraphBuild2 whatever its result: leak (G20 file)",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "dgraph_io_load.c:627-632 and 879-884 in 7.0.18",
+  "why_not_run": "leak only; reaching the early dgraphBuild2() failure from a loader requires failing the private-data allocation after the loader's own allocations, which the shared harness of G20 does not target; G20 owns the file and its loader commits were re-applied unchanged.",
+  "severity": "low",
+  "severity_note": "leak on an out-of-memory path",
+  "location_7_0_18": "src/libscotch/dgraph_io_load.c:627-632, 879-884",
+  "evidence": "dgraph_io_load.c:627-632: `o = dgraphBuild2 (grafptr, baseval, ...);\n  grafptr->flagval |= DGRAPHFREETABS | DGRAPHVERTGROUP | DGRAPHEDGEGROUP;\n  return (o);` (when dgraphBuild2 fails before dgraphBuild3 attaches the arrays, nothing frees them)",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: free the arrays when dgraphBuild2 fails and the graph did not take them",
+    "summary": "`if (o != 0) { if (grafptr->vertloctax == NULL) { memFree (edgeloctax + baseval); memFree (vertloctax + baseval); } }` before setting the flags, or the grid3d/hcub pattern (free on failure, flags on success).",
+    "diff_file": "",
+    "tested": "not written (other group's file)",
+    "tradeoffs": "small",
+    "preferred": true,
+    "maintainer_fit": "hcub pattern"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 4a56ae3f fixed the opposite ordering in dgraphBuildGrid3D() but did not look at the two loaders, whose ordering is right for the dgraphBuild3() failures (arrays attached) and wrong for the early dgraphBuild2() failures (arrays not attached). No patch: G20 owns dgraph_io_load.c; fix option A is the variant to forward."
+ },
+ {
+  "id": "PS2-G19-5",
+  "our_title": "dgraphBuildHcub leaks both arrays on the 'inconsistent parameters' path",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "dgraph_build_hcub.c:158-163 in 7.0.18",
+  "why_not_run": "file owned by G02; the leak needs inconsistent per-process hypercube parameters, which no harness of this group drives",
+  "severity": "low",
+  "severity_note": "leak on a user-error path",
+  "location_7_0_18": "src/libscotch/dgraph_build_hcub.c:158-163",
+  "evidence": "dgraph_build_hcub.c:158-163: `if ((reduglbtab[1] != - reduglbtab[0]) || ...) {\n    errorPrint (\"dgraphBuildHcub: inconsistent parameters\");\n    return     (1);\n  }` after both memAllocGroup() succeeded",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: free before returning",
+    "summary": "Add `memFree (edgeloctax); memFree (vertloctax);` (un-based at that point) before the return, or merge the test into the reduglbtab[6] block as patch 0003 does for grid3d.",
+    "diff_file": "",
+    "tested": "not written",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "obvious"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (file untouched in 7.0.18)."
+ },
+ {
+  "id": "PS2-G19-6",
+  "our_title": "graph_induce.c and a dozen other sites rebase unchecked shrinking memRealloc results",
+  "status": "still-present",
+  "method": "source-read",
+  "ran": "",
+  "read_only": "graph_induce.c:362,367; hdgraph_induce.c:302; dmesh_dgraph.c:652; dgraph_coarsen.c:1269-1271 (fixed by G21's series); others listed in PS-DGR-3",
+  "why_not_run": "other groups' files; each site would need its own allocation-index harness",
+  "severity": "low",
+  "severity_note": "shrinking reallocs rarely fail",
+  "location_7_0_18": "src/libscotch/graph_induce.c:362, 367",
+  "evidence": "graph_induce.c:362: `indgrafptr->edgetax = (Gnum *) memRealloc ((indgrafptr->edgetax + indgrafptr->baseval),` followed by `- indgrafptr->baseval`",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "A: keep the old block when shrinking fails (pattern of patch 0008)",
+    "summary": "temporary pointer, rebase on success only",
+    "diff_file": "",
+    "tested": "not written",
+    "tradeoffs": "none",
+    "preferred": true,
+    "maintainer_fit": "same as PS-DGR-3"
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present. 484adec3 added a new reader of the unchecked shrink in dmeshDgraphDual() (dmesh_dgraph.c:652, now also reached on the error path), see G20."
+ }
+]

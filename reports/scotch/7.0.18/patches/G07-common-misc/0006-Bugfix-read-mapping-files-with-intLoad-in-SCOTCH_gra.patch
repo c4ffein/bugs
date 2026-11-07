@@ -1,0 +1,55 @@
+From 9a3e90ae4af0d543adf64eed69b5382506bd3919 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:45:47 +0000
+Subject: [PATCH 6/6] Bugfix: read mapping files with `intLoad()` in
+ `SCOTCH_graphTabLoad()` [report PyScotch]
+
+`SCOTCH_graphTabLoad()` read its mapping pair count and pairs with
+`fscanf()`, whose behavior is undefined when a number does not fit in
+the destination: with glibc, `4294967298` is read as 2 when `Gnum` is
+32-bit, and saturated when it is 64-bit, so that out-of-range labels or
+part numbers were silently accepted. Use `intLoad()`, which rejects
+them since ff9d5a54, like all other Scotch file loaders.
+
+Refs: PS3-G07-1, COR-15
+---
+ src/libscotch/library_graph_map_io.c | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/src/libscotch/library_graph_map_io.c b/src/libscotch/library_graph_map_io.c
+index fc6033b8..077e21ee 100644
+--- a/src/libscotch/library_graph_map_io.c
++++ b/src/libscotch/library_graph_map_io.c
+@@ -42,7 +42,7 @@
+ /**   DATES      : # Version 6.0  : from : 16 apr 2011     **/
+ /**                                 to   : 26 oct 2019     **/
+ /**                # Version 7.0  : from : 07 may 2019     **/
+-/**                                 to   : 31 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /************************************************************/
+ 
+@@ -96,7 +96,7 @@ FILE * const                  stream)             /*+ Input stream  +*/
+   vertnbr = grafptr->vertnbr;
+   memSet (parttab, ~0, vertnbr * sizeof (Anum));  /* Pre-initialize the partition array */
+ 
+-  if ((fscanf (stream, GNUMSTRING, &mappfileval) != 1) || /* Read number of mapping pairs */
++  if ((intLoad (stream, &mappfileval) != 1) ||    /* Read number of mapping pairs */
+       (mappfileval < 1)) {
+     errorPrint (STRINGIFY (SCOTCH_graphTabLoad) ": bad input (1)");
+     return     (1);
+@@ -117,9 +117,8 @@ FILE * const                  stream)             /*+ Input stream  +*/
+   mappsortflag = 1;                               /* Assume mapping data sorted */
+   mappsortlabl = GNUMMIN;
+   for (mappfilenum = 0; mappfilenum < mappfilenbr; mappfilenum ++) {
+-    if (fscanf (stream, GNUMSTRING GNUMSTRING,
+-                &mappsortval,
+-                &mappfileval) != 2) {
++    if ((intLoad (stream, &mappsortval) != 1) ||
++        (intLoad (stream, &mappfileval) != 1)) {
+       errorPrint (STRINGIFY (SCOTCH_graphTabLoad) ": bad input (2)");
+       memFree    (mappsorttab);                   /* Free group leader */
+       return     (1);
+-- 
+2.43.0
+

@@ -1,0 +1,4 @@
+PS2-G14-2 (7.0.18 round): graphLoad degree checks vs 9c51d9df.
+  negdeg.grf : vertex 1 has degree -1 after vertex 0 has degree 2 -> running sum stays >= 0.
+  hugedeg.grf: degree 2147483647 after 2 arcs -> 'degrval += edgenum' overflows a 32-bit Gnum.
+  LD_LIBRARY_PATH=<tree>/lib <tree>/bin/gtst negdeg.grf ; ... hugedeg.grf

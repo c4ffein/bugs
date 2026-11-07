@@ -1,0 +1,128 @@
+######## pristinefi
+== API-15 coarsen ring fold user-array (no failure)
+nth=-1 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=0;
+== API-15 coarsen path ratio not met (no failure)
+nth=-1 exit=1 :: 1 rank 0: coarsen rc=1 seen=0;1 rank 1: coarsen rc=1 seen=0;
+== PS2-G21-3 band path nth0
+nth=0 exit=0 :: 1 (1): ERROR: contextValuesInit: out of memory;1 rank 0: band rc=0 seen=0;1 rank 1: band rc=0 seen=8;
+== API-20 grow ring
+nth=1 exit=124 :: HANG; 1 (1): ERROR: SCOTCH_dgraphBand: cannot initialize context;1 (1): ERROR: contextThreadInit2: out of memory;1 rank 1: grow rc=1 seen=2;
+nth=2 exit=124 :: HANG; 1 (1): ERROR: dgraphGrow2Coll: out of memory (1);1 rank 1: grow rc=1 seen=3;
+== PS2-G21-1 band path
+nth=3 exit=124 :: HANG; 1 (1): ERROR: dgraphBand2Coll: out of memory (1);1 rank 1: band rc=1 seen=4;
+nth=4 exit=139 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (2);1 fishim: rank 1: signal 11, backtrace:;1 library_dgraph_band.c:201:32: runtime error: store to null pointer of type 'Gnum';1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 11 (Segmentation fault).;
+== PS2-G21-1 grow ring
+nth=3 exit=0 :: 1 rank 0: grow rc=0 seen=0;1 rank 1: grow rc=0 seen=3;
+== DGR-07 band sparse base1 np4
+nth=3 exit=139 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (1);1 fishim: rank 1: signal 11, backtrace:;1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 11 (Segmentation fault).;
+nth=4 exit=134 :: 1 (1): ERROR: dgraphBand2Ptop: out of memory (1);1 /lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e)[0x7f2f3024527e];1 fishim: rank 1: signal 6, backtrace:;1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 6 (Aborted).;
+== DGR-07 grow sparse base1 np4
+nth=3 exit=134 :: 1 (1): ERROR: dgraphGrow2Ptop: out of memory (1);1 /lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e)[0x7f96f3c4527e];1 fishim: rank 1: signal 6, backtrace:;1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 6 (Aborted).;1 rank 2: grow rc=0 seen=0;1 rank 3: grow rc=0 seen=0;
+== API-17 band sparse np4
+nth=5 exit=139 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (2);1 fishim: rank 1: signal 11, backtrace:;1 library_dgraph_band.c:201:32: runtime error: store to null pointer of type 'Gnum';1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 11 (Segmentation fault).;
+nth=6 exit=1 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (3);1 rank 0: band rc=1 seen=0;1 rank 1: band rc=1 seen=7;1 rank 2: band rc=1 seen=0;1 rank 3: band rc=1 seen=0;
+nth=7 exit=1 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (4);1 rank 0: band rc=1 seen=0;1 rank 1: band rc=1 seen=8;1 rank 2: band rc=1 seen=0;1 rank 3: band rc=1 seen=0;
+== DGR-09 bandint path base0
+nth=0 exit=124 :: HANG; 1 (1): ERROR: dgraphBand2Coll: out of memory (1);1 (1): ERROR: dgraphBand: out of memory (1);1 rank 1: bandint rc=1 seen=1;
+nth=1 exit=124 :: HANG; 1 (1): ERROR: dgraphBand2Coll: out of memory (1);1 rank 1: bandint rc=1 seen=2;
+nth=2 exit=139 :: 1 (1): ERROR: dgraphBand: out of memory (2);1 dgraph_band.c:224:32: runtime error: store to null pointer of type 'Gnum';1 fishim: rank 1: signal 11, backtrace:;1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 11 (Segmentation fault).;
+nth=3 exit=139 :: 1 (1): ERROR: dgraphBand: out of memory (3);1 fishim: rank 1: signal 11, backtrace:;1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 11 (Segmentation fault).;1 rank 0: bandint rc=1 seen=0;
+nth=4 exit=139 :: 1 (1): ERROR: dgraphBand: out of memory (4);1 fishim: rank 1: signal 11, backtrace:;1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 11 (Segmentation fault).;1 rank 0: bandint rc=1 seen=0;
+nth=5 exit=1 :: 1 (1): ERROR: rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=6;
+nth=6 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (6);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=7;
+== DGR-09 bandint path base1
+nth=3 exit=134 :: 1 (1): ERROR: dgraphBand: out of memory (3);1 /lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e)[0x7f2bc6c4527e];1 fishim: rank 0: signal 6, backtrace:;1 fishim: rank 1: signal 11, backtrace:;1 mpirun noticed that process rank 0 with PID 0 on node vm exited on signal 6 (Aborted).;
+nth=4 exit=134 :: 1 (1): ERROR: dgraphBand: out of memory (4);1 /lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e)[0x7ff9a364527e];1 fishim: rank 0: signal 6, backtrace:;1 fishim: rank 1: signal 11, backtrace:;1 mpirun noticed that process rank 0 with PID 0 on node vm exited on signal 6 (Aborted).;
+nth=5 exit=134 :: 1 (1): ERROR: dgraphBand: out of memory (5);1 /lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e)[0x7fca0b04527e];1 /lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e)[0x7fd1bf24527e];1 fishim: rank 0: signal 6, backtrace:;1 fishim: rank 1: signal 6, backtrace:;1 mpirun noticed that process rank 0 with PID 0 on node vm exited on signal 6 (Aborted).;
+nth=6 exit=134 :: 1 (1): ERROR: dgraphBand: out of memory (6);1 /lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e)[0x7f0f16c4527e];1 /lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e)[0x7f3c2ae4527e];1 fishim: rank 0: signal 6, backtrace:;1 fishim: rank 1: signal 6, backtrace:;1 mpirun noticed that process rank 0 with PID 0 on node vm exited on signal 6 (Aborted).;
+== PS-DGR-1 / DGR-13 coarsen ring
+nth=3 exit=139 :: 1 (1): ERROR: dgraphCoarsenInit: out of memory (3);1 dgraph_match.c:93:31: runtime error: member access within misaligned address 0xfefefefefefefefe for type 'struct Dgraph', which requires 8 b;1 fishim: rank 1: signal 11, backtrace:;1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 11 (Segmentation fault).;
+nth=4 exit=139 :: 1 (1): ERROR: dgraphCoarsenInit: out of memory (4);1 dgraph_match.c:93:31: runtime error: member access within misaligned address 0xfefefefefefefefe for type 'struct Dgraph', which requires 8 b;1 fishim: rank 1: signal 11, backtrace:;1 mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 11 (Segmentation fault).;
+nth=5 exit=1 :: 1 (1): ERROR: dgraphMatchInit: out of memory;1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=6;
+nth=6 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsen: cannot perform matching;1 (1): ERROR: dgraphMatchSyncColl: out of memory;1 rank 1: coarsen rc=2 seen=7;
+nth=7 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsen: cannot perform matching;1 (1): ERROR: dgraphMatchSyncColl: out of memory;2 mpirun: Forwarding signal 18 to job;1 rank 1: coarsen rc=2 seen=8;
+nth=8 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsen: cannot perform matching;1 (1): ERROR: dgraphMatchSyncColl: out of memory;1 rank 1: coarsen rc=2 seen=9;
+nth=9 exit=137 :: HANG; 1 (1): ERROR: dgraphCoarsen: cannot perform matching;1 (1): ERROR: dgraphMatchSyncColl: out of memory;1 rank 1: coarsen rc=2 seen=10;
+nth=10 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsen: cannot perform matching;1 (1): ERROR: dgraphMatchSyncColl: out of memory;1 rank 1: coarsen rc=2 seen=11;
+nth=11 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsenBuild: out of memory (1);1 mpirun: Forwarding signal 18 to job;1 rank 1: coarsen rc=2 seen=12;
+nth=12 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsenBuild: cannot propagate multinode indices;1 (1): ERROR: dgraphHaloSync2: out of memory;1 rank 1: coarsen rc=2 seen=13;
+nth=13 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsenBuild: out of memory (2);1 rank 1: coarsen rc=2 seen=14;
+nth=14 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsenBuild: out of memory (2);1 rank 1: coarsen rc=2 seen=15;
+nth=15 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsenBuild: out of memory (2);1 rank 1: coarsen rc=2 seen=16;
+nth=16 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsenBuild: out of memory (2);1 rank 1: coarsen rc=2 seen=17;
+nth=17 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsenBuild: could not compute adjacency (2);1 (1): ERROR: dgraphCoarsenBuildSeq: out of memory;1 rank 1: coarsen rc=2 seen=18;
+nth=18 exit=1 :: 1 [vm:15825] [[20783,0],0] ORTE_ERROR_LOG: Data unpack would read past end of buffer in file ../../../orte/util/show_help.c at line 507;
+nth=19 exit=0 :: 1 (0): ERROR: dgraphCheck: inconsistent global graph data (2);1 (1): ERROR: dgraphCheck: inconsistent global graph data (2);1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=20;
+nth=20 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=20;
+nth=21 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=20;
+nth=22 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=20;
+nth=23 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=20;
+nth=24 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=20;
+nth=25 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=20;
+nth=26 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=20;
+== PS2-G21-2 coarsen ring fold
+nth=13 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsenBuild: out of memory (1);1 rank 1: coarsen rc=2 seen=14;
+######## buildfi
+== API-15 coarsen ring fold user-array (no failure)
+nth=-1 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=0;
+== API-15 coarsen path ratio not met (no failure)
+nth=-1 exit=1 :: 1 rank 0: coarsen rc=1 seen=0;1 rank 1: coarsen rc=1 seen=0;
+== PS2-G21-3 band path nth0
+nth=0 exit=0 :: 1 (1): ERROR: contextValuesInit: out of memory;1 rank 0: band rc=0 seen=0;1 rank 1: band rc=0 seen=8;
+== API-20 grow ring
+nth=1 exit=124 :: HANG; 1 (1): ERROR: SCOTCH_dgraphGrow: cannot initialize context;1 (1): ERROR: contextThreadInit2: out of memory;1 rank 1: grow rc=1 seen=2;
+nth=2 exit=1 :: 1 (1): ERROR: dgraphGrow2Coll: out of memory (1);1 rank 0: grow rc=1 seen=0;1 rank 1: grow rc=1 seen=3;
+== PS2-G21-1 band path
+nth=3 exit=1 :: 1 (1): ERROR: dgraphBand2Coll: out of memory (1);1 rank 0: band rc=1 seen=0;1 rank 1: band rc=1 seen=4;
+nth=4 exit=1 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (2);1 rank 0: band rc=1 seen=0;1 rank 1: band rc=1 seen=5;
+== PS2-G21-1 grow ring
+nth=3 exit=0 :: 1 rank 0: grow rc=0 seen=0;1 rank 1: grow rc=0 seen=3;
+== DGR-07 band sparse base1 np4
+nth=3 exit=1 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (1);1 (1): ERROR: dgraphBand2Ptop: out of memory (1);1 rank 0: band rc=1 seen=0;1 rank 1: band rc=1 seen=4;1 rank 2: band rc=1 seen=0;1 rank 3: band rc=1 seen=0;
+nth=4 exit=1 :: 1 (1): ERROR: dgraphBand2Ptop: out of memory (1);1 rank 0: band rc=1 seen=0;1 rank 1: band rc=1 seen=5;1 rank 2: band rc=1 seen=0;1 rank 3: band rc=1 seen=0;
+== DGR-07 grow sparse base1 np4
+nth=3 exit=1 :: 1 (1): ERROR: dgraphGrow2Ptop: out of memory (1);1 rank 0: grow rc=1 seen=0;1 rank 1: grow rc=1 seen=4;1 rank 2: grow rc=1 seen=0;1 rank 3: grow rc=1 seen=0;
+== API-17 band sparse np4
+nth=5 exit=1 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (2);1 rank 0: band rc=1 seen=0;1 rank 1: band rc=1 seen=6;1 rank 2: band rc=1 seen=0;1 rank 3: band rc=1 seen=0;
+nth=6 exit=1 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (3);1 rank 0: band rc=1 seen=0;1 rank 1: band rc=1 seen=7;1 rank 2: band rc=1 seen=0;1 rank 3: band rc=1 seen=0;
+nth=7 exit=1 :: 1 (1): ERROR: SCOTCH_dgraphBand: out of memory (4);1 rank 0: band rc=1 seen=0;1 rank 1: band rc=1 seen=8;1 rank 2: band rc=1 seen=0;1 rank 3: band rc=1 seen=0;
+== DGR-09 bandint path base0
+nth=0 exit=1 :: 1 (1): ERROR: dgraphBand2Coll: out of memory (1)rank 0: bandint rc=1 seen=0;1 (1): ERROR: dgraphBand: out of memory (1);1 rank 1: bandint rc=1 seen=1;
+nth=1 exit=1 :: 1 (1): ERROR: dgraphBand2Coll: out of memory (1);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=2;
+nth=2 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (2);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=3;
+nth=3 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (3);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=4;
+nth=4 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (4);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=5;
+nth=5 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (5);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=6;
+nth=6 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (6);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=7;
+== DGR-09 bandint path base1
+nth=3 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (3);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=4;
+nth=4 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (4);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=5;
+nth=5 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (5);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=6;
+nth=6 exit=1 :: 1 (1): ERROR: dgraphBand: out of memory (6);1 rank 0: bandint rc=1 seen=0;1 rank 1: bandint rc=1 seen=7;
+== PS-DGR-1 / DGR-13 coarsen ring
+nth=3 exit=1 :: 1 (1): ERROR: dgraphCoarsenInit: out of memory (3);1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=4;
+nth=4 exit=1 :: 1 (1): ERROR: dgraphCoarsenInit: out of memory (4);1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=5;
+nth=5 exit=1 :: 1 (1): ERROR: dgraphMatchInit: out of memory;1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=6;
+nth=6 exit=124 :: HANG; 1 (1): ERROR: dgraphCoarsenBuild: cannot propagate multinode indices;1 (1): ERROR: dgraphHaloSync2: out of memory;1 rank 1: coarsen rc=2 seen=7;
+nth=7 exit=1 :: 1 (1): ERROR: dgraphCoarsenBuild: out of memory (1);1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=8;
+nth=8 exit=1 :: 1 (1): ERROR: dgraphCoarsenBuild: out of memory (1);1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=9;
+nth=9 exit=1 :: 1 (1): ERROR: dgraphCoarsenBuild: out of memory (1);1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=10;
+nth=10 exit=1 :: 1 (1): ERROR: dgraphCoarsenBuild: out of memory (1);1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=11;
+nth=11 exit=1 :: 1 (1): ERROR: dgraphCoarsenBuild: could not compute adjacency (2);1 (1): ERROR: dgraphCoarsenBuildSeq: out of memory;1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=12;
+nth=12 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=13 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=14 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=15 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=16 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=17 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=18 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=19 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=20 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=21 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=22 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=23 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=24 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=25 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+nth=26 exit=0 :: 1 rank 0: coarsen rc=0 seen=0;1 rank 1: coarsen rc=0 seen=14;
+== PS2-G21-2 coarsen ring fold
+nth=13 exit=1 :: 1 (1): ERROR: dgraphCoarsenBuild: could not compute adjacency (2);1 (1): ERROR: dgraphCoarsenBuildSeq: out of memory;1 rank 0: coarsen rc=2 seen=0;1 rank 1: coarsen rc=2 seen=14;

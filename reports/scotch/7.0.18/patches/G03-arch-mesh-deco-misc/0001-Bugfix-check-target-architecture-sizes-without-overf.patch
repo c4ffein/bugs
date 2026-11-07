@@ -1,0 +1,249 @@
+From 83c1a389684736102f7ba03d8947957cd754b759 Mon Sep 17 00:00:00 2001
+From: PyScotch <pyscotch@noreply.invalid>
+Date: Mon, 2 Nov 2026 08:53:40 +0000
+Subject: [PATCH] Bugfix: check target architecture sizes without overflowing
+ [report R. Perry]
+
+The size overflow checks of the mesh and torus loaders and builders
+computed the product they were meant to guard, which is undefined
+behavior for signed integers, and which, when it wraps around, does not
+always yield a value smaller than the former one: e.g. "mesh2D 100000
+50000" was accepted on 32-bit builds, and led to huge allocations when
+mapping. The products are now checked beforehand.
+
+Also, `SCOTCH_archTorus2()`, `SCOTCH_archTorus3()` and
+`SCOTCH_archTorusX()` did not reject non-positive dimensions or
+numbers of dimensions, nor did `SCOTCH_archMeshX()` check the first
+dimension, unlike the mesh builders and the loaders; and the sum of
+the vertex weights of weighted complete graph architectures was not
+checked for overflow, neither by `archCmpltwArchLoad2()` nor by
+`archCmpltwArchBuild2()`.
+
+Refs: COR-21, PS3-G03-1
+---
+ src/libscotch/arch_cmpltw.c  | 10 ++++++++
+ src/libscotch/arch_mesh.c    | 14 ++++-------
+ src/libscotch/library_arch.c | 45 +++++++++++++++++++++++++-----------
+ 3 files changed, 46 insertions(+), 23 deletions(-)
+
+diff --git a/src/libscotch/arch_cmpltw.c b/src/libscotch/arch_cmpltw.c
+index 5a7ad2be..a0f3e639 100644
+--- a/src/libscotch/arch_cmpltw.c
++++ b/src/libscotch/arch_cmpltw.c
+@@ -184,6 +184,11 @@ const Anum * restrict const velotab)
+       memFree    (vecwtab);
+       return (1);
+     }
++    if (veloval > (ANUMMAX - velosum)) {          /* Overall load must fit in an Anum */
++      errorPrint ("archCmpltwArchBuild2: invalid parameters (3)");
++      memFree    (vecwtab);
++      return (1);
++    }
+ 
+     velosum += veloval;
+     vecwtab[vertnum].veloval = veloval;
+@@ -255,6 +260,11 @@ FILE * restrict const       stream)
+       memFree    (vecwtab);
+       return (1);
+     }
++    if (veloval > (ANUMMAX - velosum)) {          /* Overall load must fit in an Anum */
++      errorPrint ("archCmpltwArchLoad2: bad input (3)");
++      memFree    (vecwtab);
++      return (1);
++    }
+ 
+     velosum += veloval;
+     vecwtab[vertnum].veloval = veloval;
+diff --git a/src/libscotch/arch_mesh.c b/src/libscotch/arch_mesh.c
+index c84801ec..57b62a8c 100644
+--- a/src/libscotch/arch_mesh.c
++++ b/src/libscotch/arch_mesh.c
+@@ -64,7 +64,7 @@
+ /**                # Version 6.0  : from : 14 feb 2011     **/
+ /**                                 to   : 15 may 2018     **/
+ /**                # Version 7.0  : from : 19 feb 2018     **/
+-/**                                 to   : 19 oct 2026     **/
++/**                                 to   : 02 nov 2026     **/
+ /**                                                        **/
+ /**   NOTES      : # The vertices of the (dX,dY) mesh are  **/
+ /**                  numbered as terminals so that         **/
+@@ -105,8 +105,6 @@ archMesh2ArchLoad (
+ ArchMesh2 * restrict const  archptr,
+ FILE * restrict const       stream)
+ {
+-  Anum                archsiz;
+-
+ #ifdef SCOTCH_DEBUG_ARCH1
+   if ((sizeof (ArchMesh2)    > sizeof (ArchDummy)) ||
+       (sizeof (ArchMesh2Dom) > sizeof (ArchDomDummy))) {
+@@ -124,7 +122,7 @@ FILE * restrict const       stream)
+   }
+   archptr->dimnnbr = 2;
+ 
+-  if (archsiz = archptr->c[0], (archsiz * archptr->c[1]) < archsiz) {
++  if (archptr->c[0] > (ANUMMAX / archptr->c[1])) { /* Number of terminals must fit in an Anum */
+     errorPrint ("archMesh2ArchLoad: invalid architecture size");
+     return (1);
+   }
+@@ -384,8 +382,6 @@ archMesh3ArchLoad (
+ ArchMesh3 * restrict const  archptr,
+ FILE * restrict const       stream)
+ {
+-  Anum                archsiz;
+-
+ #ifdef SCOTCH_DEBUG_ARCH1
+   if ((sizeof (ArchMesh3)    > sizeof (ArchDummy)) ||
+       (sizeof (ArchMesh3Dom) > sizeof (ArchDomDummy))) {
+@@ -405,8 +401,8 @@ FILE * restrict const       stream)
+   }
+   archptr->dimnnbr = 3;
+ 
+-  if ((archsiz  = archptr->c[0], (archsiz * archptr->c[1]) < archsiz) ||
+-      (archsiz *= archptr->c[1], (archsiz * archptr->c[2]) < archsiz)) {
++  if ((archptr->c[0] > (ANUMMAX / archptr->c[1])) || /* Number of terminals must fit in an Anum */
++      ((archptr->c[0] * archptr->c[1]) > (ANUMMAX / archptr->c[2]))) {
+     errorPrint ("archMesh3ArchLoad: invalid architecture size");
+     return (1);
+   }
+@@ -664,7 +660,7 @@ FILE * restrict const       stream)
+   }
+ 
+   for (dimnnum = 1, archsiz = archptr->c[0]; dimnnum < archptr->dimnnbr; dimnnum ++) {
+-    if ((archsiz * archptr->c[dimnnum]) < archsiz) {
++    if (archsiz > (ANUMMAX / archptr->c[dimnnum])) { /* Number of terminals must fit in an Anum */
+       errorPrint ("archMeshXArchLoad: invalid architecture size");
+       return (1);
+     }
+diff --git a/src/libscotch/library_arch.c b/src/libscotch/library_arch.c
+index 66a924da..7da396e5 100644
+--- a/src/libscotch/library_arch.c
++++ b/src/libscotch/library_arch.c
+@@ -375,7 +375,6 @@ const SCOTCH_Num            dimyval)
+ {
+   Arch *              tgtarchptr;
+   ArchMesh2 *         tgtarchdatptr;
+-  Anum                archsiz;
+ 
+   if (sizeof (SCOTCH_Num) != sizeof (Gnum)) {
+     errorPrint (STRINGIFY (SCOTCH_archMesh2) ": internal error");
+@@ -397,7 +396,7 @@ const SCOTCH_Num            dimyval)
+     return (1);
+   }
+ 
+-  if (archsiz = tgtarchdatptr->c[0], (archsiz * tgtarchdatptr->c[1]) < archsiz) {
++  if (tgtarchdatptr->c[0] > (ANUMMAX / tgtarchdatptr->c[1])) { /* Number of terminals must fit in an Anum */
+     errorPrint (STRINGIFY (SCOTCH_archMesh2) ": invalid architecture size");
+     return (1);
+   }
+@@ -418,7 +417,6 @@ const SCOTCH_Num            dimzval)
+ {
+   Arch *              tgtarchptr;
+   ArchMesh3 *         tgtarchdatptr;
+-  Anum                archsiz;
+ 
+   if (sizeof (SCOTCH_Num) != sizeof (Gnum)) {
+     errorPrint (STRINGIFY (SCOTCH_archMesh3) ": internal error");
+@@ -442,8 +440,8 @@ const SCOTCH_Num            dimzval)
+     return (1);
+   }
+ 
+-  if ((archsiz  = tgtarchdatptr->c[0], (archsiz * tgtarchdatptr->c[1]) < archsiz) ||
+-      (archsiz *= tgtarchdatptr->c[1], (archsiz * tgtarchdatptr->c[2]) < archsiz)) {
++  if ((tgtarchdatptr->c[0] > (ANUMMAX / tgtarchdatptr->c[1])) || /* Number of terminals must fit in an Anum */
++      ((tgtarchdatptr->c[0] * tgtarchdatptr->c[1]) > (ANUMMAX / tgtarchdatptr->c[2]))) {
+     errorPrint (STRINGIFY (SCOTCH_archMesh3) ": invalid architecture size");
+     return (1);
+   }
+@@ -487,12 +485,12 @@ const SCOTCH_Num * const    dimntab)              /*+ Array of dimensions
+   tgtarchdatptr->dimnnbr = dimnnbr;
+   memCpy (tgtarchdatptr->c, dimntab, dimnnbr * sizeof (SCOTCH_Num)); /* Copy dimension array */
+ 
+-  for (dimnnum = 1, archsiz = tgtarchdatptr->c[0]; dimnnum < tgtarchdatptr->dimnnbr; dimnnum ++) {
++  for (dimnnum = 0, archsiz = 1; dimnnum < tgtarchdatptr->dimnnbr; dimnnum ++) {
+     if (tgtarchdatptr->c[dimnnum] < 1) {
+       errorPrint (STRINGIFY (SCOTCH_archMeshX) ": invalid parameters (2)");
+       return (1);
+     }
+-    if ((archsiz * tgtarchdatptr->c[dimnnum]) < archsiz) {
++    if (archsiz > (ANUMMAX / tgtarchdatptr->c[dimnnum])) { /* Number of terminals must fit in an Anum */
+       errorPrint (STRINGIFY (SCOTCH_archMeshX) ": invalid architecture size");
+       return (1);
+     }
+@@ -677,7 +675,6 @@ const SCOTCH_Num            dimyval)
+ {
+   Arch *              tgtarchptr;
+   ArchTorusX *        tgtarchdatptr;
+-  Anum                archsiz;
+ 
+   if (sizeof (SCOTCH_Num) != sizeof (Gnum)) {
+     errorPrint (STRINGIFY (SCOTCH_archTorus2) ": internal error");
+@@ -693,7 +690,13 @@ const SCOTCH_Num            dimyval)
+   tgtarchdatptr->c[0]    = (Anum) dimxval;
+   tgtarchdatptr->c[1]    = (Anum) dimyval;
+ 
+-  if (archsiz = tgtarchdatptr->c[0], (archsiz * tgtarchdatptr->c[1]) < archsiz) {
++  if ((tgtarchdatptr->c[0] < 1) ||
++      (tgtarchdatptr->c[1] < 1)) {
++    errorPrint (STRINGIFY (SCOTCH_archTorus2) ": invalid parameters");
++    return (1);
++  }
++
++  if (tgtarchdatptr->c[0] > (ANUMMAX / tgtarchdatptr->c[1])) { /* Number of terminals must fit in an Anum */
+     errorPrint (STRINGIFY (SCOTCH_archTorus2) ": invalid torus size");
+     return (1);
+   }
+@@ -714,7 +717,6 @@ const SCOTCH_Num            dimzval)
+ {
+   Arch *              tgtarchptr;
+   ArchTorusX *        tgtarchdatptr;
+-  Anum                archsiz;
+ 
+   if (sizeof (SCOTCH_Num) != sizeof (Gnum)) {
+     errorPrint (STRINGIFY (SCOTCH_archTorus3) ": internal error");
+@@ -731,8 +733,15 @@ const SCOTCH_Num            dimzval)
+   tgtarchdatptr->c[1]    = (Anum) dimyval;
+   tgtarchdatptr->c[2]    = (Anum) dimzval;
+ 
+-  if ((archsiz  = tgtarchdatptr->c[0], (archsiz * tgtarchdatptr->c[1]) < archsiz) ||
+-      (archsiz *= tgtarchdatptr->c[1], (archsiz * tgtarchdatptr->c[2]) < archsiz)) {
++  if ((tgtarchdatptr->c[0] < 1) ||
++      (tgtarchdatptr->c[1] < 1) ||
++      (tgtarchdatptr->c[2] < 1)) {
++    errorPrint (STRINGIFY (SCOTCH_archTorus3) ": invalid parameters");
++    return (1);
++  }
++
++  if ((tgtarchdatptr->c[0] > (ANUMMAX / tgtarchdatptr->c[1])) || /* Number of terminals must fit in an Anum */
++      ((tgtarchdatptr->c[0] * tgtarchdatptr->c[1]) > (ANUMMAX / tgtarchdatptr->c[2]))) {
+     errorPrint (STRINGIFY (SCOTCH_archTorus3) ": invalid torus size");
+     return (1);
+   }
+@@ -759,6 +768,10 @@ const SCOTCH_Num * const    dimntab)              /*+ Array of dimensions
+     errorPrint (STRINGIFY (SCOTCH_archTorusX) ": internal error");
+     return (1);
+   }
++  if (dimnnbr < 1) {
++    errorPrint (STRINGIFY (SCOTCH_archTorusX) ": invalid parameters (1)");
++    return (1);
++  }
+   if (dimnnbr > ARCHMESHDIMNMAX) {
+     errorPrint (STRINGIFY (SCOTCH_archTorusX) ": too many dimensions");
+     return (1);
+@@ -772,8 +785,12 @@ const SCOTCH_Num * const    dimntab)              /*+ Array of dimensions
+   tgtarchdatptr->dimnnbr = dimnnbr;
+   memCpy (tgtarchdatptr->c, dimntab, dimnnbr * sizeof (SCOTCH_Num)); /* Copy dimension array */
+ 
+-  for (dimnnum = 1, archsiz = tgtarchdatptr->c[0]; dimnnum < tgtarchdatptr->dimnnbr; dimnnum ++) {
+-    if ((archsiz * tgtarchdatptr->c[dimnnum]) < archsiz) {
++  for (dimnnum = 0, archsiz = 1; dimnnum < tgtarchdatptr->dimnnbr; dimnnum ++) {
++    if (tgtarchdatptr->c[dimnnum] < 1) {
++      errorPrint (STRINGIFY (SCOTCH_archTorusX) ": invalid parameters (2)");
++      return (1);
++    }
++    if (archsiz > (ANUMMAX / tgtarchdatptr->c[dimnnum])) { /* Number of terminals must fit in an Anum */
+       errorPrint (STRINGIFY (SCOTCH_archTorusX) ": invalid torus size");
+       return (1);
+     }
+-- 
+2.43.0
+

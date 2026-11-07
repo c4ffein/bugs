@@ -1,0 +1,5 @@
+PS3-G12-1 (new in 7.0.18, introduced by 22c9c42e): kgraphMapRbVfloMerge() hash table sized from dfixmax only,
+but it first inserts every domain of the mapping computed on the free vertices (mappptr->domnnbr of them).
+Few fixed vertices + many parts => table full => probe loop without exit (hang).
+Build: gcc -O0 -g -fsanitize=address,undefined -I$B/include fewfix.c -o fewfix -L$B/lib -lscotch -lscotcherr -lz -lm -lpthread
+  timeout 60 ./fewfix 1 64     (1 fixed vertex, 64 parts, 32x32 grid)

@@ -1,0 +1,10 @@
+7.0.18 round: changes to the 7.0.17 kit copied from PYS/upstream/repro/G18-dgraph-fold-redist
+- Every driver calls MPI_Init_thread (MPI_THREAD_MULTIPLE) instead of MPI_Init (threaded Scotch).
+- common/scan.sh: timeout -k 5 ${FI_TIMEOUT:-60} (mpirun ignored TERM once its children were zombies);
+  "HANG" now means exit 124 after FI_TIMEOUT seconds (runs here used FI_TIMEOUT=20 or 25).
+- common/build.sh builds every driver of the kit.
+- Library trees (build them yourself, e.g. cp src/Make.inc/Makefile.inc.x86-64_pc_linux2 src/Makefile.inc, set CCP=CCD=mpicc, make ptscotch; export WORK and INFRA): pristine v7.0.18 tree "pristinefi", and the same tree with this group's series ("buildfi"). Original runs used a UBSan + -ftrivial-auto-var-init=pattern build.
+  $WORK/pristinefi  (WORK = your scratch dir; any plain -O1 -g build of the pristine tag)
+  patched: $WORK/buildfi (same flags, this group's series); ASan trees: $INFRA/asan (pristine), $WORK/build, $WORK/build64.
+- Results of this round: *_7018.txt files in this directory and its subdirectories (fi_*.txt = fault injection).
+- New kit FOLDCOMM-7e17084b/ (skewed-distribution fold sweep, see its README).

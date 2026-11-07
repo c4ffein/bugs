@@ -1,0 +1,54 @@
+--- gra02pub 4 rf{bal=0.00001}
+=================================================================
+==11695==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50200000007c at pc 0x7fbb0987a19c bp 0x7ffcfec34fb0 sp 0x7ffcfec34fa0
+READ of size 4 at 0x50200000007c thread T0
+    #0 0x7fbb0987a19b in kgraphMapFmTablGet /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:129
+    #1 0x7fbb0989c64f in _SCOTCHkgraphMapFm /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:1328
+rc=1
+--- gra02int 16 4 1
+=================================================================
+==11802==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50200000005c at pc 0x7f868ea7a19c bp 0x7ffcd1cfbda0 sp 0x7ffcd1cfbd90
+READ of size 4 at 0x50200000005c thread T0
+    #0 0x7f868ea7a19b in kgraphMapFmTablGet /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:129
+    #1 0x7f868ea9c64f in _SCOTCHkgraphMapFm /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:1328
+rc=1
+--- gra02int 16 16 2
+=================================================================
+==11922==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x5030000000c4 at pc 0x7f7dfd47a19c bp 0x7fff06549f00 sp 0x7fff06549ef0
+READ of size 4 at 0x5030000000c4 thread T0
+    #0 0x7f7dfd47a19b in kgraphMapFmTablGet /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:129
+    #1 0x7f7dfd49c64f in _SCOTCHkgraphMapFm /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:1328
+rc=1
+--- gra02int 24 64 2
+=================================================================
+==12023==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50300000024c at pc 0x7f02cec7a19c bp 0x7ffce7969030 sp 0x7ffce7969020
+READ of size 4 at 0x50300000024c thread T0
+    #0 0x7f02cec7a19b in kgraphMapFmTablGet /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:129
+    #1 0x7f02cec9c64f in _SCOTCHkgraphMapFm /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan/src/libscotch/kgraph_map_fm.c:1328
+rc=1
+gra12 thr=2 runs=8 hangs=0 sanitizer=0
+gra12 thr=3 runs=8 hangs=3 sanitizer=1
+gra12 thr=4 runs=8 hangs=0 sanitizer=1
+gra18 pass=1: pass=1 ret=0 changed=0 cut 54 -> 54
+gra18 pass=21: pass=21 ret=0 changed=1 cut 54 -> 52
+gra18 pass=22: pass=22 ret=0 changed=1 cut 54 -> 52
+gra18 pass=23: pass=23 ret=0 changed=2 cut 54 -> 50
+gra18 pass=24: pass=24 ret=0 changed=7 cut 54 -> 40
+gra18 pass=25: pass=25 ret=0 changed=8 cut 54 -> 39
+--- gra19 
+orig : velosum=256 avg 64 64 64 64 dlt 64 64 -64 -64
+band : vertnbr=132 velosum=260 anchors deg/velo: 16/65 16/65 0/1 0/1
+band : avg 65 65 65 65 dlt 64 64 -64 -64  sum(avg)=260 sum(dlt)=0
+rc=0
+--- gra20 
+ret=0 changed=228 domnnbr=8 maxpart=7
+rc=0
+--- flagub_pristine 
+/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G13-kgraph-fm-df-bd/repro/GRA-16/flagub.c:11:31: runtime error: left shift of 1 by 31 pla
+    #0 0x55695cf5a221 in main /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G13-kgraph-fm-df-bd/repro/GRA-16/flagub.c:11
+    #1 0x7f80a882a1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+
+rc=1
+--- flagub_fixed 
+tab[0]=2147483648
+rc=0

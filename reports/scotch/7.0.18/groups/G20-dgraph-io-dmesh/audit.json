@@ -1,0 +1,460 @@
+[
+ {
+  "id": "DGR-03",
+  "our_title": "Distributed loaders: header errors now broadcast; element values still unvalidated",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "repro/DGR-03 (dgload, MPI_Init_thread) on pristine 7.0.18 ASan /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/infra18/asan, np=2: badprop.grf (property 1000000) and negprop.grf (-5) -> 'dgraphLoadCent: bad input (1)', rc=1 on both ranks, no ASan report (7.0.17: stack-buffer-overflow in sprintf on both ranks); badend.grf (edge end 99 > 4 vertices) -> load rc=0 then 'dgraphCheck: arc data do not match' (still accepted); negvert.grf -> HANG, negedge.grf -> rc=0 (PS2-G20-dgraph-io-dmesh-1). Patched (P1+P2): every malformed file rc=1 on every rank ('invalid arc end number' for badend); bump.grf np3 and small3-%r.dgr -d np3 still load and check. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/repro/asan_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "Agrees with review: reachable from any user file through SCOTCH_dgraphLoad/dgload; stack overflow (memory corruption) plus, for negative counts, a collective-mismatch hang.",
+  "location_7_0_18": "src/libscotch/dgraph_io_load.c:217-229 (fixed), 249-253 and 741-744 (snprintf), per-vertex reads of dgraphLoadCent/dgraphLoadDist (still unvalidated)",
+  "evidence": "dgraph_io_load.c:226-227: `errorPrint (\"dgraphLoadCent: bad input (1)\");\n      reduglbtab[0] = 1;` (now broadcast); :249 `snprintf (proptab, 4, \"%3.3d\", (int) reduglbtab[4]);`; edge ends and labels are still stored without range checks (badend.grf loads with rc=0)",
+  "upstream_change": "42e2df8464 Bugfix: set proper error flag [report R. Perry]; 45a4de8591 Robustify string processing [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "42e2df8464, 45a4de8591",
+   "verdict": "incomplete",
+   "details": "42e2df84 sets the broadcast flag reduglbtab[0] instead of the dead cheklocval (same one-line fix as ours): verified, the header error now reaches all processes and the overflow can no longer be reached. 45a4de85 replaces sprintf by snprintf (proptab, 4, ...) in both distributed loaders and graph_io.c: correct and harmless (the value is range-checked first anyway); twins left with sprintf: mesh_io.c:133 and scotch/gscat.c:181 (both range-checked before, so not bugs, just inconsistent). Not addressed: negative vertex/edge counts (PS2-G20-dgraph-io-dmesh-1: hang with np=2, silent rc=0 for negative edges) and the per-element validation of labels, degrees, edge ends and loads (badend.grf still loads).",
+   "compared_with_ours": "Our 7.0.17 0001 did the same flag fix plus the negative-count checks; it is shrunk to the negative counts (P1, now its own [report PyScotch] commit). Our 0002 (P2, per-element validation like graphLoad()) applies unchanged. His snprintf is an extra hardening we did not have."
+  },
+  "review_accuracy": "Accurate (flag never propagated, 12-byte worst-case write into char[4], dgraphLoadDist propagates correctly via reduloctab[0]=2). Found extra: negative vertex/edge counts are also unchecked (huge memAlloc + np>=2 hang), which the review did not mention.",
+  "first_pass_critique": "First pass's status/mechanism were right and option A (set reduglbtab[0]) is the correct core fix, but it stopped there: it missed that a VALID property with a negative vertex/edge count still crashes (allocation-size-too-big) and hangs peers, and it did not extend the fix to dgraphLoadDist or mirror graphLoad's label/degree/edge-end checks (the forwarded G14 lead). Its options B/C (snprintf / reduction rewrite) are unnecessary once the flag is set, since the property is then validated before the sprintf.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/mesh_io.c:133; src/scotch/gscat.c:181",
+    "quote": "sprintf (proptab, \"%3.3d\", (int) propval); (range-checked before; not robustified like 45a4de85)",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/dgraph_io_load.c dgraphLoadCent/dgraphLoadDist per-vertex reads",
+    "quote": "label/degree/edge-end/edge-load read with no range check",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Set the broadcast flag + reject negative counts (recommended)",
+    "summary": "Replace the dead 'cheklocval=1' with 'reduglbtab[0]=1' (the field actually broadcast) in dgraphLoadCent; reject negative global/local counts in both loaders.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0001-Bugfix-reject-negative-vertex-and-edge-counts-in-dis.patch",
+    "tested": "32-bit ASan + 64-bit: badprop/negprop/negvert/negedge all rc=1 on all ranks, no ASan/hang; valid files load; check_scotch_dgraph_check/dgtst/dgord/libparmetis_dual pass.",
+    "tradeoffs": "Minimal, no ABI change; property sprintf is safe once the gate fires (only reached for 0..111).",
+    "preferred": true,
+    "maintainer_fit": "The gate 'if (reduglbtab[0] != 0) return (1)' already exists two lines below; setting the broadcast field is the intended design. Negative-count rejection mirrors graphLoad ('invalid number of vertices/edges')."
+   },
+   {
+    "label": "snprintf + defensive re-validation after Bcast",
+    "summary": "Keep the flag dead; make each process re-validate and use snprintf.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0001-Bugfix-reject-negative-vertex-and-edge-counts-in-dis.patch",
+    "tested": "not built (first-pass sketch)",
+    "tradeoffs": "Duplicates the reader's check; snprintf is rarely used in libscotch core; does not fix the negative-count hang.",
+    "preferred": false,
+    "maintainer_fit": "He bounds sprintf inputs rather than switching to snprintf; would not take this."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0001-Bugfix-reject-negative-vertex-and-edge-counts-in-dis.patch",
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0002-Bugfix-validate-labels-degrees-and-edge-ends-read-by.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed (header flag and sprintf fixed upstream; element validation and negative counts remain: P2, P1)."
+ },
+ {
+  "id": "DGR-15",
+  "our_title": "Loaded distributed mesh leaked prelvrttab: fixed upstream",
+  "status": "fixed",
+  "method": "ran",
+  "ran": "`ASAN_OPTIONS=detect_leaks=1 mpirun -np 1 common/bin_asan/dmloadonly good.adm` against pristine 7.0.18 ASan: the LeakSanitizer report has no dmeshLoadAdm frame (7.0.17: leak allocated from dmeshLoadAdm dmesh_io_load.c:271); the remaining 34544 bytes are MPI's, identical with our series.",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Agrees with review; a small per-load leak, reachable via SCOTCH_dmeshLoad.",
+  "location_7_0_18": "src/libscotch/dmesh_io_load.c:271-280, 378",
+  "evidence": "dmesh_io_load.c:378: `meshptr->flagval   |= DMESHFREEPRIV | DMESHFREETABS;`; :271-280 `if (meshptr->prelvrttab == NULL) { ... memAlloc ... } else { prelvrttab = meshptr->prelvrttab; meshptr->prelvrttab = NULL; /* Prevent double freeing */ }`",
+  "upstream_change": "372a93ab01 Bugfix: prevent memory leak at allocation and freeing [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "372a93ab01",
+   "verdict": "correct",
+   "details": "Sets DMESHFREEPRIV on load (as dmeshBuildAdm does) and also reuses a prelvrttab already present in the mesh, clearing the mesh pointer so that the error paths (which free prelvrttab) cannot cause a double free. Verified with LeakSanitizer. Reloading into a non-empty mesh still leaks the previous element/edge arrays (pre-existing, not part of this item).",
+   "compared_with_ours": "Ours (7.0.17 0004) only set DMESHFREEPRIV; his also handles the reload case (our alternative option B). His is better; ours dropped."
+  },
+  "review_accuracy": "Accurate for the leak. The 'older prelvrttab overwritten' sub-claim applies only to re-loading into a used mesh (not a supported flow); not tested.",
+  "first_pass_critique": "Correct; one-token fix is right.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Set DMESHFREEPRIV with DMESHFREETABS (recommended)",
+    "summary": "Mark prelvrttab as private data on load.",
+    "diff_file": "",
+    "tested": "32/64-bit: leak frame gone; dual builds + checks pass.",
+    "tradeoffs": "One token, no ABI change.",
+    "preferred": true,
+    "maintainer_fit": "dmeshBuildAdm already sets DMESHFREEPRIV for the same array."
+   },
+   {
+    "label": "Also release a pre-existing prelvrttab",
+    "summary": "Free an old array before storing the new one.",
+    "diff_file": "",
+    "tested": "not built",
+    "tradeoffs": "Re-load into a used mesh would also need velm/eelm released; better handled by requiring an empty mesh.",
+    "preferred": false,
+    "maintainer_fit": "Over-engineered for an unsupported flow."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: fixed (372a93ab, superset of our 0004)."
+ },
+ {
+  "id": "DGR-16",
+  "our_title": "Mesh loader freed an unbased edge array on an unreachable path: hardened upstream",
+  "status": "not-a-bug",
+  "method": "ran",
+  "ran": "dmload dgr16_badsum.adm, np=1, pristine 7.0.18 ASan and our series: 'dmeshLoadAdm: inconsistent distributed mesh headers', rc=1 (rejected before 'bad input (2)'); good.adm and ship001-%r.adm (np=4) load, build their dual and check. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/repro/asan_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "info",
+  "severity_note": "Lower than the review's Low: the defect is real as written but unreachable, so the claimed heap corruption cannot occur.",
+  "location_7_0_18": "src/libscotch/dmesh_io_load.c:296-301, 313-318, 370-373",
+  "evidence": "dmesh_io_load.c:300-301: `else\n    eelmloctax -= baseval;                        /* Base edge array with new base */` right after the allocation; :316 `memFree (eelmloctax + baseval);`",
+  "upstream_change": "e1cfdb64f1 Bugfix: free based array in all cases [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "e1cfdb64f1",
+   "verdict": "correct",
+   "details": "Bases the edge array as soon as it is allocated, so that both the early error path (l.316, previously freeing the unbased pointer with a comment saying so) and the 'fail' label free the same based pointer. Also covers the bad input (2) path we flagged. No behaviour change on success (verified on good.adm and ship001).",
+   "compared_with_ours": "Ours (7.0.17 0007, a non-Bugfix hardening) moved the basing after the error gather; his bases earlier and is simpler. Ours dropped; a 3-way merge of ours on top of his would base twice, so it must not be re-applied."
+  },
+  "review_accuracy": "The code structure is as described but the consequence ('corrupting the heap on a malformed .adm file') cannot occur; severity info/hygiene.",
+  "first_pass_critique": "Correct (not-a-bug, unreachable). I verified adversarially at np=1 and np=2; added the maintainer-suggested hardening as a non-Bugfix commit so the latent free can never bite.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Base the edge array before the element-count check (hardening)",
+    "summary": "Move 'eelmloctax -= baseval' (and vnodglbnnd/eelmlocnnd) above the check so both the check's fail path and the normal path free the based pointer.",
+    "diff_file": "",
+    "tested": "32/64-bit builds clean; check_libparmetis_dual (small3/ship001) produces byte-identical .dgr output.",
+    "tradeoffs": "Pure hardening of a latent path; no behaviour change on any reachable input.",
+    "preferred": true,
+    "maintainer_fit": "Exactly the maintainer's own suggested remedy ('move eelmloctax -= baseval above the check')."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "none needed",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: not-a-bug -> 7.0.18 status: not-a-bug (path still unreachable; the hardening landed upstream as e1cfdb64)."
+ },
+ {
+  "id": "DGR-19",
+  "our_title": "Loader abort path leaves Isends pending and an unmatched message to the refusing rank",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "`FI_TIMEOUT=20 common/scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib common/bin_pristinefi/dgload 2 1 1 1 -- data/m4x4.grf -2` (pristine 7.0.18) -> nth=1 exit=124 HANG :: (1): ERROR: dgraphLoadCent: out of memory (6); r1: stray message pending before second load: src=0 tag=1. Patched (/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/buildfi, P3): rc=1 on both ranks, then the second load rc2=0. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/repro/fi_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Review says Low; kept low. Only triggers after a receiver OOM, but the lingering message then hangs the communicator's next collective, so impact is a hang rather than a mere leak.",
+  "location_7_0_18": "src/libscotch/dgraph_io_load.c:442-448, 521-526",
+  "evidence": "dgraph_io_load.c: on TAGBAD the root sets `cheklocval = 1;` without MPI_Waitall on the posted Isends, and the abortion loop `for ( ; procnum < procglbnbr; procnum ++)` starts at the refusing process",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "Accurate on both claims.",
+  "first_pass_critique": "Correct; its option A is the right fix. I verified the stray-message consequence end-to-end with a second load on the same communicator (it hangs on pristine), which the first pass only asserted.",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Waitall on TAGBAD and skip the refusing rank in the abort loop (recommended)",
+    "summary": "Track procabrnum (=procnum normally, procnum+1 after TAGBAD); MPI_Waitall the posted Isends in the TAGBAD branch; start the abort loop at procabrnum.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0003-Bugfix-do-not-leave-pending-sends-or-an-unmatched-ab.patch",
+    "tested": "32/64-bit: receiver-edge-OOM second load now rc2=0 (no hang); check_prog_dgtst/dgord and libparmetis_dual pass.",
+    "tradeoffs": "Local to the root; protocol unchanged for receivers.",
+    "preferred": true,
+    "maintainer_fit": "Matches the documented empty-message abortion protocol; the Waitall-before-free is the obvious correctness fix."
+   },
+   {
+    "label": "Make the refusing receiver consume the abortion message",
+    "summary": "Post a matching zero-byte recv on the receiver.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0003-Bugfix-do-not-leave-pending-sends-or-an-unmatched-ab.patch",
+    "tested": "not built",
+    "tradeoffs": "Couples correctness to a message the root may not send; pending root sends still need waiting.",
+    "preferred": false,
+    "maintainer_fit": "He fixes the sender side, not the receiver, here."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0003-Bugfix-do-not-leave-pending-sends-or-an-unmatched-ab.patch"
+  ],
+  "cleanup_done": "unchanged from 7.0.17",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (42e2df84/45a4de85 touched other lines of the file)."
+ },
+ {
+  "id": "DGR-20",
+  "our_title": "Dual-graph build: hash resize failure fixed collectively; edge array extension failure still hangs",
+  "status": "partially-fixed",
+  "method": "ran",
+  "ran": "np=1: `mpirun -np 1 -x LD_PRELOAD=common/reallfail.so common/bin_pristinefi/dmual` (pristine 7.0.18) -> 'dmeshDgraphDualHashEdgeResize: out of memory', 'dmeshDgraphDual: cannot build dual graph', returns (7.0.17: endless loop). New multi-process driver common/dmual2.c (np=3, every process resizes its hash table and extends its edge array), failure on rank 1 only: `FI_TIMEOUT=20 common/scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib common/bin_pristinefi/dmual2 3 1 14 18 -- 100` -> nth=14..16 (hash resize) rc=1 on ALL ranks (collective, upstream fix works); nth=17,18 (edge array extension, 'out of memory (6)') HANG: r1 rc=1, r0/r2 wait in dgraphBuild2. Patched (P5): nth=17,18 rc=1 on all ranks. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/repro/DGR-20/dmual2_np3.txt, /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/repro/fi_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "low",
+  "severity_note": "Agrees with review; an infinite loop under OOM, reachable via SCOTCH_dmeshDgraphDual.",
+  "location_7_0_18": "src/libscotch/dmesh_dgraph.c:594-602 (fixed), 621-626 (remaining), 646-664",
+  "evidence": "dmesh_dgraph.c:597-599: `if (dmeshDgraphDualHashEdgeResize (...) != 0) {\n                velmlocnbr = -1;                  /* TRICK: make dgraphBuild2() fail collectively */\n                goto abort;`; :623-625 `if ((edgeloctmp = memRealloc (edgeloctax + baseval, edgelocmax * sizeof (Gnum))) == NULL) {\n                    errorPrint (\"dmeshDgraphDual: out of memory (6)\");\n                    return (1);`",
+  "upstream_change": "484adec3b8 Bugfix: manage out-of-memory error if hash table cannot be resized [report R. Perry]",
+  "upstream_fix_review": {
+   "commit": "484adec3b8",
+   "verdict": "incomplete",
+   "details": "Correct and collective for the hash table: the failing process jumps to the common exit with velmlocnbr = -1, which dgraphBuild2() propagates through its existing Allgather (the error-code trick documented in dgraph_build.c:168 and :202), so every process returns 1 and the work arrays are freed: verified with np=3. Incomplete: the sibling failure in the same loop, the extension of the dual edge array (l.623-626, 'out of memory (6)'), still returns alone, leaking helmtab/hnodtab/nrcvdattab/vertloctax/edgeloctax, while the other processes wait in dgraphBuild2(): verified HANG at np=3. Also unchanged: the earlier local returns (out of memory (1)-(5), l.255-512) before the Alltoall(v)s, and the unchecked shrinking realloc at l.652, which is now also reached on the error path (edge array of possibly 0 words).",
+   "compared_with_ours": "Ours (7.0.17 0005) only freed and returned locally (no hang at np=1, but a hang at np>1 for the remote processes); his is better (collective, no extra communication). Ours is replaced by P5, which applies his own trick to the 'out of memory (6)' site (3 lines, same comment)."
+  },
+  "review_accuracy": "Accurate; the function is documented to return non-zero on out-of-memory but the only caller discards it.",
+  "first_pass_critique": "Correct; option A (check result + cleanup) is the maintainer idiom. I did not take its option 2 (collective failure) as the committed fix: that is a broader collective-safety rework shared with PS-DGR-2 (every return(1) in this function is local-only), which is a separate, larger change.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dmesh_dgraph.c:623-626",
+    "quote": "errorPrint (\"dmeshDgraphDual: out of memory (6)\");\n                    return (1);",
+    "covered_by_patch": true
+   },
+   {
+    "location": "src/libscotch/dmesh_dgraph.c:255-512 (out of memory (1)..(5), communication errors)",
+    "quote": "return (1) after errorPrint, with no collective agreement before the following MPI_Alltoall(v)",
+    "covered_by_patch": false
+   },
+   {
+    "location": "src/libscotch/dmesh_dgraph.c:652-653",
+    "quote": "edgeloctax  = memRealloc (edgeloctax + baseval, (edgelocnum - baseval) * sizeof (Gnum)); edgeloctax -= baseval; (unchecked shrink)",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "A: apply upstream's velmlocnbr = -1 trick to the edge array extension failure (recommended)",
+    "summary": "On 'out of memory (6)', set velmlocnbr = -1 and goto abort, so that dgraphBuild2() fails on all processes and the work arrays are freed, exactly as 484adec3 does for the hash table.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0005-Bugfix-make-edge-array-extension-failure-collective-.patch",
+    "tested": "dmual2 np=3 nth=14..18: rc=1 on all ranks; check_libparmetis_dual passes 32/64-bit",
+    "tradeoffs": "none: reuses the existing collective",
+    "preferred": true,
+    "maintainer_fit": "his own idiom, 3 lines"
+   },
+   {
+    "label": "B: our 7.0.17 local free-and-return (superseded)",
+    "summary": "Free the work arrays and return 1 locally.",
+    "diff_file": "",
+    "tested": "7.0.17 round, np=1 only",
+    "tradeoffs": "other processes hang at np>1",
+    "preferred": false,
+    "maintainer_fit": "superseded by 484adec3"
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0005-Bugfix-make-edge-array-extension-failure-collective-.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: partially-fixed (484adec3 fixes the reported hash resize collectively; the edge array extension failure remains: P5, [report PyScotch])."
+ },
+ {
+  "id": "CLI-04",
+  "our_title": "adm2dgr links a returning error library in CMake and mismatches memAlloc/free",
+  "status": "still-present",
+  "method": "partly-run",
+  "ran": "check_libparmetis_dual (Makefile build, adm2dgr rebuilt from the patched adm2dgr.c, ASan 32-bit): rc=0, outputs match data/small3-*.dgr. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/logs/chk_build_check_libparmetis_dual.log",
+  "read_only": "the CMake link line (no CMake build in this environment) and the pristine code paths (free of memAlloc'd prelvrttab at adm2dgr.c:220, MPI_COMM_WORLD at :208, wrong routine name at :188) were checked by reading",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Agrees with review: in CMake builds errorPrint returns and execution continues on uninitialised arrays.",
+  "location_7_0_18": "src/libscotchmetis/CMakeLists.txt:217; src/libscotchmetis/adm2dgr.c:130, 188, 208, 220",
+  "evidence": "CMakeLists.txt:217: `target_link_libraries(adm2dgr PRIVATE ptscotchparmetisv${version} ptscotch scotch ptscotcherr)`; adm2dgr.c:220 `free (prelvrttab);` (allocated with memAlloc at :184); :188 `errorPrint (\"dmeshBuildAdm: communication error\");`; :208 `SCOTCH_dgraphInit (&grafdat, MPI_COMM_WORLD);`",
+  "upstream_change": "635741dda9 (same CMake file: removes the parmetis_h custom target and add_dependencies(adm2dgr parmetis_h); link line unchanged)",
+  "upstream_fix_review": {
+   "commit": "635741dda9",
+   "verdict": "unrelated",
+   "details": "Build-ordering change for older Bison versions (A. Lindsay); it removed the add_dependencies line next to our hunk, which made our patch conflict on context only. The link library is still ptscotcherr.",
+   "compared_with_ours": "Our P4 is rebased on the new context (only the link line changes in CMake)."
+  },
+  "review_accuracy": "Accurate except 'dgraphInit given MPI_COMM_WORLD instead of proccomm' is cosmetic here (equal values); fixed anyway for correctness.",
+  "first_pass_critique": "Accurate. Its claim that adm2dgr 'cannot load any mesh' is wrong: adm2dgr loads .adm (version-3) files via dmeshLoadAdm and is exercised by check_libparmetis_dual; only .msh (dmeshLoadCent) is unimplemented. So the tool IS reachable and the fix matters.",
+  "extra_instances": [
+   {
+    "location": "grep of src/scotch and src/libscotchmetis link lines",
+    "quote": "all src/scotch tools (Makefile+CMake) link *errexit; adm2dgr is the only tool linking non-exit ptscotcherr in CMake",
+    "covered_by_patch": true
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Link ptscotcherrexit in CMake + tidy the tool (recommended)",
+    "summary": "CMake: ptscotcherr -> ptscotcherrexit; code: memFree(prelvrttab), free() the dual arrays, fix the message, use proccomm.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0004-Bugfix-link-the-exiting-error-library-and-free-user-.patch",
+    "tested": "Rebuilt against ptscotcherrexit; -c2 small3 and -c3 ship001 outputs match the reference .dgr files.",
+    "tradeoffs": "Smallest, consistent with every other tool; no behaviour change in the working Makefile build.",
+    "preferred": true,
+    "maintainer_fit": "Every other Scotch tool links the exiting error library in both build systems; this restores the convention."
+   },
+   {
+    "label": "Make every error path return explicitly",
+    "summary": "Keep the returning library; wrap each error in MPI_Abort + cleanup label.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0004-Bugfix-link-the-exiting-error-library-and-free-user-.patch",
+    "tested": "not built",
+    "tradeoffs": "Bigger rewrite deviating from the repo's exit-on-error idiom.",
+    "preferred": false,
+    "maintainer_fit": "Tools rely on the exit library; he would not special-case this one."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0004-Bugfix-link-the-exiting-error-library-and-free-user-.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS-DGR-2",
+  "our_title": "Halo send-buffer allocation failure is local-only; peers hang in the halo collective",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "`FI_TIMEOUT=20 common/scan.sh <lib> common/bin_<build>/halofi 2 1 3 4 -- lblring.grf`: nth=4 (dgraphHaloSync2: out of memory) HANG on pristine 7.0.18 and on our series (no patch). Also seen from G18 (dgraphRedist nth=4), G19 (dgraphInduce2 nth=3) and G21 (dgraphCoarsenBuild): every caller hangs. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/repro/fi_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "Hang under OOM, reachable through the public SCOTCH_dgraphSave and internally through band/coarsen/induce/redist.",
+  "location_7_0_18": "src/libscotch/dgraph_halo.c:221-228 (message at 226)",
+  "evidence": "dgraph_halo.c: dgraphHaloSync2()'s memAllocGroup failure does `errorPrint (\"dgraphHaloSync2: out of memory\"); return (1);` with no agreement before the MPI_Alltoallv entered by the other processes",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "n/a (first-pass PS defect). Confirmed and extended: dgraphSave's own vlblgsttax allocation (dgraph_io_save.c) is a sibling instance.",
+  "first_pass_critique": "First pass's diagnosis is right. Its preferred option (pre-allocate scratch in dgraphGhst) is indeed the zero-overhead fix but touches dgraph_ghst.c/dgraph.h (G19) and was never compiled; its option A (allreduce in HaloSync2) is correct but it did not note that dgraphHaloSync is called inside bdgraph/vdgraph diffusion loops, where an unconditional Allreduce is a hot-path cost the maintainer guards elsewhere under SCOTCH_DEBUG.",
+  "extra_instances": [
+   {
+    "location": "src/libscotch/dgraph_io_save.c:~75 (vlblgsttax memAlloc) and :72 (dgraphGhst)",
+    "quote": "local alloc failure returns 1 before dgraphHaloSync, hanging peers (FI_NTH=3 repro)",
+    "covered_by_patch": false
+   }
+  ],
+  "fix_options": [
+   {
+    "label": "Unconditional agreement inside dgraphHaloSync2 (alt A, tested)",
+    "summary": "Allreduce cheklocval after the memAllocGroup; free the group leader where allocated; return 1 everywhere.",
+    "diff_file": "/home/user/playground/clones/pyscotch/upstream/reports/7.0.17/alt/G20-dgraph-io-dmesh/PS-DGR-2-A-halosync2-allreduce.diff",
+    "tested": "Built (pristinefi) and run: FI_NTH=4 now returns rc=1 on both ranks with no hang; labeled save np2/np3 still rc=0.",
+    "tradeoffs": "Adds one MPI_Allreduce to every halo exchange, including inside diffusion iteration loops (bdgraph_bipart_df / vdgraph_separate_df) -- a measurable hot-path cost.",
+    "preferred": false,
+    "maintainer_fit": "He guards 'cannot be merged with a useful one' agreements under SCOTCH_DEBUG_DGRAPH1 (dgraph_build.c), so an unconditional one on this hot path is against his habit."
+   },
+   {
+    "label": "Pre-allocate the halo scratch in the Dgraph at ghost-build time (alt B, described)",
+    "summary": "Allocate the send/displacement/request scratch once when the ghost edge array is built (dgraphGhst already agrees on its allocation errors collectively) and reuse it; free at dgraphExit.",
+    "diff_file": "",
+    "tested": "untested: touches dgraph.h (new field) and dgraph_ghst.c (G19) plus dgraphExit; cross-group and a small ABI/struct change.",
+    "tradeoffs": "Zero per-call overhead and no new collective, at the cost of holding the scratch for the graph lifetime.",
+    "preferred": true,
+    "maintainer_fit": "Matches his preference for agreeing allocation failures where a collective already exists (dgraphGhst), with no hot-path cost."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "maintainer decision",
+  "needs_note": "alt A (unconditional Allreduce in dgraphHaloSync2, one collective per halo exchange on a hot path) still applies to v7.0.18; alt B (pre-allocate the scratch at ghost-build time) is the cleaner design. Same release-build agreement question as G18/G19/G21.",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present (dgraph_halo.c untouched)."
+ },
+ {
+  "id": "PS2-G20-dgraph-io-dmesh-1",
+  "our_title": "Distributed graph loaders accept negative vertex/edge counts: hang or silent success",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "dgload on pristine 7.0.18 ASan, np=2: negvert.grf (header '-4 8') -> HANG (timeout 25 s); negedge.grf ('4 -8') -> rc=0, check=0 on both ranks (accepted). Patched (P1): both rc=1 on every rank, 'dgraphLoadCent: bad input (1)'. Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/repro/asan_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "high",
+  "severity_note": "hang on malformed input",
+  "location_7_0_18": "src/libscotch/dgraph_io_load.c:220-229, 692-695",
+  "evidence": "dgraph_io_load.c:224-225: `(reduglbtab[4] < 0)                      ||\n        (reduglbtab[4] > 111)) {` (only the property field is range-checked); dgraphLoadDist :692-694 `if ((o != 8)            ||\n      (reduloctab[9] < 0) ||\n      (reduloctab[9] > 111)) {`",
+  "upstream_change": "42e2df8464 (same condition; the flag fix makes P1's checks reach all processes)",
+  "upstream_fix_review": {
+   "commit": "42e2df8464",
+   "verdict": "unrelated",
+   "details": "The header test still validates only the property field; with the now-broadcast flag, P1's added count checks propagate to all processes without any other change.",
+   "compared_with_ours": "P1 is our 7.0.17 0001 shrunk to the negative-count checks, aligned on his new '||' column."
+  },
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Reject negative counts in both loaders",
+    "summary": "Add vertglbnbr/edgeglbnbr (and local-count) negativity checks to the header validation of dgraphLoadCent and dgraphLoadDist.",
+    "diff_file": "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0001-Bugfix-reject-negative-vertex-and-edge-counts-in-dis.patch",
+    "tested": "32/64-bit: negvert/negedge rc=1 on all ranks, no ASan/hang; valid files unaffected.",
+    "tradeoffs": "None; mirrors graphLoad.",
+    "preferred": true,
+    "maintainer_fit": "Same rejection graphLoad already performs for the centralized format."
+   }
+  ],
+  "patch_files": [
+   "/tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/patches/0001-Bugfix-reject-negative-vertex-and-edge-counts-in-dis.patch"
+  ],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "",
+  "needs_note": "",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ },
+ {
+  "id": "PS2-G20-dgraph-io-dmesh-2",
+  "our_title": "dgraphSave allocation failure is local-only; peers hang in the label halo exchange",
+  "status": "still-present",
+  "method": "ran",
+  "ran": "`FI_TIMEOUT=20 common/scan.sh /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G18-dgraph-fold-redist/pristinefi/lib common/bin_pristinefi/halofi 2 1 3 3 -- lblring.grf` -> nth=3 HANG :: (1): ERROR: dgraphSave: out of memory; r1 save rc=1 (r0 waits in dgraphHaloSync); same on our series (no patch). Output: /tmp/claude-0/-home-user-playground/925301e5-494b-5a33-b598-8eaa63dd5c1d/scratchpad/work18/G20-dgraph-io-dmesh/repro/fi_7018.txt",
+  "read_only": "",
+  "why_not_run": "",
+  "severity": "medium",
+  "severity_note": "hang on out-of-memory",
+  "location_7_0_18": "src/libscotch/dgraph_io_save.c:95-98",
+  "evidence": "dgraphSave(): local `errorPrint (\"dgraphSave: out of memory\"); return (1);` before the collective dgraphHaloSync() on the label array",
+  "upstream_change": "",
+  "upstream_fix_review": {},
+  "review_accuracy": "",
+  "first_pass_critique": "",
+  "extra_instances": [],
+  "fix_options": [
+   {
+    "label": "Agree on the allocation status before the halo exchange",
+    "summary": "Reduce the local allocation flag across the communicator in dgraphSave before calling dgraphHaloSync, returning on every rank if any failed.",
+    "diff_file": "",
+    "tested": "untested: part of the same halo collective-safety decision as PS-DGR-2 (alt A/B); not committed.",
+    "tradeoffs": "One small collective in the save path (not a hot loop, so cheaper than the halo-core case).",
+    "preferred": true,
+    "maintainer_fit": "Matches his 7.0.17 reworks that make a local allocation failure join the following collective (e.g. dgraphInduce2, hdgraphGather)."
+   }
+  ],
+  "patch_files": [],
+  "cleanup_done": "",
+  "test_added": "",
+  "docs_updated": "",
+  "needs": "maintainer decision",
+  "needs_note": "same class as PS-DGR-2; fix option A (agree before the halo exchange) not committed pending the release-build agreement decision",
+  "notes": "7.0.17 status: still-present -> 7.0.18 status: still-present."
+ }
+]
