@@ -6,7 +6,7 @@ import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { type Bug, ROOT } from "./lib";
 import {
-  type Tracker, discoveriesOf, discoveryDate, fields, flat, importedSummary, load, presenceOf, witnessText,
+  type Tracker, discoveriesOf, discoveryDate, fields, flat, importedSummary, load, presenceOf, residueOf, witnessText,
 } from "./views";
 
 // A record printed TOML-like, for reading (scripts never write TOML).
@@ -39,7 +39,7 @@ export function showText(t: Tracker, b: Bug, full = false): string {
   const presence = presenceOf(b);
   if (presence.length) {
     section("presence");
-    for (const [v, p] of presence) out.push(`  ${v.padEnd(8)}  ${p}${p === "partially-fixed" && b.residue ? `  (residue: ${b.residue})` : ""}`);
+    for (const [v, p] of presence) out.push(`  ${v.padEnd(8)}  ${p}${p === "partially-fixed" && residueOf(b, v) ? `  (residue: ${residueOf(b, v)})` : ""}`);
   }
   if (b.discovery?.length) {
     section("discoveries");

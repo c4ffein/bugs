@@ -30,6 +30,15 @@ date = "2026-04-30"
 date_is = "stated"
 ref = "hegel-c-findings#scotch-graphpart-strat-f-d-segv"
 
+[presence]                                     # hegel-c runs 2026-10-25 and 2026-10-30 on Scotch master b4801dbf (v7.0.17); hegel-c run 2026-11-06-scotch-v7-0-18 (v7.0.18, 275a92121f8a) (SIGSEGV without ASan on both)
+"7.0.17" = "present"
+"7.0.18" = "present"
+
+[[link]]
+to = "scotch-gra-19"
+rel = "distinct-from"
+reason = "reviewed 2026-11-06 (hegel-c's PyScotch handoff): same function (kgraphCost), different defect; GRA-19 is the dead isolated-anchor block, this one the unset mapping dereferenced after the f / d strategies"
+
 [imported]
 
 [imported.hegel-c-findings]

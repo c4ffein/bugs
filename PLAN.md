@@ -439,8 +439,9 @@ the `bugs` commit that imported it. Removal comes only after `conserve`
 passes against the snapshots.
 
 **Phase 5: witnesses run.** The kits run from here. hegel-c's pins join once
-hegel-c has its first tag (see hegel-c's `TODO.md`, "First tag", and
-`PYSCOTCH_HANDOFF.md`, phase 2). On each new upstream release, every witness
+hegel-c has its first tag (see hegel-c's `TODO.md`, "First tag"); then every
+`hegel-c-pin` and `hegel-c-test` witness's `ref = "pending"` becomes that tag.
+On each new upstream release, every witness
 runs and fills the new `[presence]` column; each change is flagged for
 review.
 

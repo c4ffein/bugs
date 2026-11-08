@@ -8,7 +8,8 @@ kind = "contract"
 confidence = "high"
 reach = "latent"
 disclosure = "public"
-state = "suspected"
+state = "duplicate"
+state_before_duplicate = "suspected"
 writeup = "data/submissions/scotch-archbuild-pairing-fix/v1/analysis.md"
 
 [[source]]
@@ -19,6 +20,11 @@ by = "by-hand"
 date = "2026-07-04"
 date_is = "stated"
 ref = "hegel-c-findings#scotch-archbuild-deco2-retval"
+
+[[link]]
+to = "scotch-cor-16"
+rel = "duplicate-of"
+reason = "checked 2026-11-08: COR-16's 7.0.17 evidence is the same dropped return ('archDecoArchBuild2 (...)' at arch_deco.c:297 ignores the result); COR-16 bundles it with two other deco-loader defects. Its 7.0.18 entry: 09cf49decc propagates the result now, so this part is fixed in 7.0.18 (COR-16's residue: the debug-only count check and the unvalidated type-1 data)"
 
 [imported]
 

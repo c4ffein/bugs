@@ -9,15 +9,10 @@ confidence = "low"
 reach = "unknown"
 disclosure = "public"
 state = "withdrawn"
+notes = "Not a bug: the rule that showed it preallocated for one position, moved with mas_set, then stored, which breaks the maple API; it crashed on the fixed kernel too. No witness: hegel-c's pin maple_prealloc, once listed here, witnesses upstream's own bug fba46a5d83ca (a corpus target, out of scope here) and since 2026-11-08 reaches it through RCU-mode trees; its PIN_BUG pointing here was removed."
 
 [[source]]
 ref = "hegel-c-findings#linux-maple-prealloc-sticky-flag"
-
-[[witness]]
-kind = "hegel-c-pin"
-repo = "https://github.com/c4ffein/hegel-c"
-ref = "pending"
-pin = "tests/irl/linux/pins/maple_prealloc.conf"
 
 [[discovery]]
 by = "hegel-c"

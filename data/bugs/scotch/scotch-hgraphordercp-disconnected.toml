@@ -33,6 +33,11 @@ date = "2026-04"
 date_is = "stated"
 ref = "hegel-c-findings#scotch-hgraphordercp-disconnected"
 
+[[link]]
+to = "scotch-gra-25"
+rel = "distinct-from"
+reason = "reviewed 2026-11-06 (hegel-c's PyScotch handoff): same function (hgraphOrderCp), different defect; GRA-25 is a leak on strategy failure, this one the permutation written at the wrong offset"
+
 [imported]
 
 [imported.hegel-c-findings]

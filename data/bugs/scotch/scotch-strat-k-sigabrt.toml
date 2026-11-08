@@ -30,6 +30,10 @@ date = "2026-04-30"
 date_is = "stated"
 ref = "hegel-c-findings#scotch-strat-k-sigabrt"
 
+[presence]                                     # hegel-c runs 2026-10-25 and 2026-10-30 on Scotch master b4801dbf (v7.0.17); hegel-c run 2026-11-06-scotch-v7-0-18 (v7.0.18, 275a92121f8a) (heap read at hgraph_order_kp.c:141 on both)
+"7.0.17" = "present"
+"7.0.18" = "present"
+
 [imported]
 
 [imported.hegel-c-findings]

@@ -26,6 +26,29 @@ date = "2026-04"
 date_is = "stated"
 ref = "hegel-c-findings#scotch-archsub-off-by-one"
 
+[presence]                                     # hegel-c runs 2026-10-25 and 2026-10-30 on Scotch master b4801dbf (v7.0.17); hegel-c run 2026-11-06-scotch-v7-0-18 (v7.0.18, 275a92121f8a)
+"7.0.17" = "present"
+"7.0.18" = "partially-fixed"
+
+[residue]
+"7.0.18" = "No out-of-bounds write any more (upstream's new unconditional checks in archSubArchBuild(), ecaf094ef7, catch the inconsistent state), but SCOTCH_archSub now refuses the valid request with rc 2: SCOTCH_archCmplt(2), keep {1}. The cause is still there: arch_sub.c:466 passes vnumnbr where archSubArchBuild2() needs orgtermnbr. hegel-c's patch (pins/archSubSingle.patch) still applies and, under ASan, makes the witness green."
+
+[[witness]]                                    # the residue's witness: red on 7.0.18
+kind = "hegel-c-test"
+repo = "https://github.com/c4ffein/hegel-c"
+ref = "pending"
+test = "tests/irl/scotch/props/test_arch_sub.c"
+
+[[link]]
+to = "scotch-cor-03"
+rel = "distinct-from"
+reason = "reviewed 2026-11-06 (hegel-c's PyScotch handoff): same file (arch_sub.c), different defect; COR-03 is the terminal-list range and duplicate checks compiled out of release builds"
+
+[[link]]
+to = "scotch-cor-04"
+rel = "distinct-from"
+reason = "reviewed 2026-11-06 (hegel-c's PyScotch handoff): same file (arch_sub.c), different defect; COR-04 is the double free on a failed sub-architecture load"
+
 [imported]
 
 [imported.hegel-c-findings]

@@ -125,6 +125,11 @@ export const discoveriesOf = (b: Bug) =>
   [...(b.discovery ?? [])].sort((x: any, y: any) => (x.date ?? "9").localeCompare(y.date ?? "9"));
 export const discoveryDate = (d: any) => (d.date ? `${d.date}${d.date_is === "upper-bound" ? " or earlier" : ""}` : "undated");
 
+// The residue of a partially-fixed column: [residue] is per version ("7.0.18" = "..."),
+// a plain string applies to every version.
+export const residueOf = (b: any, v: string): string | undefined =>
+  typeof b.residue === "string" ? b.residue : b.residue?.[v];
+
 // A witness without its kind, on one line.
 export const witnessText = (w: any) => flat(Object.fromEntries(Object.entries(w).filter(([k]) => k !== "kind")));
 

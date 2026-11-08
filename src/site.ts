@@ -8,7 +8,7 @@ import { join, relative, resolve } from "node:path";
 import { type Bug, ROOT } from "./lib";
 import {
   Tracker, byStateOrder, discoveriesOf, discoveryDate, fields, flat, isOpen, load, presenceOf, sortBugs,
-  versionsOf, witnessText,
+  residueOf, versionsOf, witnessText,
 } from "./views";
 
 const esc = (s: any) => String(s ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -36,7 +36,7 @@ function detail(t: Tracker, b: Bug): string {
     .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === "uuid" ? `<a href="#${esc(v)}">${esc(v)}</a>` : esc(flat(v))}</dd>`);
   rows.push(`<dt>file</dt><dd>${esc(relative(ROOT, b.file ?? ""))}</dd>`);
   const presence = presenceOf(b).map(([v, p]) =>
-    `${esc(v)}: ${esc(p)}${p === "partially-fixed" && b.residue ? ` (residue: ${esc(b.residue)})` : ""}`);
+    `${esc(v)}: ${esc(p)}${p === "partially-fixed" && residueOf(b, v) ? ` (residue: ${esc(residueOf(b, v))})` : ""}`);
   const discoveries = discoveriesOf(b).map((d: any) =>
     `${esc(discoveryDate(d))}, ${esc(d.by ?? "?")}${d.ref ? ` <span class="muted">${esc(d.ref)}</span>` : ""}`);
   const sources = (b.source ?? []).map((s: any) => esc(s.ref ?? flat(s)));
